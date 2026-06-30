@@ -1,0 +1,67 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Owners — S2S Admin{% endblock %}
+{% block page_title %}Owners{% endblock %}
+
+{% block content %}
+<div class="admin-panel">
+    <div class="admin-panel-head">
+        <h2>All owner accounts <span style="color:var(--adm-muted);font-weight:400">({{ owners|length }})</span></h2>
+    </div>
+
+    {% if owners is empty %}
+        <div class="admin-empty">No owner accounts found.</div>
+    {% else %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Email</th>
+                    <th>Full name</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for owner in owners %}
+                    <tr>
+                        <td style="color:var(--adm-muted);font-size:.78rem">{{ owner.id }}</td>
+                        <td style="font-weight:600">{{ owner.email }}</td>
+                        <td style="color:var(--adm-muted)">{{ owner.fullName ?? '—' }}</td>
+                        <td>
+                            <span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">
+                                {{ owner.isActive ? 'Active' : 'Inactive' }}
+                            </span>
+                        </td>
+                        <td style="color:var(--adm-muted);font-size:.8rem">{{ owner.createdAt|date('M d, Y') }}</td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="admin-action">View</a>
+
+                            {# Toggle active/inactive #}
+                            <form method="post"
+                                  action="{{ path('app_admin_owner_toggle', {id: owner.id}) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('{{ owner.isActive ? 'Deactivate' : 'Activate' }} this account?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-owner-' ~ owner.id) }}">
+                                <button type="submit" class="admin-action">
+                                    {{ owner.isActive ? 'Deactivate' : 'Activate' }}
+                                </button>
+                            </form>
+
+                            {# Delete #}
+                            <form method="post"
+                                  action="{{ path('app_admin_owner_delete', {id: owner.id}) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('Permanently delete «{{ owner.email }}» and ALL their data?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-owner-' ~ owner.id) }}">
+                                <button type="submit" class="admin-action admin-action--danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

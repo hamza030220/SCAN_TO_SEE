@@ -1,0 +1,70 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Dashboard — S2S Admin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+{# ── Stat cards ──────────────────────────────────────────────────────── #}
+<div class="admin-stats">
+    <div class="admin-stat-card">
+        <div class="stat-label">Total Owners</div>
+        <div class="stat-value">{{ totalOwners }}</div>
+        <div class="stat-sub">{{ activeOwners }} active</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-label">Businesses</div>
+        <div class="stat-value">{{ totalBusinesses }}</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-label">Menus</div>
+        <div class="stat-value">{{ totalMenus }}</div>
+    </div>
+    <div class="admin-stat-card">
+        <div class="stat-label">Admins</div>
+        <div class="stat-value">{{ totalAdmins }}</div>
+    </div>
+</div>
+
+{# ── Recent owner sign-ups ────────────────────────────────────────────── #}
+<div class="admin-panel">
+    <div class="admin-panel-head">
+        <h2>Recent owner sign-ups</h2>
+        <a href="{{ path('app_admin_owners') }}" style="font-size:.8rem;color:var(--adm-muted)">View all →</a>
+    </div>
+    {% if recentOwners is empty %}
+        <div class="admin-empty">No owner accounts yet.</div>
+    {% else %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for owner in recentOwners %}
+                    <tr>
+                        <td style="font-weight:600">{{ owner.email }}</td>
+                        <td style="color:var(--adm-muted)">{{ owner.fullName ?? '—' }}</td>
+                        <td>
+                            <span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">
+                                {{ owner.isActive ? 'Active' : 'Inactive' }}
+                            </span>
+                        </td>
+                        <td style="color:var(--adm-muted);font-size:.8rem">{{ owner.createdAt|date('M d, Y') }}</td>
+                        <td style="text-align:right">
+                            <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="admin-action">View</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+
+{% endblock %}
+

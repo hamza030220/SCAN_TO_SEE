@@ -1,0 +1,76 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}{{ menu ? 'Edit — ' ~ menu.name : 'New Menu' }} — S2S{% endblock %}
+{% block page_title %}{{ menu ? 'Edit Menu' : 'New Menu' }}{% endblock %}
+
+{% block content %}
+<div class="owner-panel" style="max-width:560px">
+    <div class="owner-panel-head">
+        <h2>{{ menu ? 'Edit: ' ~ menu.name : 'Create new menu' }}</h2>
+        <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← All menus</a>
+    </div>
+    <div class="owner-panel-body">
+        {% if error %}
+            <div class="owner-flash owner-flash--error" style="margin-bottom:16px">{{ error }}</div>
+        {% endif %}
+        <form class="owner-form" method="post">
+            {% if not menu and businesses|length > 1 %}
+            <div class="form-field">
+                <label for="business_id">Business</label>
+                <select id="business_id" name="business_id">
+                    {% for b in businesses %}
+                        <option value="{{ b.id }}">{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elseif not menu %}
+                <input type="hidden" name="business_id" value="{{ businesses[0].id }}">
+            {% endif %}
+            <div class="form-field">
+                <label for="name">Menu name</label>
+                <input id="name" name="name" type="text"
+                       placeholder="Lunch Menu"
+                       value="{{ menu ? menu.name : '' }}"
+                       required>
+            </div>
+            <div class="form-field">
+                <label for="currency">Currency</label>
+                <select id="currency" name="currency">
+                    {% for cur in ['TND', 'EUR', 'USD', 'GBP', 'MAD'] %}
+                        <option value="{{ cur }}"
+                            {{ (menu and menu.currency == cur) or (not menu and cur == 'TND') ? 'selected' : '' }}>
+                            {{ cur }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="theme_preset">Theme</label>
+                <select id="theme_preset" name="theme_preset">
+                    {% for preset in ['modern', 'classic', 'minimal'] %}
+                        <option value="{{ preset }}"
+                            {{ menu and menu.themePreset == preset ? 'selected' : '' }}
+                            {{ not menu and preset == 'modern' ? 'selected' : '' }}>
+                            {{ preset|capitalize }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="draft"     {{ not menu or menu.status == 'draft'      ? 'selected' : '' }}>Draft</option>
+                    <option value="published" {{ menu and menu.status == 'published'     ? 'selected' : '' }}>Published</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" type="submit">
+                    {{ menu ? 'Save changes' : 'Create menu' }}
+                </button>
+                <a href="{{ path('app_owner_menus') }}" class="btn btn-outline">Cancel</a>
+            </div>
+            <input type="hidden" name="_token" value="{{ csrf_token('menu') }}">
+        </form>
+    </div>
+</div>
+{% endblock %}

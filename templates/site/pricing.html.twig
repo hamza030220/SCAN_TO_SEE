@@ -1,0 +1,74 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}S2S Pricing — Scan to See{% endblock %}
+
+{% block body %}
+
+    <section class="s-subhero">
+        <div class="shell">
+            <span class="eyebrow">Pricing</span>
+            <h1>One product, two billing periods.</h1>
+            <p>S2S is priced by billing period, not by feature tier. Monthly and yearly subscriptions access the same complete platform — the difference is the rate.</p>
+        </div>
+    </section>
+
+    <section class="s-pricing">
+        <div class="shell">
+            <div class="pricing-cards">
+                {% for plan in plans %}
+                    <div class="pricing-card {{ loop.last ? 'is-featured' : '' }}">
+                        <div>
+                            <p class="pricing-period">{{ plan.period }}</p>
+                            <h2>{{ plan.name }}</h2>
+                            <p>{{ plan.description }}</p>
+                        </div>
+                        <div class="price-tbd">
+                            <strong>Price coming soon</strong>
+                            <span>Launch pricing will be set when the commercial offer is final.</span>
+                        </div>
+                        <ul class="pricing-features">
+                            {% for item in plan.items %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+                        </ul>
+                        <a class="btn {{ loop.last ? 'btn-primary' : 'btn-outline' }} btn-full" href="{{ path('app_register') }}">Choose {{ plan.name }}</a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="s-billing">
+        <div class="shell billing-inner">
+            <div>
+                <h2>How billing works</h2>
+                <p>S2S handles payments and recurring billing through a payment provider with built-in subscription support. Renewals, failed-payment handling, and invoicing are automated rather than custom-built.</p>
+                <p>If a subscription lapses, the public-facing menu is paused rather than deleted. Reactivating a subscription restores everything exactly as it was — no rebuild required.</p>
+            </div>
+            <div class="billing-rules">
+                <div class="billing-rule">
+                    <div class="billing-dot"></div>
+                    <div>
+                        <strong>Monthly</strong>
+                        <p>Charged once per month. Change period at any time. Best for owners who want flexibility before committing long-term.</p>
+                    </div>
+                </div>
+                <div class="billing-rule">
+                    <div class="billing-dot"></div>
+                    <div>
+                        <strong>Yearly</strong>
+                        <p>Charged once per year at a better effective monthly rate. Best for established venues with an ongoing need.</p>
+                    </div>
+                </div>
+                <div class="billing-rule">
+                    <div class="billing-dot"></div>
+                    <div>
+                        <strong>Expired subscriptions</strong>
+                        <p>Menu data is never deleted on expiry. The public menu is paused until the subscription is renewed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}

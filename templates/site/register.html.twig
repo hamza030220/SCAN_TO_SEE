@@ -1,0 +1,91 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Create account — S2S{% endblock %}
+
+{% block body %}
+    <section class="auth-page">
+        <div class="auth-box">
+            <div class="auth-left">
+                <div class="auth-logo-row">
+                    <img src="{{ asset('image/logoS2S.png') }}" alt="S2S">
+                    <span>Scan to See</span>
+                </div>
+                <h1>Start your menu.</h1>
+                <p>Set up a business profile, build the first menu with your categories and items, then publish and download the QR code for print.</p>
+                <div class="auth-pills">
+                    <span class="auth-pill">Permanent QR slug</span>
+                    <span class="auth-pill">Draft &amp; publish</span>
+                    <span class="auth-pill">Monthly or yearly</span>
+                    <span class="auth-pill">Multi-language</span>
+                </div>
+            </div>
+            <div class="auth-right">
+                <h2>Create an account</h2>
+                <p>Owner accounts only. Customer access needs no account — just a phone camera.</p>
+                {% if error %}
+                    <div class="auth-alert auth-alert--err">{{ error }}</div>
+                {% endif %}
+                <form class="auth-form" method="post" action="{{ path('app_register') }}">
+                    <div class="form-field">
+                        <label for="full_name">Full name</label>
+                        <input id="full_name" name="full_name" type="text" autocomplete="name" placeholder="Your name" value="{{ formData.full_name ?? '' }}" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="business_name">Business name</label>
+                        <input id="business_name" name="business_name" type="text" placeholder="Blue Bean Café" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="reg_email">Email address</label>
+                        <input id="reg_email" name="email" type="email" autocomplete="email" placeholder="owner@example.com" value="{{ formData.email ?? '' }}" required>
+                    </div>
+                    <div data-controller="password" style="display:contents">
+                        <div class="form-field">
+                            <label for="reg_password">Password</label>
+                            <div class="pw-field">
+                                <input id="reg_password" name="password" type="password"
+                                       autocomplete="new-password" placeholder="Create a password" required
+                                       data-password-target="input"
+                                       data-action="input->password#evaluate">
+                                <button type="button" class="pw-eye"
+                                        data-action="click->password#toggleInput"
+                                        aria-label="Show password">
+                                    <span class="eye-on">Show</span>
+                                    <span class="eye-off" hidden>Hide</span>
+                                </button>
+                            </div>
+                            <div class="pw-strength">
+                                <div class="pw-bar-track"><div class="pw-bar-fill" data-password-target="bar"></div></div>
+                                <span class="pw-strength-label" data-password-target="label"></span>
+                            </div>
+                            <div class="pw-rules">
+                                <span class="pw-rule" data-password-target="rule">8+ characters</span>
+                                <span class="pw-rule" data-password-target="rule">Uppercase letter</span>
+                                <span class="pw-rule" data-password-target="rule">Number (0–9)</span>
+                                <span class="pw-rule" data-password-target="rule">Special character</span>
+                            </div>
+                        </div>
+                        <div class="form-field">
+                            <label for="reg_confirm">Confirm password</label>
+                            <div class="pw-field">
+                                <input id="reg_confirm" name="confirm_password" type="password"
+                                       autocomplete="new-password" placeholder="Repeat your password" required
+                                       data-password-target="confirm"
+                                       data-action="input->password#matchCheck">
+                                <button type="button" class="pw-eye"
+                                        data-action="click->password#toggleConfirm"
+                                        aria-label="Show password">
+                                    <span class="eye-on">Show</span>
+                                    <span class="eye-off" hidden>Hide</span>
+                                </button>
+                            </div>
+                            <p class="pw-match" data-password-target="matchMsg"></p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-full" type="submit">Create account</button>
+                    <input type="hidden" name="_token" value="{{ csrf_token('register') }}">
+                    <p class="form-switch">Already have an account? <a href="{{ path('app_login') }}">Log in</a></p>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}

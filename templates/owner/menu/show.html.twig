@@ -1,0 +1,122 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}{{ menu.name }} — S2S{% endblock %}
+{% block page_title %}{{ menu.name }}{% endblock %}
+
+{% block content %}
+
+{# ── Menu header row ─────────────────────────────────────────────────── #}
+<div class="owner-menu-header">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
+        <span style="color:var(--muted);font-size:.82rem">{{ menu.currency }} · {{ menu.themePreset|capitalize }}</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
+           data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
+           class="btn btn-outline btn-sm">Edit menu</a>
+        <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← Menus</a>
+    </div>
+</div>
+
+{# ── Categories header ───────────────────────────────────────────────── #}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700">
+        Categories &amp; Items
+    </h2>
+    <a href="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
+       data-modal="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
+       class="btn btn-primary btn-sm">+ Add Category</a>
+</div>
+
+{# ── Empty state ─────────────────────────────────────────────────────── #}
+{% if menu.categories|length == 0 %}
+    <div class="owner-empty">
+        <p>No categories yet. Add a category to start building this menu.</p>
+        <a href="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
+           data-modal="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
+           class="btn btn-primary">Add first category</a>
+    </div>
+{% else %}
+
+{# ── Category cards ──────────────────────────────────────────────────── #}
+{% for category in menu.categories %}
+    <div class="owner-panel" style="margin-bottom:20px">
+        <div class="owner-panel-head">
+            <div>
+                <strong>{{ category.name }}</strong>
+                {% if category.parent %}
+                    <span style="color:var(--muted);font-size:.78rem;margin-left:8px">under {{ category.parent.name }}</span>
+                {% endif %}
+                {% if not category.isVisible %}
+                    <span class="badge badge--draft" style="margin-left:8px">Hidden</span>
+                {% endif %}
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <a href="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
+                   data-modal="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
+                   class="btn btn-primary btn-sm">+ Item</a>
+                <a href="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
+                   data-modal="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
+                   class="owner-table-action">Edit</a>
+                <form method="post"
+                      action="{{ path('app_owner_category_delete', {menuId: menu.id, catId: category.id}) }}"
+                      style="display:inline"
+                      onsubmit="return confirm('Delete «{{ category.name }}» and all its items?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-cat-' ~ category.id) }}">
+                    <button type="submit" class="owner-table-action owner-table-action--danger">Delete</button>
+                </form>
+            </div>
+        </div>
+
+        {% if category.items|length > 0 %}
+            <table class="owner-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th>Available</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in category.items %}
+                        <tr>
+                            <td style="font-weight:600">{{ item.name }}</td>
+                            <td style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
+                            <td>{{ item.price }} {{ menu.currency }}</td>
+                            <td>
+                                <span class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }}">
+                                    {{ item.isAvailable ? 'Yes' : 'No' }}
+                                </span>
+                            </td>
+                            <td style="text-align:right;white-space:nowrap">
+                                <a href="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
+                                   data-modal="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
+                                   class="owner-table-action">Edit</a>
+                                <form method="post"
+                                      action="{{ path('app_owner_item_delete', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Delete «{{ item.name }}»?')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-item-' ~ item.id) }}">
+                                    <button type="submit" class="owner-table-action owner-table-action--danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div style="padding:14px 24px;color:var(--muted);font-size:.85rem">
+                No items yet.
+                <a href="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
+                   data-modal="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
+                   style="color:var(--amber-dk);font-weight:600">Add first item →</a>
+            </div>
+        {% endif %}
+    </div>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

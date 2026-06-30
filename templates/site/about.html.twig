@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}About S2S — Scan to See{% endblock %}
+
+{% block body %}
+
+    <section class="s-subhero">
+        <div class="shell">
+            <span class="eyebrow">About S2S</span>
+            <h1>A product built around one promise: the QR code is permanent.</h1>
+            <p>Everything that can change does change — themes, items, prices, languages, availability. The one thing that stays constant is the URL the QR code points to. That's the core design decision in S2S, reflected from the data model up.</p>
+        </div>
+    </section>
+
+    <section class="s-roles">
+        <div class="shell">
+            <div class="roles-head">
+                <span class="eyebrow">Three roles</span>
+                <h2>Owner, customer, and admin each have a distinct job in S2S.</h2>
+            </div>
+            <div class="roles-grid">
+                <div class="role-card">
+                    <span class="role-badge">Owner</span>
+                    <h3>Controls the menu</h3>
+                    <p>Owners manage their business profile, branches, themes, categories, items, translations, availability, and subscription. Changes are made in a draft state and published when ready — customers never see a half-edited menu.</p>
+                </div>
+                <div class="role-card">
+                    <span class="role-badge">Customer</span>
+                    <h3>Scans without friction</h3>
+                    <p>Customers open the current menu in their browser — no app download, no account, no login. They can switch language when the owner has enabled more than one, and they see real-time availability: sold-out items are clearly marked or hidden.</p>
+                </div>
+                <div class="role-card">
+                    <span class="role-badge">Admin</span>
+                    <h3>Keeps the platform healthy</h3>
+                    <p>Admins manage all registered owner accounts, subscription plans, and billing configuration. Every admin action is recorded in an audit log for platform accountability.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="s-product-logic">
+        <div class="shell">
+            <div class="logic-head">
+                <span class="eyebrow">Product logic</span>
+                <h2>The data model follows the real promise.</h2>
+            </div>
+            <div class="logic-grid">
+                <div class="logic-item">
+                    <strong>The slug is permanent</strong>
+                    <p>The public menu URL is tied to a menu's permanent identifier, not to its content. Themes, categories, items, prices, and translations all change freely without affecting the URL or the QR code.</p>
+                </div>
+                <div class="logic-item">
+                    <strong>Draft before you publish</strong>
+                    <p>Owners can edit freely in a draft state — customers only see the change when the owner deliberately publishes. This prevents customers from seeing a half-updated menu mid-save.</p>
+                </div>
+                <div class="logic-item">
+                    <strong>Paused, not deleted</strong>
+                    <p>When a subscription expires, S2S pauses the public menu rather than deleting it. When the owner renews, the same QR code and all their menu data come back immediately.</p>
+                </div>
+                <div class="logic-item">
+                    <strong>Translations as rows, not columns</strong>
+                    <p>Multi-language support works by adding translation rows per locale — not by adding a separate column per language. Adding a new language means adding data, not altering the schema.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}

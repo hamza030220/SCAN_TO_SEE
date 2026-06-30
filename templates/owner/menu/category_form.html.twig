@@ -1,0 +1,59 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}{{ category ? 'Edit Category' : 'Add Category' }} — S2S{% endblock %}
+{% block page_title %}{{ category ? 'Edit Category' : 'Add Category' }}{% endblock %}
+
+{% block content %}
+<div class="owner-panel" style="max-width:520px">
+    <div class="owner-panel-head">
+        <h2>{{ category ? 'Edit: ' ~ category.name : 'Add category' }}</h2>
+        <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" style="font-size:.82rem;color:var(--muted)">← {{ menu.name }}</a>
+    </div>
+    <div class="owner-panel-body">
+        {% if error %}
+            <div class="owner-flash owner-flash--error" style="margin-bottom:16px">{{ error }}</div>
+        {% endif %}
+        <form class="owner-form" method="post">
+            <div class="form-field">
+                <label for="name">Category name</label>
+                <input id="name" name="name" type="text"
+                       placeholder="Starters"
+                       value="{{ category ? category.name : '' }}"
+                       required>
+            </div>
+            <div class="form-field">
+                <label for="parent_id">
+                    Parent category
+                    <span style="color:var(--muted);font-weight:400">(optional)</span>
+                </label>
+                <select id="parent_id" name="parent_id">
+                    <option value="0">— None (top-level) —</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}"
+                            {{ category and category.parent and category.parent.id == cat.id ? 'selected' : '' }}>
+                            {{ cat.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-field">
+                <label for="sort_order">Sort order</label>
+                <input id="sort_order" name="sort_order" type="number" min="0"
+                       value="{{ category ? category.sortOrder : 0 }}">
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer">
+                <input type="checkbox" name="is_visible" value="1"
+                       {{ not category or category.isVisible ? 'checked' : '' }}>
+                Visible to customers
+            </label>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" type="submit">
+                    {{ category ? 'Save changes' : 'Add category' }}
+                </button>
+                <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" class="btn btn-outline">Cancel</a>
+            </div>
+            <input type="hidden" name="_token" value="{{ csrf_token('category') }}">
+        </form>
+    </div>
+</div>
+{% endblock %}

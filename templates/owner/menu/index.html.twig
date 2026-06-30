@@ -1,0 +1,64 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Menus — S2S{% endblock %}
+{% block page_title %}Menus{% endblock %}
+
+{% block content %}
+<div class="owner-panel">
+    <div class="owner-panel-head">
+        <h2>All menus</h2>
+        <a href="{{ path('app_owner_menu_new') }}"
+           data-modal="{{ path('app_owner_menu_new') }}"
+           class="btn btn-primary btn-sm">+ New menu</a>
+    </div>
+    {% if menus|length == 0 %}
+        <div class="owner-empty">
+            <p>No menus yet. Create your first menu to get started.</p>
+            <a href="{{ path('app_owner_menu_new') }}"
+               data-modal="{{ path('app_owner_menu_new') }}"
+               class="btn btn-primary">Create first menu</a>
+        </div>
+    {% else %}
+        <table class="owner-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Business</th>
+                    <th>Status</th>
+                    <th>Currency</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for menu in menus %}
+                    <tr>
+                        <td>
+                            <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" style="font-weight:600;color:var(--amber-dk)">
+                                {{ menu.name }}
+                            </a>
+                        </td>
+                        <td style="color:var(--muted);font-size:.82rem">{{ menu.business.name }}</td>
+                        <td><span class="badge badge--{{ menu.status }}">{{ menu.status }}</span></td>
+                        <td>{{ menu.currency }}</td>
+                        <td style="color:var(--muted);font-size:.82rem">{{ menu.createdAt|date('M d, Y') }}</td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" class="owner-table-action">View</a>
+                            <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
+                               data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
+                               class="owner-table-action">Edit</a>
+                            <form method="post"
+                                  action="{{ path('app_owner_menu_delete', {id: menu.id}) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('Delete «{{ menu.name }}» and all its content?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-menu-' ~ menu.id) }}">
+                                <button type="submit" class="owner-table-action owner-table-action--danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

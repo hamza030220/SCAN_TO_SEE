@@ -1,0 +1,148 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}S2S — Digital menus with a permanent QR code{% endblock %}
+
+{% block body %}
+
+    {# ——— Hero ——— #}
+    <section class="s-hero">
+        <div class="shell hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow">Scan to See</span>
+                <h1>Your menu updates.<br>Your QR code never does.</h1>
+                <p class="hero-lede">S2S gives coffee shops, restaurants, spas, and salons one permanent public link. Print the QR code once. Edit the menu whenever you need to — no reprint, no new code.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="{{ path('app_register') }}">Start your menu</a>
+                    <a class="btn btn-ghost" href="{{ path('app_pricing') }}">See pricing</a>
+                </div>
+            </div>
+            <div class="hero-mockup-col" aria-hidden="true">
+                <div class="mockup-frame">
+                    <div class="mf-topbar">
+                        <span class="mf-business">Blue Bean Café</span>
+                        <span class="mf-live">Live</span>
+                    </div>
+                    <div class="mf-tabs">
+                        <span class="mf-tab mf-tab-active">Drinks</span>
+                        <span class="mf-tab">Food</span>
+                        <span class="mf-tab">Extras</span>
+                    </div>
+                    <div class="mf-items">
+                        {% for item in previewItems %}
+                            <div class="mf-item">
+                                <div>
+                                    <p class="mf-item-name">{{ item.name }}</p>
+                                    <p class="mf-item-desc">{{ item.detail }}</p>
+                                </div>
+                                <span class="mf-item-price">{{ item.price }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mf-footer">
+                        <span class="mf-url">s2s.app/m/blue-bean-cafe</span>
+                        <span class="mf-lang">EN</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ——— Promise band ——— #}
+    <section class="s-promise">
+        <div class="shell">
+            <p class="promise-text">Print the QR once. Update the menu forever.</p>
+            <p class="promise-note">The slug encoded in the QR code never changes — only what customers see behind it.</p>
+        </div>
+    </section>
+
+    {# ——— How it works ——— #}
+    <section class="s-steps">
+        <div class="shell">
+            <div class="s-steps-head">
+                <span class="eyebrow">How it works</span>
+                <h2>Three steps from first setup to a live menu your customers can scan today.</h2>
+            </div>
+            <div class="steps-row">
+                <div class="step-card">
+                    <span class="step-num">01</span>
+                    <h3>Create the menu</h3>
+                    <p>Add your business details, choose a theme, and build categories with items, prices, descriptions, photos, and variants like sizes or add-ons.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-num">02</span>
+                    <h3>Publish and print</h3>
+                    <p>S2S generates one permanent public URL and a ready-to-print QR code. Download it and put it on your table, wall, or counter — that code never changes.</p>
+                </div>
+                <div class="step-card">
+                    <span class="step-num">03</span>
+                    <h3>Edit whenever you need to</h3>
+                    <p>Update prices, toggle sold-out items, add new dishes, or change the whole layout. Customers always reach the current version when they scan.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ——— Venue types ——— #}
+    <section class="s-venues">
+        <div class="shell">
+            <div class="s-venues-head">
+                <span class="eyebrow">Who it's for</span>
+                <h2>Any business with a list of priced items or services.</h2>
+                <p>The category → item → price structure works equally well for food, drinks, and service treatments.</p>
+            </div>
+            <div class="venues-grid">
+                <div class="venue-card">
+                    <span class="venue-icon">☕</span>
+                    <h3>Coffee shops</h3>
+                    <p>Drink menus with sizes, add-ons, and seasonal specials — toggled on and off without reprinting.</p>
+                </div>
+                <div class="venue-card">
+                    <span class="venue-icon">🍽</span>
+                    <h3>Restaurants</h3>
+                    <p>Full food menus with photos, descriptions, and instant availability updates when a dish sells out.</p>
+                </div>
+                <div class="venue-card">
+                    <span class="venue-icon">💆</span>
+                    <h3>Spas &amp; salons</h3>
+                    <p>Service menus with durations, pricing, and treatment descriptions — in multiple languages for tourist-facing venues.</p>
+                </div>
+                <div class="venue-card">
+                    <span class="venue-icon">🛍</span>
+                    <h3>Any venue with a menu</h3>
+                    <p>Bakeries, bars, fitness studios, barbershops — if you have a list of priced offerings, S2S is built for you.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# ——— Features ——— #}
+    <section class="s-features">
+        <div class="shell">
+            <div class="s-features-head">
+                <span class="eyebrow">What owners control</span>
+                <h2>Everything behind the permanent link is fully editable.</h2>
+            </div>
+            <div class="features-row">
+                {% for feature in features %}
+                    <div class="feature-card">
+                        <span class="eyebrow">{{ feature.label }}</span>
+                        <h3>{{ feature.title }}</h3>
+                        <p>{{ feature.body }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    {# ——— CTA ——— #}
+    <section class="s-cta">
+        <div class="shell cta-inner">
+            <div>
+                <h2>Start with one permanent menu link.</h2>
+                <p>No reprint cycle. No new QR code on every update. Just one link that keeps working.</p>
+            </div>
+            <a class="btn btn-primary" href="{{ path('app_register') }}">Create account</a>
+        </div>
+    </section>
+
+{% endblock %}

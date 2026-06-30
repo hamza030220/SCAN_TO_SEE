@@ -1,0 +1,54 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}My Businesses — S2S{% endblock %}
+{% block page_title %}My Businesses{% endblock %}
+
+{% block content %}
+<div class="owner-panel">
+    <div class="owner-panel-head">
+        <h2>Your businesses</h2>
+        <a href="{{ path('app_owner_business_new') }}"
+           data-modal="{{ path('app_owner_business_new') }}"
+           class="btn btn-primary btn-sm">+ Add business</a>
+    </div>
+
+    {% if businesses is empty %}
+        <div class="owner-empty">
+            <p>No businesses yet. Add your first one to start building menus.</p>
+            <a href="{{ path('app_owner_business_new') }}"
+               data-modal="{{ path('app_owner_business_new') }}"
+               class="btn btn-primary">Add first business</a>
+        </div>
+    {% else %}
+        <table class="owner-table">
+            <thead>
+                <tr>
+                    <th>Business name</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for business in businesses %}
+                    <tr>
+                        <td style="font-weight:600">{{ business.name }}</td>
+                        <td style="color:var(--muted);font-size:.82rem">{{ business.createdAt|date('M d, Y') }}</td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ path('app_owner_business_edit', {id: business.id}) }}"
+                               data-modal="{{ path('app_owner_business_edit', {id: business.id}) }}"
+                               class="owner-table-action">Edit</a>
+                            <form method="post"
+                                  action="{{ path('app_owner_business_delete', {id: business.id}) }}"
+                                  style="display:inline"
+                                  onsubmit="return confirm('Delete «{{ business.name }}» and ALL its menus, categories, and items?')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete-business-' ~ business.id) }}">
+                                <button type="submit" class="owner-table-action owner-table-action--danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

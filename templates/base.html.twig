@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="S2S — permanent QR menus for coffee shops, restaurants, spas, and salons. Print once, update forever.">
+        <title>{% block title %}S2S — Scan to See{% endblock %}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' fill='%2318120A'/%3E%3Ctext x='14' y='84' font-size='52' font-family='Arial Black' fill='%23E8A020'%3ES2S%3C/text%3E%3C/svg%3E">
         {% block stylesheets %}
         {% endblock %}
 
@@ -19,6 +24,71 @@
         {% endif %}
     </head>
     <body>
-        {% block body %}{% endblock %}
+        {% set currentRoute = app.request.attributes.get('_route') %}
+        <header class="nav-wrap">
+            <nav class="shell nav-inner" aria-label="Main navigation">
+                <a class="logo-link" href="{{ path('app_home') }}" aria-label="S2S home">
+                    <img src="{{ asset('image/logoS2S.png') }}" alt="S2S" width="34" height="40">
+                    <span class="logo-wordmark">Scan to See</span>
+                </a>
+                <div class="nav-center" id="nav-center">
+                    <a class="{{ currentRoute == 'app_home' ? 'nav-active' : '' }}" href="{{ path('app_home') }}">Home</a>
+                    <a class="{{ currentRoute == 'app_about' ? 'nav-active' : '' }}" href="{{ path('app_about') }}">About</a>
+                    <a class="{{ currentRoute == 'app_pricing' ? 'nav-active' : '' }}" href="{{ path('app_pricing') }}">Pricing</a>
+                </div>
+                <div class="nav-end">
+                    <a class="nav-login" href="{{ path('app_login') }}">Log in</a>
+                    <a class="btn btn-primary btn-sm" href="{{ path('app_register') }}">Start free</a>
+                </div>
+                <button class="nav-toggle" id="nav-toggle" aria-label="Open navigation" aria-expanded="false">
+                    <span></span><span></span><span></span>
+                </button>
+            </nav>
+        </header>
+
+        <main>
+            {% block body %}{% endblock %}
+        </main>
+
+        <footer class="site-footer">
+            <div class="shell footer-grid">
+                <div>
+                    <div class="footer-brand-row">
+                        <img src="{{ asset('image/logoS2S.png') }}" alt="S2S">
+                        <span>Scan to See</span>
+                    </div>
+                    <p>Permanent QR menus for owners, zero friction for customers, platform controls for admins.</p>
+                </div>
+                <div>
+                    <p class="footer-col-head">Product</p>
+                    <a class="footer-link" href="{{ path('app_about') }}">About</a>
+                    <a class="footer-link" href="{{ path('app_pricing') }}">Pricing</a>
+                    <a class="footer-link" href="{{ path('app_register') }}">Create account</a>
+                </div>
+                <div>
+                    <p class="footer-col-head">Access</p>
+                    <a class="footer-link" href="{{ path('app_login') }}">Owner log in</a>
+                    <a class="footer-link" href="{{ path('app_register') }}">Owner sign up</a>
+                </div>
+            </div>
+            <div class="shell footer-bottom">
+                <span>S2S — Scan to See</span>
+                <span>Digital menus with permanent QR codes</span>
+            </div>
+        </footer>
+
+        <script>
+            (function() {
+                var btn  = document.getElementById('nav-toggle');
+                var menu = document.getElementById('nav-center');
+                if (!btn || !menu) return;
+                btn.addEventListener('click', function() {
+                    var open = btn.getAttribute('aria-expanded') === 'true';
+                    btn.setAttribute('aria-expanded', String(!open));
+                    menu.classList.toggle('nav-open', !open);
+                    btn.setAttribute('aria-label', open ? 'Open navigation' : 'Close navigation');
+                });
+            })();
+        </script>
     </body>
 </html>

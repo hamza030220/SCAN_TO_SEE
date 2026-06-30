@@ -18,3 +18,32 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> IDE / Editor ###
+/.idea/
+/.vscode/
+*.iml
+*.ipr
+*.iws
+.nbproject/
+*.sublime-project
+*.sublime-workspace
+###< IDE / Editor ###
+
+###> OS ###
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+###< OS ###
+
+###> Logs & temp ###
+*.log
+/var/log/
+npm-debug.log*
+###< Logs & temp ###
+
+###> Node (if added later) ###
+node_modules/
+###< Node ###

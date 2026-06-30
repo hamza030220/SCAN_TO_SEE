@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard — S2S{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    {{ importmap('app') }}
+    <style>
+        /* ── Modal backdrop ─────────────────────────────────────────── */
+        .s2s-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 820;
+            background: rgba(10, 6, 2, .64);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            overflow-y: auto;
+        }
+        .s2s-modal.open { display: flex; }
+
+        /* ── Modal card ─────────────────────────────────────────────── */
+        .s2s-modal-inner {
+            background: #ffffff;
+            border-radius: 14px;
+            max-width: 520px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 32px 80px rgba(0,0,0,.38), 0 2px 8px rgba(0,0,0,.12);
+            animation: _mSlide .22s cubic-bezier(.22,.68,0,1.2) both;
+        }
+        @keyframes _mSlide {
+            from { opacity:0; transform: translateY(28px) scale(.97); }
+            to   { opacity:1; transform: translateY(0)     scale(1); }
+        }
+
+        /* ── Amber top bar ──────────────────────────────────────────── */
+        .s2s-modal-header {
+            background: #18120a;
+            padding: 18px 22px 18px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .s2s-modal-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .95rem;
+            font-weight: 700;
+            color: #E8A020;
+            letter-spacing: .01em;
+            margin: 0;
+        }
+        .s2s-modal-close {
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 6px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 1rem;
+            line-height: 1;
+            transition: background .15s, color .15s;
+            flex-shrink: 0;
+        }
+        .s2s-modal-close:hover { background: rgba(232,160,32,.18); color: #E8A020; }
+
+        /* ── Modal body (wraps the injected .owner-panel) ───────────── */
+        .s2s-modal-body {
+            padding: 28px 26px 26px;
+        }
+
+        /* ── Reset owner-panel styles when inside modal ─────────────── */
+        .s2s-modal-inner .owner-panel {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            padding: 0;
+        }
+        .s2s-modal-inner .owner-panel-head { display: none; }
+        .s2s-modal-inner .owner-panel-body { padding: 0; }
+
+        /* ── Form inputs inside modal ───────────────────────────────── */
+        .s2s-modal-inner .owner-form .form-field label {
+            font-size: .78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: #6b5e4e;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .s2s-modal-inner .owner-form .form-field input,
+        .s2s-modal-inner .owner-form .form-field select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #e3d9cc;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            color: #18120a;
+            background: #faf7f2;
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .s2s-modal-inner .owner-form .form-field input:focus,
+        .s2s-modal-inner .owner-form .form-field select:focus {
+            border-color: #E8A020;
+            box-shadow: 0 0 0 3px rgba(232,160,32,.14);
+            background: #fff;
+        }
+        .s2s-modal-inner .owner-form .form-field {
+            margin-bottom: 16px;
+        }
+        /* Checkbox row */
+        .s2s-modal-inner .owner-form label[style*="flex"] {
+            color: #3d2f1e;
+            font-size: .87rem;
+            margin-bottom: 18px;
+            display: flex;
+        }
+        /* Buttons row */
+        .s2s-modal-inner .owner-form > div[style*="flex"],
+        .s2s-modal-inner .owner-form > div[style*="gap"] {
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid #f0e9de;
+        }
+
+        /* ── Loading / error state ──────────────────────────────────── */
+        .s2s-modal-loading {
+            padding: 56px 24px;
+            text-align: center;
+            color: #9c8874;
+            font-size: .9rem;
+        }
+        .s2s-modal-loading::before {
+            content: '';
+            display: block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f0e9de;
+            border-top-color: #E8A020;
+            border-radius: 50%;
+            animation: _spin .7s linear infinite;
+            margin: 0 auto 14px;
+        }
+        @keyframes _spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="owner-body">
+
+    <aside class="owner-sidebar" id="ownerSidebar">
+        <div class="owner-brand">
+            <img src="{{ asset('image/logoS2S.png') }}" alt="S2S">
+            <span>Scan to See</span>
+        </div>
+        <nav class="owner-nav">
+            {% set route = app.request.attributes.get('_route') %}
+            <a href="{{ path('app_owner') }}"{% if route == 'app_owner' %} class="active"{% endif %}>
+                Dashboard
+            </a>
+            <a href="{{ path('app_owner_businesses') }}"
+               {% if route starts with 'app_owner_business' %} class="active"{% endif %}>
+                My Businesses
+            </a>
+            <a href="{{ path('app_owner_menus') }}"
+               {% if route starts with 'app_owner_menu' or route starts with 'app_owner_category' or route starts with 'app_owner_item' %} class="active"{% endif %}>
+                Menus
+            </a>
+        </nav>
+        <div class="owner-sidebar-foot">
+            <span class="owner-email">{{ app.user.userIdentifier }}</span>
+            <a href="{{ path('app_logout') }}" class="owner-logout-link" data-turbo="false">Log out</a>
+        </div>
+    </aside>
+
+    <div class="owner-main">
+        <header class="owner-topbar">
+            <button class="owner-toggle" id="ownerToggle" aria-label="Toggle sidebar">
+                <span></span><span></span><span></span>
+            </button>
+            <span class="owner-page-title">{% block page_title %}{% endblock %}</span>
+        </header>
+        <main class="owner-content">
+            {% for type, messages in app.flashes %}
+                {% for msg in messages %}
+                    <div class="owner-flash owner-flash--{{ type }}">{{ msg }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <div class="owner-overlay" id="ownerOverlay"></div>
+
+    {# ── Modal ──────────────────────────────────────────────────────────── #}
+    <div id="s2s-modal" class="s2s-modal" role="dialog" aria-modal="true" aria-label="Form dialog">
+        <div id="s2s-modal-inner" class="s2s-modal-inner"></div>
+    </div>
+
+    <script>
+        (function () {
+            /* ── Sidebar toggle ────────────────────────────────────────── */
+            var toggle  = document.getElementById('ownerToggle');
+            var sidebar = document.getElementById('ownerSidebar');
+            var overlay = document.getElementById('ownerOverlay');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                    overlay.classList.toggle('visible');
+                });
+                overlay.addEventListener('click', function () {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('visible');
+                });
+            }
+
+            /* ── Modal system ──────────────────────────────────────────── */
+            var modal = document.getElementById('s2s-modal');
+            var inner = document.getElementById('s2s-modal-inner');
+
+            // Cache: url → { title, panelHTML }
+            var cache   = {};
+            // In-flight promises: url → Promise
+            var pending = {};
+
+            /* Extract panel data from raw HTML string */
+            function parse(html, url) {
+                var doc   = (new DOMParser()).parseFromString(html, 'text/html');
+                var panel = doc.querySelector('.owner-panel');
+                if (!panel) return null;
+                var h2    = panel.querySelector('.owner-panel-head h2');
+                return { title: h2 ? h2.textContent.trim() : 'Edit', panelHTML: panel.outerHTML };
+            }
+
+            /* Fetch + cache a URL (returns a Promise that resolves to cache entry or null) */
+            function prefetch(url) {
+                if (cache[url])   return Promise.resolve(cache[url]);
+                if (pending[url]) return pending[url];
+                pending[url] = fetch(url)
+                    .then(function (res) { return res.text(); })
+                    .then(function (html) {
+                        var entry = parse(html, url);
+                        if (entry) cache[url] = entry;
+                        delete pending[url];
+                        return entry;
+                    })
+                    .catch(function () { delete pending[url]; return null; });
+                return pending[url];
+            }
+
+            /* Render cached entry into the open modal */
+            function render(url, entry) {
+                if (!entry) {
+                    inner.innerHTML = '<div class="s2s-modal-loading" style="color:#c0392b">Could not load form.</div>';
+                    return;
+                }
+                var header = document.createElement('div');
+                header.className = 's2s-modal-header';
+                header.innerHTML =
+                    '<span class="s2s-modal-title">' + entry.title + '</span>' +
+                    '<button class="s2s-modal-close" aria-label="Close">&#x2715;</button>';
+
+                var body = document.createElement('div');
+                body.className = 's2s-modal-body';
+                body.innerHTML = entry.panelHTML;
+
+                inner.innerHTML = '';
+                inner.appendChild(header);
+                inner.appendChild(body);
+
+                var form = inner.querySelector('form');
+                if (form) form.setAttribute('action', url);
+
+                inner.querySelectorAll('a.btn-outline').forEach(function (a) {
+                    if (/cancel/i.test(a.textContent.trim())) {
+                        a.addEventListener('click', function (ev) { ev.preventDefault(); closeModal(); });
+                    }
+                });
+
+                var first = inner.querySelector('input[type="text"],input[type="number"],select');
+                if (first) setTimeout(function () { first.focus(); }, 40);
+            }
+
+            function closeModal() {
+                modal.classList.remove('open');
+                inner.innerHTML = '';
+            }
+
+            modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+            });
+
+            /* ── Pre-fetch all modal URLs silently on page load ────────── */
+            function prefetchAll() {
+                var urls = Array.from(document.querySelectorAll('[data-modal]'))
+                    .map(function (el) { return el.getAttribute('data-modal'); })
+                    .filter(function (u, i, arr) { return arr.indexOf(u) === i; }); // unique
+                // Stagger slightly to avoid spiking the server
+                urls.forEach(function (url, i) {
+                    setTimeout(function () { prefetch(url); }, i * 60);
+                });
+            }
+
+            /* ── Pre-fetch on hover for anything not yet cached ─────────── */
+            document.addEventListener('mouseover', function (e) {
+                var el = e.target.closest('[data-modal]');
+                if (el) prefetch(el.getAttribute('data-modal'));
+            }, { passive: true });
+
+            /* ── Click handler ──────────────────────────────────────────── */
+            document.addEventListener('click', function (e) {
+                if (e.target.closest('.s2s-modal-close')) { closeModal(); return; }
+
+                var trigger = e.target.closest('[data-modal]');
+                if (!trigger) return;
+                e.preventDefault();
+
+                var url = trigger.getAttribute('data-modal');
+
+                if (cache[url]) {
+                    // Instant — already in cache
+                    inner.innerHTML = '';
+                    modal.classList.add('open');
+                    render(url, cache[url]);
+                } else {
+                    // Not cached yet — show spinner and fetch
+                    inner.innerHTML = '<div class="s2s-modal-loading">Loading\u2026</div>';
+                    modal.classList.add('open');
+                    prefetch(url).then(function (entry) { render(url, entry); });
+                }
+            });
+
+            /* Start background pre-fetch after page is interactive */
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', prefetchAll);
+            } else {
+                prefetchAll();
+            }
+        })();
+    </script>
+
+</body>
+</html>

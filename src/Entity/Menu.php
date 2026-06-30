@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Entity;
+
+use App\Repository\MenuRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: MenuRepository::class)]
+class Menu
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    private ?Business $business = null;
+
+    #[ORM\Column(length: 150)]
+    private ?string $name = null;
+
+    #[ORM\Column(length: 80, unique: true)]
+    private ?string $slug = null;
+
+    #[ORM\Column(length: 20)]
+    private string $status = 'draft';
+
+    #[ORM\Column(length: 3)]
+    private string $currency = 'TND';
+
+    #[ORM\Column(length: 40)]
+    private string $themePreset = 'modern';
+
+    #[ORM\Column]
+    private \DateTimeImmutable $createdAt;
+
+    #[ORM\Column]
+    private \DateTimeImmutable $updatedAt;
+
+    #[ORM\OneToMany(mappedBy: 'menu', targetEntity: Category::class, cascade: ['remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['sortOrder' => 'ASC', 'id' => 'ASC'])]
+    private Collection $categories;
+
+    public function __construct()
+    {
+        $this->createdAt  = new \DateTimeImmutable();
+        $this->updatedAt  = new \DateTimeImmutable();
+        $this->categories = new ArrayCollection();
+    }
+
+    public function getId(): ?int { return $this->id; }
+    public function getBusiness(): ?Business { return $this->business; }
+    public function setBusiness(?Business $b): static { $this->business = $b; return $this; }
+    public function getName(): ?string { return $this->name; }
+    public function setName(string $name): static { $this->name = $name; return $this; }
+    public function getSlug(): ?string { return $this->slug; }
+    public function setSlug(string $slug): static { $this->slug = $slug; return $this; }
+    public function getStatus(): string { return $this->status; }
+    public function setStatus(string $s): static { $this->status = $s; return $this; }
+    public function getCurrency(): string { return $this->currency; }
+    public function setCurrency(string $c): static { $this->currency = $c; return $this; }
+    public function getThemePreset(): string { return $this->themePreset; }
+    public function setThemePreset(string $t): static { $this->themePreset = $t; return $this; }
+    public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
+    public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
+    public function setUpdatedAt(\DateTimeImmutable $dt): static { $this->updatedAt = $dt; return $this; }
+    public function getCategories(): Collection { return $this->categories; }
+}

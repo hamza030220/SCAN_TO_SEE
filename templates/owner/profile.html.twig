@@ -1,0 +1,35 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Business Profile — S2S{% endblock %}
+{% block page_title %}Business Profile{% endblock %}
+
+{% block content %}
+<div class="owner-panel" style="max-width:560px">
+    <div class="owner-panel-head">
+        <h2>{{ business ? 'Update profile' : 'Set up your business' }}</h2>
+    </div>
+    <div class="owner-panel-body">
+        {% if error %}
+            <div class="owner-flash owner-flash--error" style="margin-bottom:16px">{{ error }}</div>
+        {% endif %}
+        <form class="owner-form" method="post">
+            <div class="form-field">
+                <label for="name">Business name</label>
+                <input id="name" name="name" type="text"
+                       placeholder="Blue Bean Café"
+                       value="{{ business ? business.name : '' }}"
+                       required>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" type="submit">
+                    {{ business ? 'Save changes' : 'Create profile' }}
+                </button>
+                {% if business %}
+                    <a href="{{ path('app_owner') }}" class="btn btn-outline">Cancel</a>
+                {% endif %}
+            </div>
+            <input type="hidden" name="_token" value="{{ csrf_token('profile') }}">
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Log in — S2S{% endblock %}
+
+{% block body %}
+    <section class="auth-page">
+        <div class="auth-box">
+            <div class="auth-left">
+                <div class="auth-logo-row">
+                    <img src="{{ asset('image/logoS2S.png') }}" alt="S2S">
+                    <span>Scan to See</span>
+                </div>
+                <h1>Welcome back.</h1>
+                <p>Log in to manage menus, update availability, download QR codes, and control billing for your venue.</p>
+                <div class="auth-pills">
+                    <span class="auth-pill">Permanent QR</span>
+                    <span class="auth-pill">Draft publishing</span>
+                    <span class="auth-pill">Live availability</span>
+                </div>
+            </div>
+            <div class="auth-right">
+                <h2>Owner login</h2>
+                <p>Access your dashboard and manage your venue's menu.</p>
+                {% for message in app.flashes('success') %}
+                    <div class="auth-alert auth-alert--ok">{{ message }}</div>
+                {% endfor %}
+                {% if error %}
+                    <div class="auth-alert auth-alert--err">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                {% endif %}
+                <form class="auth-form" method="post" action="{{ path('app_login') }}">
+                    <div class="form-field">
+                        <label for="email">Email address</label>
+                        <input id="email" name="email" type="email" autocomplete="email" placeholder="owner@example.com" value="{{ last_username }}" required>
+                    </div>
+                    <div data-controller="password" style="display:contents">
+                        <div class="form-field">
+                            <label for="password">Password</label>
+                            <div class="pw-field">
+                                <input id="password" name="password" type="password"
+                                       autocomplete="current-password" placeholder="Your password" required
+                                       data-password-target="input">
+                                <button type="button" class="pw-eye"
+                                        data-action="click->password#toggleInput"
+                                        aria-label="Show password">
+                                    <span class="eye-on">Show</span>
+                                    <span class="eye-off" hidden>Hide</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row-end">
+                        <label class="form-check"><input type="checkbox" name="remember_me"> Keep me signed in</label>
+                        <a class="form-link" href="#">Forgot password?</a>
+                    </div>
+                    <button class="btn btn-primary btn-full" type="submit">Log in</button>
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                    <p class="form-switch">No account yet? <a href="{{ path('app_register') }}">Create one</a></p>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}

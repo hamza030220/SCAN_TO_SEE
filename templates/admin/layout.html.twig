@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin — S2S{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    {{ importmap('app') }}
+    <style>
+        /* ── Admin layout (mirrors owner layout, red accent) ─────────── */
+        :root {
+            --adm-bg:      #0f0a07;
+            --adm-accent:  #e84040;
+            --adm-amber:   #E8A020;
+            --adm-muted:   #7a6a5a;
+            --adm-ink:     #18120a;
+            --adm-sand:    #fffbf4;
+            --adm-border:  #ede4d8;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body.admin-body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f7f2ec;
+            color: var(--adm-ink);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ─────────────────────────────────────────────────── */
+        .admin-sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background: var(--adm-bg);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 200;
+            transition: transform .25s ease;
+        }
+        .admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 22px 20px 18px;
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        .admin-brand img { width: 32px; height: 32px; object-fit: contain; }
+        .admin-brand span {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: #fff;
+            letter-spacing: .02em;
+        }
+        .admin-brand-badge {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            background: var(--adm-accent);
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        .admin-nav {
+            display: flex;
+            flex-direction: column;
+            padding: 18px 12px;
+            gap: 2px;
+            flex: 1;
+        }
+        .admin-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 7px;
+            text-decoration: none;
+            font-size: .875rem;
+            font-weight: 500;
+            color: rgba(255,255,255,.55);
+            transition: background .15s, color .15s;
+        }
+        .admin-nav a:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
+        .admin-nav a.active { background: rgba(232,64,64,.18); color: #f87171; }
+        .admin-nav .nav-icon { font-size: 1rem; opacity: .8; width: 18px; text-align: center; }
+        .admin-nav .nav-sep {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.25);
+            padding: 14px 12px 4px;
+        }
+
+        .admin-sidebar-foot {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,.07);
+        }
+        .admin-email {
+            display: block;
+            font-size: .75rem;
+            color: rgba(255,255,255,.35);
+            margin-bottom: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .admin-logout-link {
+            display: inline-block;
+            font-size: .78rem;
+            font-weight: 600;
+            color: rgba(255,255,255,.45);
+            text-decoration: none;
+            transition: color .15s;
+        }
+        .admin-logout-link:hover { color: var(--adm-accent); }
+
+        /* ── Main area ───────────────────────────────────────────────── */
+        .admin-main {
+            margin-left: 240px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .admin-topbar {
+            background: #fff;
+            border-bottom: 1px solid var(--adm-border);
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 14px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .admin-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .admin-toggle span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--adm-ink);
+            border-radius: 2px;
+        }
+        .admin-page-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: .95rem;
+            color: var(--adm-ink);
+        }
+        .admin-content {
+            padding: 28px 32px;
+            flex: 1;
+        }
+
+        /* ── Flash messages ──────────────────────────────────────────── */
+        .admin-flash {
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: .875rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .admin-flash--success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .admin-flash--error   { background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; }
+
+        /* ── Stat cards ──────────────────────────────────────────────── */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .admin-stat-card {
+            background: #fff;
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            padding: 20px 22px;
+        }
+        .admin-stat-card .stat-label {
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--adm-muted);
+            margin-bottom: 8px;
+        }
+        .admin-stat-card .stat-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--adm-ink);
+            line-height: 1;
+        }
+        .admin-stat-card .stat-sub {
+            font-size: .75rem;
+            color: var(--adm-muted);
+            margin-top: 6px;
+        }
+
+        /* ── Panel ───────────────────────────────────────────────────── */
+        .admin-panel {
+            background: #fff;
+            border: 1px solid var(--adm-border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .admin-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 22px;
+            border-bottom: 1px solid var(--adm-border);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .admin-panel-head h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--adm-ink);
+        }
+
+        /* ── Table ───────────────────────────────────────────────────── */
+        .admin-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+        .admin-table th {
+            text-align: left;
+            padding: 10px 18px;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            color: var(--adm-muted);
+            background: #faf7f2;
+            border-bottom: 1px solid var(--adm-border);
+        }
+        .admin-table td {
+            padding: 12px 18px;
+            border-bottom: 1px solid #f4ede3;
+            vertical-align: middle;
+        }
+        .admin-table tbody tr:last-child td { border-bottom: none; }
+        .admin-table tbody tr:hover td { background: #fdfaf6; }
+
+        /* ── Action links ────────────────────────────────────────────── */
+        .admin-action {
+            font-size: .78rem;
+            font-weight: 600;
+            color: var(--adm-muted);
+            text-decoration: none;
+            padding: 3px 8px;
+            border-radius: 4px;
+            transition: background .12s, color .12s;
+            margin-left: 2px;
+        }
+        .admin-action:hover { background: #f0e9de; color: var(--adm-ink); }
+        .admin-action--danger { color: #c0392b; }
+        .admin-action--danger:hover { background: #fff1f2; color: #9f1239; }
+
+        /* ── Badges ──────────────────────────────────────────────────── */
+        .badge-active   { display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:700;background:#ecfdf5;color:#065f46; }
+        .badge-inactive { display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:700;background:#fff1f2;color:#9f1239; }
+        .badge-admin    { display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:700;background:rgba(232,64,64,.12);color:var(--adm-accent); }
+        .badge-owner    { display:inline-block;padding:2px 9px;border-radius:99px;font-size:.72rem;font-weight:700;background:rgba(232,160,32,.12);color:#b87010; }
+
+        /* ── Buttons ─────────────────────────────────────────────────── */
+        .btn { display:inline-block;padding:9px 20px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.875rem;font-weight:600;text-decoration:none;cursor:pointer;border:none;transition:background .15s,color .15s; }
+        .btn-danger  { background:var(--adm-accent);color:#fff; }
+        .btn-danger:hover { background:#c0392b; }
+        .btn-outline-adm { background:transparent;color:var(--adm-ink);border:1.5px solid var(--adm-border); }
+        .btn-outline-adm:hover { border-color:var(--adm-ink);background:#faf7f2; }
+        .btn-sm { padding:6px 14px;font-size:.8rem; }
+
+        /* ── Empty state ─────────────────────────────────────────────── */
+        .admin-empty {
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--adm-muted);
+            font-size: .875rem;
+        }
+
+        /* ── Overlay (mobile) ────────────────────────────────────────── */
+        .admin-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            z-index: 190;
+        }
+        .admin-overlay.visible { display: block; }
+
+        /* ── Responsive ──────────────────────────────────────────────── */
+        @media (max-width: 860px) {
+            .admin-sidebar { transform: translateX(-100%); }
+            .admin-sidebar.open { transform: translateX(0); }
+            .admin-main { margin-left: 0; }
+            .admin-toggle { display: flex; }
+            .admin-content { padding: 20px 18px; }
+        }
+    </style>
+</head>
+<body class="admin-body">
+
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="admin-brand">
+            <img src="{{ asset('image/logoS2S.png') }}" alt="S2S">
+            <span>Scan to See</span>
+            <span class="admin-brand-badge">Admin</span>
+        </div>
+        <nav class="admin-nav">
+            {% set route = app.request.attributes.get('_route') %}
+
+            <div class="nav-sep">Overview</div>
+            <a href="{{ path('app_admin') }}"
+               {% if route == 'app_admin' %}class="active"{% endif %}>
+                <span class="nav-icon">⬛</span> Dashboard
+            </a>
+
+            <div class="nav-sep">Users</div>
+            <a href="{{ path('app_admin_owners') }}"
+               {% if route starts with 'app_admin_owner' %}class="active"{% endif %}>
+                <span class="nav-icon">👤</span> Owners
+            </a>
+        </nav>
+        <div class="admin-sidebar-foot">
+            <span class="admin-email">{{ app.user.userIdentifier }}</span>
+            <a href="{{ path('app_logout') }}" class="admin-logout-link" data-turbo="false">Log out</a>
+        </div>
+    </aside>
+
+    <div class="admin-main">
+        <header class="admin-topbar">
+            <button class="admin-toggle" id="adminToggle" aria-label="Toggle sidebar">
+                <span></span><span></span><span></span>
+            </button>
+            <span class="admin-page-title">{% block page_title %}{% endblock %}</span>
+        </header>
+        <main class="admin-content">
+            {% for type, messages in app.flashes %}
+                {% for msg in messages %}
+                    <div class="admin-flash admin-flash--{{ type == 'error' ? 'error' : 'success' }}">{{ msg }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <div class="admin-overlay" id="adminOverlay"></div>
+
+    <script>
+        (function () {
+            var toggle  = document.getElementById('adminToggle');
+            var sidebar = document.getElementById('adminSidebar');
+            var overlay = document.getElementById('adminOverlay');
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    sidebar.classList.toggle('open');
+                    overlay.classList.toggle('visible');
+                });
+                overlay.addEventListener('click', function () {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('visible');
+                });
+            }
+        })();
+    </script>
+
+</body>
+</html>

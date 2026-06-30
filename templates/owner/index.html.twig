@@ -1,0 +1,96 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Dashboard — S2S{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+{# ── Stats row ──────────────────────────────────────────────────────── #}
+<div class="owner-stats">
+    <div class="owner-stat-card">
+        <div class="stat-label">Businesses</div>
+        <div class="stat-value">{{ totalBusinesses }}</div>
+    </div>
+    <div class="owner-stat-card">
+        <div class="stat-label">Total Menus</div>
+        <div class="stat-value">{{ totalMenus }}</div>
+    </div>
+</div>
+
+{% if businessData is empty %}
+    <div class="owner-setup-banner">
+        <div>
+            <strong>Welcome! Let’s get started.</strong>
+            <p>Create your first business to start building digital menus.</p>
+        </div>
+                <a href="{{ path('app_owner_business_new') }}"
+                   data-modal="{{ path('app_owner_business_new') }}"
+                   class="btn btn-outline">Add first business →</a>
+    </div>
+{% else %}
+    {# ── Business cards ───────────────────────────────────────────────── #}
+    {% for entry in businessData %}
+    <div class="owner-panel" style="margin-bottom:24px">
+        <div class="owner-panel-head">
+            <div>
+                <strong style="font-size:1rem">{{ entry.business.name }}</strong>
+                <span style="color:var(--muted);font-size:.78rem;margin-left:10px">
+                    {{ entry.menuCount }} menu{{ entry.menuCount != 1 ? 's' : '' }}
+                </span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a href="{{ path('app_owner_menu_new') }}"
+                   data-modal="{{ path('app_owner_menu_new') }}"
+                   class="btn btn-primary btn-sm">+ Menu</a>
+                <a href="{{ path('app_owner_business_edit', {id: entry.business.id}) }}"
+                   data-modal="{{ path('app_owner_business_edit', {id: entry.business.id}) }}"
+                   class="btn btn-outline btn-sm">Edit</a>
+            </div>
+        </div>
+        {% if entry.menus is empty %}
+            <div style="padding:16px 24px;color:var(--muted);font-size:.85rem">
+                No menus yet.
+                            <a href="{{ path('app_owner_menu_new') }}"
+                               data-modal="{{ path('app_owner_menu_new') }}"
+                               style="color:var(--amber-dk);font-weight:600">Create first menu →</a>
+            </div>
+        {% else %}
+            <table class="owner-table">
+                <thead>
+                    <tr>
+                        <th>Menu</th>
+                        <th>Status</th>
+                        <th>Currency</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for menu in entry.menus %}
+                        <tr>
+                            <td style="font-weight:600">
+                                <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" style="color:var(--amber-dk)">
+                                    {{ menu.name }}
+                                </a>
+                            </td>
+                            <td><span class="badge badge--{{ menu.status }}">{{ menu.status }}</span></td>
+                            <td style="color:var(--muted)">{{ menu.currency }}</td>
+                            <td style="text-align:right">
+                                <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" class="owner-table-action">Open</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <a href="{{ path('app_owner_business_new') }}"
+           data-modal="{{ path('app_owner_business_new') }}"
+           class="btn btn-outline">+ Add business</a>
+        <a href="{{ path('app_owner_menus') }}" class="btn btn-outline">All menus</a>
+    </div>
+{% endif %}
+
+{% endblock %}

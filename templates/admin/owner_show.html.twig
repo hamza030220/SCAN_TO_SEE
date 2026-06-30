@@ -1,0 +1,115 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}{{ owner.email }} — S2S Admin{% endblock %}
+{% block page_title %}Owner detail{% endblock %}
+
+{% block content %}
+
+{# ── Back + actions bar ──────────────────────────────────────────────── #}
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <a href="{{ path('app_admin_owners') }}" style="font-size:.82rem;color:var(--adm-muted);text-decoration:none">← All owners</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <form method="post"
+              action="{{ path('app_admin_owner_toggle', {id: owner.id}) }}"
+              onsubmit="return confirm('{{ owner.isActive ? 'Deactivate' : 'Activate' }} this account?')">
+            <input type="hidden" name="_token" value="{{ csrf_token('toggle-owner-' ~ owner.id) }}">
+            <button type="submit" class="btn btn-outline-adm btn-sm">
+                {{ owner.isActive ? 'Deactivate account' : 'Activate account' }}
+            </button>
+        </form>
+        <form method="post"
+              action="{{ path('app_admin_owner_delete', {id: owner.id}) }}"
+              onsubmit="return confirm('Permanently delete «{{ owner.email }}» and ALL their data? This cannot be undone.')">
+            <input type="hidden" name="_token" value="{{ csrf_token('delete-owner-' ~ owner.id) }}">
+            <button type="submit" class="btn btn-danger btn-sm">Delete account</button>
+        </form>
+    </div>
+</div>
+
+{# ── Profile card ─────────────────────────────────────────────────────── #}
+<div class="admin-panel" style="margin-bottom:24px">
+    <div class="admin-panel-head">
+        <h2>Account info</h2>
+        <span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">
+            {{ owner.isActive ? 'Active' : 'Inactive' }}
+        </span>
+    </div>
+    <table class="admin-table">
+        <tbody>
+            <tr>
+                <td style="width:160px;color:var(--adm-muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">ID</td>
+                <td>{{ owner.id }}</td>
+            </tr>
+            <tr>
+                <td style="color:var(--adm-muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Email</td>
+                <td style="font-weight:600">{{ owner.email }}</td>
+            </tr>
+            <tr>
+                <td style="color:var(--adm-muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Full name</td>
+                <td>{{ owner.fullName ?? '—' }}</td>
+            </tr>
+            <tr>
+                <td style="color:var(--adm-muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Role</td>
+                <td><span class="badge-owner">owner</span></td>
+            </tr>
+            <tr>
+                <td style="color:var(--adm-muted);font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Joined</td>
+                <td>{{ owner.createdAt|date('M d, Y · H:i') }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{# ── Businesses & menus ───────────────────────────────────────────────── #}
+<div class="admin-panel">
+    <div class="admin-panel-head">
+        <h2>Businesses <span style="color:var(--adm-muted);font-weight:400">({{ businesses|length }})</span></h2>
+    </div>
+    {% if businesses is empty %}
+        <div class="admin-empty">This owner has no businesses yet.</div>
+    {% else %}
+        {% for business in businesses %}
+            <div style="padding:14px 22px;border-bottom:1px solid #f4ede3">
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                    <div>
+                        <span style="font-weight:700">{{ business.name }}</span>
+                        <span style="color:var(--adm-muted);font-size:.78rem;margin-left:10px">
+                            {{ menusMap[business.id]|length }} menu{{ menusMap[business.id]|length != 1 ? 's' : '' }}
+                        </span>
+                    </div>
+                    <span style="color:var(--adm-muted);font-size:.78rem">
+                        Created {{ business.createdAt|date('M d, Y') }}
+                    </span>
+                </div>
+                {% if menusMap[business.id]|length > 0 %}
+                    <table class="admin-table" style="margin-top:10px">
+                        <thead>
+                            <tr>
+                                <th>Menu</th>
+                                <th>Status</th>
+                                <th>Currency</th>
+                                <th>Categories</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for menu in menusMap[business.id] %}
+                                <tr>
+                                    <td style="font-weight:600">{{ menu.name }}</td>
+                                    <td>
+                                        <span class="{{ menu.status == 'published' ? 'badge-active' : 'badge-inactive' }}">
+                                            {{ menu.status }}
+                                        </span>
+                                    </td>
+                                    <td style="color:var(--adm-muted)">{{ menu.currency }}</td>
+                                    <td style="color:var(--adm-muted)">{{ menu.categories|length }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+{% endblock %}
