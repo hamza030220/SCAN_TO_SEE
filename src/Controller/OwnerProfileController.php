@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\Business;
 use App\Repository\BusinessRepository;
+use App\Service\ImageUploadService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -37,6 +39,7 @@ final class OwnerProfileController extends AbstractController
         Request $request,
         BusinessRepository $businessRepo,
         EntityManagerInterface $em,
+        ImageUploadService $imageUpload,
         ?int $id = null,
     ): Response {
         /** @var \App\Entity\User $user */
@@ -49,22 +52,44 @@ final class OwnerProfileController extends AbstractController
             if (!$this->isCsrfTokenValid('business', $request->request->get('_token'))) {
                 $error = 'Invalid security token.';
             } else {
-                $name = trim($request->request->get('name', ''));
+                $name     = trim($request->request->get('name', ''));
+                $logoFile = $request->files->get('logo');
+
                 if (!$name) {
                     $error = 'Business name is required.';
                 } else {
-                    $isNew = !$business;
-                    if ($isNew) {
-                        $business = new Business();
-                        $business->setOwner($user);
-                        $em->persist($business);
-                    }
-                    $business->setName($name);
-                    $business->setUpdatedAt(new \DateTimeImmutable());
-                    $em->flush();
+                    if (!$error) {
+                        $isNew = !$business;
+                        if ($isNew) {
+                            $business = new Business();
+                            $business->setOwner($user);
+                            $em->persist($business);
+                        }
+                        $business->setName($name);
 
-                    $this->addFlash('success', $isNew ? 'Business created.' : 'Business updated.');
-                    return $this->redirectToRoute('app_owner_businesses');
+                        // Assign slug only if not set yet (stable — never changed after creation)
+                        if (!$business->getSlug()) {
+                            $business->setSlug($this->uniqueSlug($name, $businessRepo, $business->getId()));
+                        }
+
+                        if ($logoFile instanceof UploadedFile) {
+                            try {
+                                $imageUpload->delete($business->getLogoPath());
+                                $business->setLogoPath(
+                                    $imageUpload->uploadBusinessLogo($logoFile, $name)
+                                );
+                            } catch (\RuntimeException $e) {
+                                $error = $e->getMessage();
+                            }
+                        }
+
+                        if (!$error) {
+                            $business->setUpdatedAt(new \DateTimeImmutable());
+                            $em->flush();
+                            $this->addFlash('success', $isNew ? 'Business created.' : 'Business updated.');
+                            return $this->redirectToRoute('app_owner_businesses');
+                        }
+                    }
                 }
             }
         }
@@ -93,6 +118,31 @@ final class OwnerProfileController extends AbstractController
         $em->flush();
         $this->addFlash('success', 'Business deleted.');
         return $this->redirectToRoute('app_owner_businesses');
+    }
+
+    // ── Slug helpers ───────────────────────────────────────────────────────
+
+    private function uniqueSlug(string $name, BusinessRepository $repo, ?int $excludeId = null): string
+    {
+        $base = $this->slugify($name);
+        $slug = $base;
+        $i    = 1;
+        while (true) {
+            $existing = $repo->findOneBy(['slug' => $slug]);
+            if (!$existing || $existing->getId() === $excludeId) {
+                break;
+            }
+            $slug = $base . '-' . $i++;
+        }
+        return $slug;
+    }
+
+    private function slugify(string $s): string
+    {
+        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
+        $s = strtolower($s);
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s);
+        return trim($s, '-');
     }
 }
 

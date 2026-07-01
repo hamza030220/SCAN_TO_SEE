@@ -1,0 +1,38 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}QR Code — {{ business.name }} — S2S{% endblock %}
+{% block page_title %}QR Code{% endblock %}
+
+{% block content %}
+<div class="owner-panel" style="max-width:480px">
+    <div class="owner-panel-head">
+        <h2>QR Code for {{ business.name }}</h2>
+        <a href="{{ path('app_owner_businesses') }}" style="font-size:.82rem;color:var(--muted)">← Businesses</a>
+    </div>
+    <div class="owner-panel-body" style="text-align:center">
+        <p style="font-size:.85rem;color:var(--muted);margin-bottom:24px">
+            Print or share this QR code. When scanned, customers see your published menu.
+            The code is permanent — it never changes even when you update your menu.
+        </p>
+
+        <div class="qr-frame">
+            <img src="{{ qrDataUri }}" alt="QR code for {{ business.name }}" class="qr-img">
+        </div>
+
+        <p style="font-size:.72rem;color:var(--muted);margin:14px 0 24px;word-break:break-all">
+            {{ publicUrl }}
+        </p>
+
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+            <a href="{{ path('app_owner_business_qr_download', {id: business.id}) }}"
+               class="btn btn-primary"
+               download>
+                ↓ Download PNG
+            </a>
+            <a href="{{ publicUrl }}" target="_blank" rel="noopener" class="btn btn-outline">
+                Open menu ↗
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

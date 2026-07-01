@@ -767,3 +767,90 @@ h3 {
         padding: 48px 0;
     }
 }
+
+
+/* --- Image upload widget ---------------------------------------------------- */
+.img-upload-widget {
+    margin-top: 8px;
+}
+.img-upload-preview {
+    width: 100%;
+    margin-bottom: 10px;
+}
+.img-upload-placeholder {
+    width: 100%;
+    height: 160px;
+    background: #f0ede8;
+    border: 2px dashed #d5cec5;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #9c8874;
+    font-size: .85rem;
+}
+.img-upload-thumb {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    display: block;
+}
+.img-upload-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.img-upload-btn {
+    display: inline-block;
+    padding: 7px 16px;
+    background: #f0ede8;
+    border: 1px solid #d5cec5;
+    border-radius: 4px;
+    font-size: .82rem;
+    cursor: pointer;
+    color: #3d2f1e;
+    transition: background .15s;
+}
+.img-upload-btn:hover {
+    background: #e8e0d5;
+}
+
+/* Small thumbnail in tables */
+.img-thumb-sm {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    display: block;
+}
+.img-placeholder-sm {
+    width: 40px;
+    height: 40px;
+    background: #f0ede8;
+    border: 1px solid #d5cec5;
+    border-radius: 4px;
+}
+
+
+/* -- QR Code page ------------------------------------------- */
+.qr-frame {
+    display: inline-block;
+    padding: 16px;
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 4px 18px rgba(24,18,10,.08);
+    margin-bottom: 4px;
+}
+.qr-img {
+    display: block;
+    width: 220px;
+    height: 220px;
+}

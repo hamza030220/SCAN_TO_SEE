@@ -1,0 +1,40 @@
+{% extends 'public/layout.html.twig' %}
+
+{% block title %}{{ business.name }} — Choose a Menu{% endblock %}
+
+{% block body %}
+<div class="pub-picker">
+    <div class="pub-picker-header">
+        {% if business.logoPath %}
+            <img src="{{ asset(business.logoPath) }}"
+                 alt="{{ business.name }}"
+                 class="pub-header-logo">
+        {% else %}
+            <div class="pub-header-initials">{{ business.name|slice(0,2)|upper }}</div>
+        {% endif %}
+        <h1 class="pub-header-name">{{ business.name }}</h1>
+        <p class="pub-header-sub">Choose a menu to explore</p>
+    </div>
+
+    <div class="pub-menu-list">
+        {% for menu in menus %}
+            <a href="{{ path('app_public_menu_view', {slug: business.slug, menuSlug: menu.slug}) }}"
+               class="pub-menu-card">
+                <div class="pub-menu-card-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M7 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2"/><path d="M9 3h6a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>
+                </div>
+                <div class="pub-menu-card-body">
+                    <span class="pub-menu-card-name">{{ menu.name }}</span>
+                    <span class="pub-menu-card-currency">{{ menu.currency }}</span>
+                </div>
+                <svg class="pub-menu-card-arrow" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+        {% endfor %}
+    </div>
+
+    <footer class="pub-footer">
+        <span>Powered by</span>
+        <strong>Scan to See</strong>
+    </footer>
+</div>
+{% endblock %}

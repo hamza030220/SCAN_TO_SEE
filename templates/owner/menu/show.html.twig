@@ -73,6 +73,7 @@
             <table class="owner-table">
                 <thead>
                     <tr>
+                        <th style="width:52px"></th>
                         <th>Item</th>
                         <th>Description</th>
                         <th>Price</th>
@@ -83,6 +84,15 @@
                 <tbody>
                     {% for item in category.items %}
                         <tr>
+                            <td>
+                                {% if item.imagePath %}
+                                    <img src="{{ asset(item.imagePath) }}"
+                                         alt="{{ item.name }}"
+                                         class="img-thumb-sm">
+                                {% else %}
+                                    <div class="img-placeholder-sm"></div>
+                                {% endif %}
+                            </td>
                             <td style="font-weight:600">{{ item.name }}</td>
                             <td style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
                             <td>{{ item.price }} {{ menu.currency }}</td>

@@ -1,0 +1,260 @@
+{% extends 'public/layout.html.twig' %}
+
+{% block title %}{{ menu.name }} — {{ business.name }}{% endblock %}
+
+{% block body %}
+
+{# ── Header ──────────────────────────────────────────────────────────── #}
+<header class="pub-header">
+    <div class="pub-header-inner">
+        {% if business.logoPath %}
+            <img src="{{ asset(business.logoPath) }}"
+                 alt="{{ business.name }}"
+                 class="pub-header-logo">
+        {% else %}
+            <div class="pub-header-initials">{{ business.name|slice(0,2)|upper }}</div>
+        {% endif %}
+        <div class="pub-header-text">
+            <h1 class="pub-header-name">{{ business.name }}</h1>
+            <p class="pub-header-menu">{{ menu.name }}</p>
+        </div>
+    </div>
+    {% if otherMenus|length > 0 %}
+        <a href="{{ path('app_public_menu', {slug: business.slug}) }}"
+           class="pub-other-menus-link">
+            See all menus
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+    {% endif %}
+</header>
+
+{# ── Category pill nav ───────────────────────────────────────────────── #}
+{% if categories|length > 1 %}
+<nav class="pub-cat-nav" id="catNav">
+    <div class="pub-cat-nav-inner">
+        {% for entry in categories %}
+            <a href="#cat-{{ entry.category.id }}"
+               class="pub-cat-pill"
+               data-cat-pill="{{ entry.category.id }}">
+                {{ entry.category.name }}
+            </a>
+        {% endfor %}
+    </div>
+</nav>
+{% endif %}
+
+{# ── Menu body ───────────────────────────────────────────────────────── #}
+<main class="pub-main" id="pubMain">
+
+    {% if categories|length == 0 %}
+        <div class="pub-empty">
+            <p>No items available right now. Check back soon!</p>
+        </div>
+    {% else %}
+        {% for entry in categories %}
+            <section class="pub-category" id="cat-{{ entry.category.id }}">
+                <h2 class="pub-cat-title">{{ entry.category.name }}</h2>
+                <div class="pub-items">
+                    {% for item in entry.items %}
+                        <button type="button"
+                                class="pub-item-card"
+                                data-item-id="{{ item.id }}"
+                                data-item-name="{{ item.name|e('html_attr') }}"
+                                data-item-desc="{{ item.shortDescription ?? ''|e('html_attr') }}"
+                                data-item-price="{{ item.price }}"
+                                data-item-currency="{{ menu.currency }}"
+                                data-item-image="{{ item.imagePath ? asset(item.imagePath) : '' }}"
+                                aria-label="View details for {{ item.name }}">
+
+                            {# Image or placeholder #}
+                            <div class="pub-item-img-wrap">
+                                {% if item.imagePath %}
+                                    <img src="{{ asset(item.imagePath) }}"
+                                         alt="{{ item.name }}"
+                                         class="pub-item-img"
+                                         loading="lazy">
+                                {% else %}
+                                    <div class="pub-item-img-placeholder">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="pub-item-body">
+                                <span class="pub-item-name">{{ item.name }}</span>
+                                {% if item.shortDescription %}
+                                    <span class="pub-item-desc">{{ item.shortDescription }}</span>
+                                {% endif %}
+                                <span class="pub-item-price">{{ item.price }} {{ menu.currency }}</span>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+    {% endif %}
+
+</main>
+
+{# ── Footer ──────────────────────────────────────────────────────────── #}
+<footer class="pub-footer">
+    <span>Powered by</span>
+    <strong>Scan to See</strong>
+</footer>
+
+{# ── Item detail bottom sheet ────────────────────────────────────────── #}
+<div class="pub-sheet-backdrop" id="sheetBackdrop" aria-hidden="true"></div>
+<div class="pub-sheet" id="itemSheet" role="dialog" aria-modal="true" aria-label="Item details">
+    <div class="pub-sheet-handle"></div>
+    <div class="pub-sheet-img-wrap" id="sheetImgWrap"></div>
+    <div class="pub-sheet-body">
+        <div class="pub-sheet-top">
+            <h2 class="pub-sheet-name" id="sheetName"></h2>
+            <span class="pub-sheet-price" id="sheetPrice"></span>
+        </div>
+        <p class="pub-sheet-desc" id="sheetDesc"></p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    /* ── Item bottom sheet ───────────────────────────────────────────── */
+    var sheet    = document.getElementById('itemSheet');
+    var backdrop = document.getElementById('sheetBackdrop');
+    var imgWrap  = document.getElementById('sheetImgWrap');
+    var nameEl   = document.getElementById('sheetName');
+    var priceEl  = document.getElementById('sheetPrice');
+    var descEl   = document.getElementById('sheetDesc');
+
+    function openSheet(card) {
+        var name     = card.dataset.itemName;
+        var desc     = card.dataset.itemDesc;
+        var price    = card.dataset.itemPrice;
+        var currency = card.dataset.itemCurrency;
+        var image    = card.dataset.itemImage;
+
+        nameEl.textContent  = name;
+        priceEl.textContent = price + ' ' + currency;
+        descEl.textContent  = desc || '';
+        descEl.style.display = desc ? 'block' : 'none';
+
+        imgWrap.innerHTML = '';
+        if (image) {
+            var img = document.createElement('img');
+            img.src = image;
+            img.alt = name;
+            img.className = 'pub-sheet-img';
+            imgWrap.appendChild(img);
+            imgWrap.style.display = 'block';
+        } else {
+            imgWrap.style.display = 'none';
+        }
+
+        sheet.classList.add('open');
+        backdrop.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeSheet() {
+        sheet.classList.remove('open');
+        backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+    }
+
+    document.addEventListener('click', function (e) {
+        var card = e.target.closest('.pub-item-card');
+        if (card) { openSheet(card); return; }
+        if (e.target === backdrop) { closeSheet(); }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeSheet();
+    });
+
+    /* ── Touch swipe-down to close sheet ─────────────────────────────── */
+    var startY = 0;
+    sheet.addEventListener('touchstart', function (e) {
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+    sheet.addEventListener('touchend', function (e) {
+        var dy = e.changedTouches[0].clientY - startY;
+        if (dy > 60) closeSheet();
+    }, { passive: true });
+
+    /* ── Sticky category nav (below sticky header) ───────────────────── */
+    var header = document.querySelector('.pub-header');
+    var catNav = document.getElementById('catNav');
+
+    function stickyNav() {
+        if (!catNav || !header) return;
+        catNav.style.position = 'sticky';
+        catNav.style.top      = header.offsetHeight + 'px';
+        catNav.style.zIndex   = '49';
+    }
+    stickyNav();
+    window.addEventListener('resize', stickyNav, { passive: true });
+
+    /* ── Category pill scroll tracking ───────────────────────────────── */
+    var pills    = Array.from(document.querySelectorAll('[data-cat-pill]'));
+    var sections = pills.map(function (p) {
+        return document.getElementById('cat-' + p.dataset.catPill);
+    }).filter(Boolean);
+
+    if (pills.length < 2 || sections.length === 0) return;
+
+    function getOffset() {
+        return (header ? header.offsetHeight : 0) +
+               (catNav  ? catNav.offsetHeight  : 0) +
+               16; /* 16 px breathing room */
+    }
+
+    function setActive(id) {
+        var sid = String(id);
+        pills.forEach(function (p) {
+            p.classList.toggle('active', p.dataset.catPill === sid);
+        });
+        var active = document.querySelector('[data-cat-pill="' + sid + '"]');
+        if (active) {
+            active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+        }
+    }
+
+    /* Click pill: smooth-scroll to section with header offset */
+    pills.forEach(function (pill) {
+        pill.addEventListener('click', function (e) {
+            e.preventDefault();
+            var section = document.getElementById('cat-' + pill.dataset.catPill);
+            if (!section) return;
+            var top = section.getBoundingClientRect().top + window.scrollY - getOffset();
+            window.scrollTo({ top: top, behavior: 'smooth' });
+            setActive(pill.dataset.catPill);
+        });
+    });
+
+    /* Scroll: the current section is the last one whose top is at or above
+       the offset line — reliable even for very short sections */
+    var ticking = false;
+    function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+            ticking = false;
+            var offset  = getOffset();
+            var current = sections[0].id.replace('cat-', ''); // default: first
+            sections.forEach(function (s) {
+                if (s.getBoundingClientRect().top <= offset) {
+                    current = s.id.replace('cat-', '');
+                }
+            });
+            setActive(current);
+        });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll(); // set initial active state on page load
+})();
+</script>
+{% endblock %}

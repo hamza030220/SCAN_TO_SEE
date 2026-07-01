@@ -23,6 +23,7 @@
         <table class="owner-table">
             <thead>
                 <tr>
+                    <th style="width:52px"></th>
                     <th>Business name</th>
                     <th>Created</th>
                     <th></th>
@@ -31,9 +32,21 @@
             <tbody>
                 {% for business in businesses %}
                     <tr>
+                        <td>
+                            {% if business.logoPath %}
+                                <img src="{{ asset(business.logoPath) }}"
+                                     alt="{{ business.name }} logo"
+                                     class="img-thumb-sm">
+                            {% else %}
+                                <div class="img-placeholder-sm"></div>
+                            {% endif %}
+                        </td>
                         <td style="font-weight:600">{{ business.name }}</td>
                         <td style="color:var(--muted);font-size:.82rem">{{ business.createdAt|date('M d, Y') }}</td>
                         <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ path('app_owner_business_qr', {id: business.id}) }}"
+                               class="owner-table-action"
+                               title="QR Code">QR</a>
                             <a href="{{ path('app_owner_business_edit', {id: business.id}) }}"
                                data-modal="{{ path('app_owner_business_edit', {id: business.id}) }}"
                                class="owner-table-action">Edit</a>

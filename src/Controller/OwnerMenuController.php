@@ -8,8 +8,10 @@ use App\Entity\Menu;
 use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
+use App\Service\ImageUploadService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -262,6 +264,7 @@ final class OwnerMenuController extends AbstractController
         MenuRepository $menuRepo,
         CategoryRepository $categoryRepo,
         EntityManagerInterface $em,
+        ImageUploadService $imageUpload,
         ?int $itemId = null,
     ): Response {
         $menu     = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
@@ -287,6 +290,7 @@ final class OwnerMenuController extends AbstractController
                 $priceRaw    = $request->request->get('price', '');
                 $isAvailable = (bool) $request->request->get('is_available', false);
                 $sortOrder   = (int) $request->request->get('sort_order', 0);
+                $imageFile   = $request->files->get('image');
 
                 if (!$name) {
                     $error = 'Item name is required.';
@@ -304,11 +308,24 @@ final class OwnerMenuController extends AbstractController
                     $item->setPrice(number_format((float) $priceRaw, 2, '.', ''));
                     $item->setIsAvailable($isAvailable);
                     $item->setSortOrder($sortOrder);
-                    $item->setUpdatedAt(new \DateTimeImmutable());
-                    $em->flush();
 
-                    $this->addFlash('success', $isNew ? 'Item added.' : 'Item updated.');
-                    return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+                    if ($imageFile instanceof UploadedFile) {
+                        try {
+                            $imageUpload->delete($item->getImagePath());
+                            $item->setImagePath(
+                                $imageUpload->uploadItemImage($imageFile, $name)
+                            );
+                        } catch (\RuntimeException $e) {
+                            $error = $e->getMessage();
+                        }
+                    }
+
+                    if (!$error) {
+                        $item->setUpdatedAt(new \DateTimeImmutable());
+                        $em->flush();
+                        $this->addFlash('success', $isNew ? 'Item added.' : 'Item updated.');
+                        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+                    }
                 }
             }
         }

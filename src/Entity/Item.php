@@ -35,6 +35,9 @@ class Item
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $imagePath = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $updatedAt;
 
@@ -60,4 +63,6 @@ class Item
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
     public function setUpdatedAt(\DateTimeImmutable $dt): static { $this->updatedAt = $dt; return $this; }
+    public function getImagePath(): ?string { return $this->imagePath; }
+    public function setImagePath(?string $path): static { $this->imagePath = $path; return $this; }
 }
