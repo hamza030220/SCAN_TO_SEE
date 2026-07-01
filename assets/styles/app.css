@@ -528,7 +528,21 @@ h3 {
     overflow: hidden;
 }
 
-.auth-copy {
+/* Template aliases */
+.auth-box {
+    width: min(980px, 100%);
+    display: grid;
+    grid-template-columns: 0.9fr 1fr;
+    gap: 0;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.auth-copy,
+.auth-left {
     min-height: 100%;
     display: grid;
     align-content: center;
@@ -538,11 +552,20 @@ h3 {
     color: #fff;
 }
 
-.auth-copy p {
+.auth-right {
+    display: grid;
+    gap: 12px;
+    padding: 44px;
+    align-content: start;
+}
+
+.auth-copy p,
+.auth-left p {
     color: rgba(255, 255, 255, 0.78);
 }
 
-.auth-copy .eyebrow {
+.auth-copy .eyebrow,
+.auth-left .eyebrow {
     color: #f3bd64;
 }
 
@@ -550,6 +573,24 @@ h3 {
     display: grid;
     gap: 12px;
     padding: 44px;
+}
+
+.auth-alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+.auth-alert--err {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+.auth-alert--ok {
+    background: #f0fdf4;
+    border-color: #86efac;
+    color: #166534;
 }
 
 .auth-form label {

@@ -1,0 +1,16 @@
+scheb_two_factor:
+    security_tokens:
+        - Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken
+        - Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken
+
+    # TOTP
+    totp:
+        enabled: true
+        issuer: 'S2S'
+        template: 'security/2fa_totp.html.twig'
+
+    # Backup codes
+    backup_codes:
+        enabled: true
+
+

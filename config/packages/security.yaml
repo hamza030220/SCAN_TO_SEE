@@ -23,6 +23,12 @@ security:
                 username_parameter: email
                 password_parameter: password
                 enable_csrf: true
+            two_factor:
+                auth_form_path: 2fa_login
+                check_path: 2fa_login_check
+                default_target_path: /dashboard
+                auth_code_parameter_name: _auth_code
+                trusted_parameter_name: _trusted
             logout:
                 path: app_logout
                 target: /
@@ -31,10 +37,11 @@ security:
                 lifetime: 604800
                 remember_me_parameter: remember_me
 
-    # Easy way to control access for large sections of your site
     access_control:
-        - { path: ^/admin, roles: ROLE_ADMIN }
-        - { path: ^/owner, roles: ROLE_OWNER }
+        - { path: ^/2fa/setup, roles: IS_AUTHENTICATED_REMEMBERED }
+        - { path: ^/2fa,       roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
+        - { path: ^/admin,     roles: ROLE_ADMIN }
+        - { path: ^/owner,     roles: ROLE_OWNER }
         - { path: ^/dashboard, roles: ROLE_USER }
 
 when@test:

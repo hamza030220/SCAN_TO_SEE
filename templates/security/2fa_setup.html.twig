@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Set Up Two-Factor Authentication — S2S</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --amber: #E8A020;
+            --amber-dark: #c4861a;
+            --bg: #18120A;
+            --surface: #201810;
+            --surface2: #2a1f12;
+            --border: rgba(232,160,32,0.18);
+            --text: #f5e9d6;
+            --muted: #9a8060;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .card {
+            width: 100%;
+            max-width: 480px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2.5rem 2rem;
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--amber);
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+        .page-title {
+            text-align: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-bottom: 2rem;
+        }
+        .step { margin-bottom: 1.75rem; }
+        .step-header {
+            display: flex;
+            align-items: center;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+        .step-num {
+            display: inline-flex;
+            align-items: center; justify-content: center;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: var(--amber);
+            color: #18120A;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .step-body { padding-left: 2rem; }
+        .qr-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 0.75rem;
+            background: #fff;
+            border-radius: 4px;
+            width: fit-content;
+            margin: 0 auto 0.75rem;
+        }
+        .qr-wrap img { display: block; }
+        .manual-secret {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.6rem 1rem;
+            font-family: 'Space Grotesk', monospace;
+            font-size: 0.8rem;
+            letter-spacing: .1em;
+            color: var(--amber);
+            text-align: center;
+            word-break: break-all;
+            margin-top: 0.5rem;
+        }
+        .hint {
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 0.4rem;
+            line-height: 1.5;
+        }
+        label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.35em;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            outline: none;
+            transition: border-color .15s;
+        }
+        input[type="text"]:focus { border-color: var(--amber); }
+        .btn {
+            display: block;
+            width: 100%;
+            margin-top: 1.25rem;
+            padding: 0.8rem;
+            background: var(--amber);
+            color: #18120A;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            border: none;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn:hover { background: var(--amber-dark); }
+        .error-box {
+            background: rgba(232,64,64,.1);
+            border: 1px solid rgba(232,64,64,.3);
+            border-radius: 4px;
+            color: #e84040;
+            font-size: 0.875rem;
+            padding: 0.65rem 1rem;
+            margin-bottom: 1.25rem;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 1.75rem 0;
+        }
+        .back { text-align: center; margin-top: 1rem; font-size: 0.8rem; }
+        .back a { color: var(--muted); text-decoration: none; }
+        .back a:hover { color: var(--text); }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">S2S</div>
+    <div class="page-title">Secure Your Account</div>
+    <div class="subtitle">Set up two-factor authentication to continue</div>
+
+    {% for msg in app.flashes('2fa_error') %}
+        <div class="error-box">{{ msg }}</div>
+    {% endfor %}
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">1</span>
+            Install Microsoft Authenticator
+        </div>
+        <div class="step-body">
+            <p style="font-size:.825rem; color:var(--muted); line-height:1.6;">
+                Download <strong style="color:var(--text)">Microsoft Authenticator</strong> (iOS / Android),
+                or any TOTP-compatible app (Google Authenticator, Authy).
+            </p>
+        </div>
+    </div>
+
+    <div class="step">
+        <div class="step-header">
+            <span class="step-num">2</span>
+            Scan the QR Code
+        </div>
+        <div class="step-body">
+            <div class="qr-wrap">
+                <img src="{{ qr_code_uri }}" alt="TOTP QR Code" width="250" height="250">
+            </div>
+            <p class="hint">Can't scan? Enter this key manually:</p>
+            <div class="manual-secret">{{ totp_secret }}</div>
+            <p class="hint" style="margin-top:.35rem;">
+                In Microsoft Authenticator: <em>+ → Other account → Enter code manually</em>
+            </p>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <form action="{{ path('app_2fa_setup_confirm') }}" method="post">
+        <div class="step-header">
+            <span class="step-num">3</span>
+            Confirm Setup
+        </div>
+        <div style="padding-left:2rem;">
+            <label for="code">Enter the 6-digit code from your app</label>
+            <input
+                type="text"
+                id="code"
+                name="code"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                autofocus
+                placeholder="000000"
+                required
+            >
+            <button type="submit" class="btn">Activate Two-Factor Authentication</button>
+        </div>
+    </form>
+
+    <div class="back"><a href="{{ path('app_logout') }}">← Sign out instead</a></div>
+</div>
+</body>
+</html>

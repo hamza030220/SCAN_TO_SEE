@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Two-Factor Authentication — S2S</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --amber: #E8A020;
+            --amber-dark: #c4861a;
+            --bg: #18120A;
+            --surface: #201810;
+            --surface2: #2a1f12;
+            --border: rgba(232,160,32,0.18);
+            --text: #f5e9d6;
+            --muted: #9a8060;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2.5rem 2rem;
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--amber);
+            letter-spacing: -0.5px;
+            text-align: center;
+            margin-bottom: 0.35rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+        .icon-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.75rem;
+        }
+        .icon-wrap {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            border: 2px solid var(--amber);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--amber);
+        }
+        label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.35em;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            outline: none;
+            transition: border-color .15s;
+        }
+        input[type="text"]:focus { border-color: var(--amber); }
+        .btn {
+            display: block;
+            width: 100%;
+            margin-top: 1.25rem;
+            padding: 0.8rem;
+            background: var(--amber);
+            color: #18120A;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            border: none;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn:hover { background: var(--amber-dark); }
+        .error-box {
+            background: rgba(232,64,64,.1);
+            border: 1px solid rgba(232,64,64,.3);
+            border-radius: 4px;
+            color: #e84040;
+            font-size: 0.875rem;
+            padding: 0.65rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .help {
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+        .help a { color: var(--amber); text-decoration: none; }
+        .help a:hover { text-decoration: underline; }
+        .back { text-align: center; margin-top: 1.25rem; font-size: 0.8rem; }
+        .back a { color: var(--muted); text-decoration: none; }
+        .back a:hover { color: var(--text); }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">S2S</div>
+    <div class="subtitle">Two-Factor Authentication</div>
+
+    <div class="icon-row">
+        <div class="icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="10" rx="2"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+            </svg>
+        </div>
+    </div>
+
+    {% if authenticationError is defined and authenticationError %}
+        <div class="error-box">{{ authenticationError|trans({}, 'SchebTwoFactorBundle') }}</div>
+    {% endif %}
+
+    <form action="{{ path('2fa_login_check') }}" method="post">
+        <label for="_auth_code">Authenticator Code</label>
+        <input
+            type="text"
+            id="_auth_code"
+            name="_auth_code"
+            inputmode="numeric"
+            pattern="[0-9]{6,8}"
+            maxlength="8"
+            autocomplete="one-time-code"
+            autofocus
+            placeholder="000000"
+        >
+
+        <button type="submit" class="btn">Verify</button>
+
+        <div class="help">
+            Open <strong>Microsoft Authenticator</strong> and enter the 6-digit code.<br><br>
+            Lost access? <a href="#" onclick="toggleBackup(event)">Use a backup code</a>
+        </div>
+
+        <div id="backup-section" style="display:none; margin-top:1rem;">
+            <label for="_backup_code">Backup Code</label>
+            <input type="text" id="_backup_code" name="_backup_ignore" maxlength="8" placeholder="XXXXXXXX" style="letter-spacing:.2em;">
+        </div>
+    </form>
+
+    <div class="back"><a href="{{ path('app_logout') }}">← Sign out</a></div>
+</div>
+
+<script>
+function toggleBackup(e) {
+    e.preventDefault();
+    var s = document.getElementById('backup-section');
+    s.style.display = s.style.display === 'none' ? 'block' : 'none';
+    if (s.style.display === 'block') {
+        document.getElementById('_auth_code').name = '__ignore';
+        document.getElementById('_backup_code').name = '_auth_code';
+        document.getElementById('_backup_code').focus();
+    } else {
+        document.getElementById('_auth_code').name = '_auth_code';
+        document.getElementById('_backup_code').name = '__backup_ignore';
+    }
+}
+</script>
+</body>
+</html>
