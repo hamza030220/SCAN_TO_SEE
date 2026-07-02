@@ -31,15 +31,13 @@ class Menu
     #[ORM\Column(length: 3)]
     private string $currency = 'TND';
 
-    #[ORM\Column(length: 40)]
-    private string $themePreset = 'modern';
-
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $themeConfig = null;
 
     public const DEFAULT_THEME = [
         'theme'           => 'light',
         'font'            => 'DM Sans',
+        'layout'          => 'list',
         'bgType'          => 'solid',
         'bgColor'         => '#f7f4ef',
         'bgGradientStart' => '#f7f4ef',
@@ -84,8 +82,6 @@ class Menu
     public function setStatus(string $s): static { $this->status = $s; return $this; }
     public function getCurrency(): string { return $this->currency; }
     public function setCurrency(string $c): static { $this->currency = $c; return $this; }
-    public function getThemePreset(): string { return $this->themePreset; }
-    public function setThemePreset(string $t): static { $this->themePreset = $t; return $this; }
     public function getThemeConfig(): array { return array_merge(self::DEFAULT_THEME, $this->themeConfig ?? []); }
     public function setThemeConfig(?array $c): static { $this->themeConfig = $c; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }

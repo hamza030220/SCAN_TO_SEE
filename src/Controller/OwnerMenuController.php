@@ -107,7 +107,6 @@ final class OwnerMenuController extends AbstractController
             } else {
                 $name        = trim($request->request->get('name', ''));
                 $currency    = strtoupper(substr($request->request->get('currency', 'TND'), 0, 3));
-                $themePreset = $request->request->get('theme_preset', 'modern');
                 $status      = $request->request->get('status', 'draft');
                 $businessId  = (int) $request->request->get('business_id', 0);
 
@@ -129,7 +128,6 @@ final class OwnerMenuController extends AbstractController
                     }
                     $menu->setName($name);
                     $menu->setCurrency($currency);
-                    $menu->setThemePreset($themePreset);
                     $menu->setStatus($status);
                     $menu->setUpdatedAt(new \DateTimeImmutable());
                     $em->flush();
@@ -190,6 +188,7 @@ final class OwnerMenuController extends AbstractController
         $data = [
             'theme'           => in_array($request->request->get('theme'), ['light', 'dark']) ? $request->request->get('theme') : 'light',
             'font'            => $request->request->get('font', 'DM Sans'),
+            'layout'          => in_array($request->request->get('layout'), ['list', 'grid', 'compact']) ? $request->request->get('layout') : 'list',
             'bgType'          => in_array($request->request->get('bgType'), ['solid', 'gradient', 'image']) ? $request->request->get('bgType') : 'solid',
             'bgColor'         => $request->request->get('bgColor', '#f7f4ef'),
             'bgGradientStart' => $request->request->get('bgGradientStart', '#f7f4ef'),

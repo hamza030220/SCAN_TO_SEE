@@ -31,7 +31,7 @@
 </style>
 {% endblock %}
 
-{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}"{% endblock %}
+{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout ?? 'list' }}"{% endblock %}
 
 {% block body %}
 

@@ -44,18 +44,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-field">
-                <label for="theme_preset">Theme</label>
-                <select id="theme_preset" name="theme_preset">
-                    {% for preset in ['modern', 'classic', 'minimal'] %}
-                        <option value="{{ preset }}"
-                            {{ menu and menu.themePreset == preset ? 'selected' : '' }}
-                            {{ not menu and preset == 'modern' ? 'selected' : '' }}>
-                            {{ preset|capitalize }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+
             <div class="form-field">
                 <label for="status">Status</label>
                 <select id="status" name="status">

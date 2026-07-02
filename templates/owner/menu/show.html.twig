@@ -9,7 +9,7 @@
 <div class="owner-menu-header">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
-        <span style="color:var(--muted);font-size:.82rem">{{ menu.currency }} · {{ menu.themePreset|capitalize }}</span>
+        <span style="color:var(--muted);font-size:.82rem">{{ menu.currency }}</span>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
@@ -206,6 +206,17 @@
                                 <option value="{{ f }}" {% if tc.font == f %}selected{% endif %}>{{ f }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Layout</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="layout_list" name="layout" value="list" {% if (tc.layout ?? 'list') == 'list' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="layout_list" title="Single column with image + text">≡ List</label>
+                            <input type="radio" id="layout_grid" name="layout" value="grid" {% if (tc.layout ?? 'list') == 'grid' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="layout_grid" title="2-column card grid">⊞ Grid</label>
+                            <input type="radio" id="layout_compact" name="layout" value="compact" {% if (tc.layout ?? 'list') == 'compact' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="layout_compact" title="Dense list, no images">≣ Compact</label>
+                        </div>
                     </div>
                 </div>
 
@@ -435,6 +446,7 @@
         body.dataset.cardStyle = cardStyle;
         body.dataset.pillStyle = radVal('pillStyle');
         body.dataset.theme     = theme;
+        body.dataset.layout    = radVal('layout');
     }
 
     /* ── sync colour text inputs ─────────────────────────── */
@@ -460,7 +472,7 @@
             push();
         });
     });
-    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"]').forEach(function(el) {
+    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"]').forEach(function(el) {
         el.addEventListener('change', function () {
             /* auto-swap bg+card colours on theme switch */
             if (el.name === 'theme') {
