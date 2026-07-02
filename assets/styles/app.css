@@ -854,3 +854,82 @@ h3 {
     width: 220px;
     height: 220px;
 }
+
+
+/* ============================================================
+   DESIGN PANEL -- Menu customiser slide-out
+   ============================================================ */
+.ds-panel {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; flex-direction: column;
+    background: #fff;
+    transform: translateX(100%);
+    transition: transform .35s cubic-bezier(.22,.68,0,1.1);
+}
+.ds-panel.open { transform: translateX(0); }
+.ds-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px; height: 54px;
+    background: #18120a; color: #fff; flex-shrink: 0;
+}
+.ds-head h2 {
+    flex: 1; font-family: Space Grotesk,sans-serif;
+    font-size: .95rem; font-weight: 700; margin: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ds-save-btn {
+    padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer;
+    background: #E8A020; color: #18120a;
+    font-family: Space Grotesk,sans-serif; font-size: .82rem; font-weight: 700;
+    white-space: nowrap; transition: opacity .15s;
+}
+.ds-save-btn:disabled { opacity: .6; }
+.ds-save-btn.saved { background: #22c55e; color: #fff; }
+.ds-close-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer;
+    background: rgba(255,255,255,.1); color: #fff;
+    font-size: 1rem; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+}
+.ds-close-btn:hover { background: rgba(255,255,255,.2); }
+.ds-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+.ds-preview-wrap {
+    flex: 1; overflow: hidden; display: none;
+    background: #e8e3dc; position: relative;
+}
+@media (min-width: 860px) { .ds-preview-wrap { display: block; } }
+.ds-preview-wrap iframe { width: 100%; height: 100%; border: none; }
+.ds-controls {
+    width: 340px; flex-shrink: 0;
+    overflow-y: auto; background: #faf9f7;
+    border-left: 1px solid #e8e3dc;
+}
+@media (max-width: 860px) { .ds-controls { width: 100%; border-left: none; } }
+.ds-section { padding: 16px 18px; border-bottom: 1px solid #e8e3dc; }
+.ds-section-title {
+    font-family: Space Grotesk,sans-serif; font-size: .68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em; color: #9c8874; margin: 0 0 12px;
+}
+.ds-row { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+.ds-row:last-child { margin-bottom: 0; }
+.ds-label { font-size: .78rem; font-weight: 600; color: #3d3328; display: flex; align-items: center; gap: 6px; }
+.ds-seg { display: flex; border: 1px solid #d5cec5; border-radius: 8px; overflow: hidden; background: #fff; }
+.ds-seg input[type=radio] { display: none; }
+.ds-seg-btn {
+    flex: 1; padding: 7px 4px; font-size: .76rem; font-weight: 600;
+    text-align: center; color: #7a6f60; cursor: pointer;
+    border-right: 1px solid #d5cec5; transition: background .12s, color .12s; user-select: none;
+}
+.ds-seg-btn:last-of-type { border-right: none; }
+.ds-seg input[type=radio]:checked + .ds-seg-btn { background: #18120a; color: #fff; }
+.ds-color-row { display: flex; align-items: center; gap: 8px; }
+.ds-color-input { width: 40px; height: 34px; border: 1px solid #d5cec5; border-radius: 8px; padding: 2px; cursor: pointer; background: #fff; flex-shrink: 0; }
+.ds-color-text { flex: 1; font-size: .8rem; font-family: monospace; border: 1px solid #d5cec5; border-radius: 8px; padding: 6px 10px; color: #3d3328; background: #fff; }
+.ds-select { width: 100%; padding: 8px 10px; border: 1px solid #d5cec5; border-radius: 8px; font-size: .84rem; color: #3d3328; background: #fff; font: inherit; }
+.ds-slider-row { display: flex; align-items: center; gap: 8px; }
+.ds-slider { flex: 1; accent-color: #18120a; }
+.ds-slider-val { font-size: .76rem; font-family: monospace; color: #7a6f60; min-width: 28px; text-align: right; }
+.ds-img-preview { width: 100%; height: 80px; object-fit: cover; border-radius: 6px; display: none; border: 1px solid #d5cec5; margin-bottom: 6px; }
+.ds-file-label { display: block; padding: 8px 14px; font-size: .78rem; font-weight: 600; border: 1px dashed #d5cec5; border-radius: 8px; color: #7a6f60; cursor: pointer; text-align: center; transition: border-color .15s, color .15s; }
+.ds-file-label:hover { border-color: #18120a; color: #18120a; }
+.ds-file-input { display: none; }

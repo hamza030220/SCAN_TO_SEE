@@ -5,11 +5,24 @@ namespace App\Controller;
 use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 class PublicMenuController extends AbstractController
 {
+    /**
+     * Force browsers, phones, and any proxy (ngrok) to always re-fetch —
+     * so a menu re-designed by the owner shows instantly on refresh.
+     */
+    private function withNoCache(Response $response): Response
+    {
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+        return $response;
+    }
+
     /**
      * Entry point: /m/{slug}
      * - If no published menus → "no menu" page
@@ -33,22 +46,22 @@ class PublicMenuController extends AbstractController
         );
 
         if (empty($menus)) {
-            return $this->render('public/no_menu.html.twig', [
+            return $this->withNoCache($this->render('public/no_menu.html.twig', [
                 'business' => $business,
-            ]);
+            ]));
         }
 
         if (count($menus) === 1) {
-            return $this->redirectToRoute('app_public_menu_view', [
+            return $this->withNoCache($this->redirectToRoute('app_public_menu_view', [
                 'slug'     => $slug,
                 'menuSlug' => $menus[0]->getSlug(),
-            ]);
+            ]));
         }
 
-        return $this->render('public/picker.html.twig', [
+        return $this->withNoCache($this->render('public/picker.html.twig', [
             'business' => $business,
             'menus'    => $menus,
-        ]);
+        ]));
     }
 
     /**
@@ -59,6 +72,7 @@ class PublicMenuController extends AbstractController
     public function view(
         string $slug,
         string $menuSlug,
+        Request $request,
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
     ): Response {
@@ -67,14 +81,14 @@ class PublicMenuController extends AbstractController
             throw $this->createNotFoundException('Business not found.');
         }
 
-        $menu = $menuRepo->findOneBy([
-            'slug'     => $menuSlug,
-            'business' => $business,
-            'status'   => 'published',
-        ]);
+        $isPreview = $request->query->getBoolean('preview');
+        $criteria  = ['slug' => $menuSlug, 'business' => $business];
+        if (!$isPreview) {
+            $criteria['status'] = 'published';
+        }
+        $menu = $menuRepo->findOneBy($criteria);
 
         if (!$menu) {
-            // Menu exists but is not published (or wrong slug) → fall back to picker
             return $this->redirectToRoute('app_public_menu', ['slug' => $slug]);
         }
 
@@ -103,11 +117,11 @@ class PublicMenuController extends AbstractController
         );
         $otherMenus = array_filter($otherMenus, fn($m) => $m->getId() !== $menu->getId());
 
-        return $this->render('public/menu.html.twig', [
+        return $this->withNoCache($this->render('public/menu.html.twig', [
             'business'   => $business,
             'menu'       => $menu,
             'categories' => $categories,
             'otherMenus' => array_values($otherMenus),
-        ]);
+        ]));
     }
 }

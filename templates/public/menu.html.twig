@@ -1,6 +1,37 @@
 {% extends 'public/layout.html.twig' %}
+{% set tc = menu.themeConfig %}
 
 {% block title %}{{ menu.name }} — {{ business.name }}{% endblock %}
+
+{% block theme_vars %}
+<style>
+:root {
+  --pub-font: '{{ tc.font }}', sans-serif;
+  {% if tc.bgType == 'gradient' %}
+  --pub-bg: linear-gradient({{ tc.bgGradientDir }}, {{ tc.bgGradientStart }}, {{ tc.bgGradientEnd }});
+  {% elseif tc.bgType == 'image' and tc.bgImagePath %}
+  --pub-bg: url('/{{ tc.bgImagePath }}') center/cover no-repeat fixed;
+  {% else %}
+  --pub-bg: {{ tc.bgColor }};
+  {% endif %}
+  --pub-ink:        {{ tc.theme == 'dark' ? '#f5f0e8' : '#18120a' }};
+  --pub-muted:      {{ tc.theme == 'dark' ? 'rgba(245,240,232,.55)' : '#7a6f60' }};
+  --pub-border:     {{ tc.theme == 'dark' ? 'rgba(255,255,255,.12)' : '#ece7df' }};
+  --pub-cat-title:  {{ tc.theme == 'dark' ? 'rgba(245,240,232,.45)' : '#7a6f60' }};
+  --pub-cat-border: {{ tc.theme == 'dark' ? 'rgba(255,255,255,.08)' : '#e0d9ce' }};
+  --pub-header-bg:  {{ tc.headerBg }};
+  --pub-accent:     {{ tc.accent }};
+  --pub-card-bg:    {{ tc.cardBg }};
+  --pub-glass-blur: {{ tc.glassBlur }}px;
+  --pub-glass-opacity: {{ tc.glassOpacity }};
+  --pub-logo-align: {{ tc.logoAlign }};
+  --pub-sheet-bg:   {{ tc.theme == 'dark' ? '#1e1812' : '#fff' }};
+  --pub-sheet-ink:  {{ tc.theme == 'dark' ? '#f5f0e8' : '#18120a' }};
+}
+</style>
+{% endblock %}
+
+{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}"{% endblock %}
 
 {% block body %}
 

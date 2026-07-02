@@ -42,6 +42,16 @@ class ImageUploadService
     }
 
     /**
+     * Validate and upload a menu background image.
+     * Returns the web-relative path (e.g. "image/menu/bg_my-menu.jpg").
+     */
+    public function uploadMenuBg(UploadedFile $file, string $menuSlug): string
+    {
+        $this->validate($file);
+        return $this->upload($file, 'menu', 'bg_' . $this->slugify($menuSlug));
+    }
+
+    /**
      * Delete a previously stored image (pass the web-relative path from the DB).
      * Silently ignores missing files.
      */

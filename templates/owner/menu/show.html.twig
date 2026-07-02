@@ -15,6 +15,7 @@
         <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            class="btn btn-outline btn-sm">Edit menu</a>
+        <button type="button" id="ds_openBtn" class="btn btn-outline btn-sm">🎨 Design</button>
         <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← Menus</a>
     </div>
 </div>
@@ -129,4 +130,399 @@
 {% endfor %}
 {% endif %}
 
+{% endblock %}
+
+{# ── Design Panel ─────────────────────────────────────────────────────── #}
+{% block after_content %}
+{% set tc = menu.themeConfig %}
+<style>
+.ds-panel{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:#fff;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,.68,0,1.1);}
+.ds-panel.open{transform:translateX(0);}
+.ds-head{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;background:#18120a;color:#fff;flex-shrink:0;}
+.ds-head h2{flex:1;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ds-save-btn{padding:7px 18px;border-radius:8px;border:none;cursor:pointer;background:#E8A020;color:#18120a;font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;white-space:nowrap;transition:opacity .15s;}
+.ds-save-btn:disabled{opacity:.6;}.ds-save-btn.saved{background:#22c55e;color:#fff;}
+.ds-close-btn{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.ds-close-btn:hover{background:rgba(255,255,255,.22);}
+.ds-body{flex:1;display:flex;overflow:hidden;min-height:0;}
+.ds-preview-wrap{flex:1;overflow:hidden;display:none;background:#e8e3dc;}
+@media(min-width:860px){.ds-preview-wrap{display:block;}}
+.ds-preview-wrap iframe{width:100%;height:100%;border:none;}
+.ds-controls{width:340px;flex-shrink:0;overflow-y:auto;background:#faf9f7;border-left:1px solid #e8e3dc;}
+@media(max-width:860px){.ds-controls{width:100%;border-left:none;}}
+.ds-section{padding:16px 18px;border-bottom:1px solid #e8e3dc;}
+.ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9c8874;margin:0 0 12px;}
+.ds-row{margin-bottom:10px;display:flex;flex-direction:column;gap:5px;}.ds-row:last-child{margin-bottom:0;}
+.ds-label{font-size:.78rem;font-weight:600;color:#3d3328;display:flex;align-items:center;gap:6px;}
+.ds-seg{display:flex;border:1px solid #d5cec5;border-radius:8px;overflow:hidden;background:#fff;}
+.ds-seg input[type=radio]{display:none;}
+.ds-seg-btn{flex:1;padding:7px 4px;font-size:.76rem;font-weight:600;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
+.ds-seg-btn:last-of-type{border-right:none;}
+.ds-seg input[type=radio]:checked+.ds-seg-btn{background:#18120a;color:#fff;}
+.ds-color-row{display:flex;align-items:center;gap:8px;}
+.ds-color-input{width:40px;height:34px;border:1px solid #d5cec5;border-radius:8px;padding:2px;cursor:pointer;background:#fff;flex-shrink:0;}
+.ds-color-text{flex:1;font-size:.8rem;font-family:monospace;border:1px solid #d5cec5;border-radius:8px;padding:6px 10px;color:#3d3328;background:#fff;}
+.ds-select{width:100%;padding:8px 10px;border:1px solid #d5cec5;border-radius:8px;font-size:.84rem;color:#3d3328;background:#fff;font:inherit;}
+.ds-slider-row{display:flex;align-items:center;gap:8px;}.ds-slider{flex:1;accent-color:#18120a;}
+.ds-img-preview{width:100%;height:80px;object-fit:cover;border-radius:6px;display:none;border:1px solid #d5cec5;margin-bottom:6px;}
+.ds-file-label{display:block;padding:8px 14px;font-size:.78rem;font-weight:600;border:1px dashed #d5cec5;border-radius:8px;color:#7a6f60;cursor:pointer;text-align:center;transition:border-color .15s,color .15s;}
+.ds-file-label:hover{border-color:#18120a;color:#18120a;}.ds-file-input{display:none;}
+</style>
+<div class="ds-panel" id="dsPanel">
+    <div class="ds-head">
+        <h2>Design — {{ menu.name }}</h2>
+        <button type="button" class="ds-save-btn" id="ds_saveBtn">Save</button>
+        <button type="button" class="ds-close-btn" id="ds_closeBtn" title="Close">✕</button>
+    </div>
+    <div class="ds-body">
+        {# iframe preview #}
+        <div class="ds-preview-wrap">
+            <iframe id="dsPreview"
+                    data-src="{{ url('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug}) }}?preview=1"
+                    src="about:blank"
+                    title="Menu preview"></iframe>
+        </div>
+        {# Controls #}
+        <div class="ds-controls">
+            <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
+
+                {# Appearance #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Appearance</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Theme</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="th_light" name="theme" value="light" {% if tc.theme == 'light' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="th_light">Light</label>
+                            <input type="radio" id="th_dark" name="theme" value="dark" {% if tc.theme == 'dark' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="th_dark">Dark</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label" for="ds_font">Font</label>
+                        <select class="ds-select" id="ds_font" name="font">
+                            {% for f in ['DM Sans', 'Space Grotesk', 'Playfair Display', 'Poppins', 'Montserrat', 'Inter'] %}
+                                <option value="{{ f }}" {% if tc.font == f %}selected{% endif %}>{{ f }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                {# Background #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Background</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Type</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="bg_solid" name="bgType" value="solid" {% if tc.bgType == 'solid' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="bg_solid">Solid</label>
+                            <input type="radio" id="bg_gradient" name="bgType" value="gradient" {% if tc.bgType == 'gradient' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="bg_gradient">Gradient</label>
+                            <input type="radio" id="bg_image" name="bgType" value="image" {% if tc.bgType == 'image' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="bg_image">Image</label>
+                        </div>
+                    </div>
+                    <div id="ds_bgSolid">
+                        <div class="ds-row">
+                            <label class="ds-label">Color</label>
+                            <div class="ds-color-row">
+                                <input type="color" class="ds-color-input" id="ds_bgColor" name="bgColor" value="{{ tc.bgColor }}">
+                                <input type="text" class="ds-color-text" id="ds_bgColorTxt" value="{{ tc.bgColor }}" maxlength="7">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ds_bgGradient">
+                        <div class="ds-row">
+                            <label class="ds-label">Color 1</label>
+                            <div class="ds-color-row">
+                                <input type="color" class="ds-color-input" id="ds_bgGS" name="bgGradientStart" value="{{ tc.bgGradientStart }}">
+                                <input type="text" class="ds-color-text" id="ds_bgGSTxt" value="{{ tc.bgGradientStart }}" maxlength="7">
+                            </div>
+                        </div>
+                        <div class="ds-row">
+                            <label class="ds-label">Color 2</label>
+                            <div class="ds-color-row">
+                                <input type="color" class="ds-color-input" id="ds_bgGE" name="bgGradientEnd" value="{{ tc.bgGradientEnd }}">
+                                <input type="text" class="ds-color-text" id="ds_bgGETxt" value="{{ tc.bgGradientEnd }}" maxlength="7">
+                            </div>
+                        </div>
+                        <div class="ds-row">
+                            <label class="ds-label" for="ds_bgGDir">Direction</label>
+                            <select class="ds-select" id="ds_bgGDir" name="bgGradientDir">
+                                <option value="to bottom" {% if tc.bgGradientDir == 'to bottom' %}selected{% endif %}>Top → Bottom</option>
+                                <option value="to right" {% if tc.bgGradientDir == 'to right' %}selected{% endif %}>Left → Right</option>
+                                <option value="135deg" {% if tc.bgGradientDir == '135deg' %}selected{% endif %}>Diagonal ↘</option>
+                                <option value="45deg" {% if tc.bgGradientDir == '45deg' %}selected{% endif %}>Diagonal ↗</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="ds_bgImage">
+                        <div class="ds-row">
+                            <label class="ds-label">Image</label>
+                            {% if tc.bgImagePath %}
+                                <img id="ds_bgImgPrev" class="ds-img-preview" src="{{ asset(tc.bgImagePath) }}" style="display:block">
+                            {% else %}
+                                <img id="ds_bgImgPrev" class="ds-img-preview" src="" alt="">
+                            {% endif %}
+                            <label class="ds-file-label" for="ds_bgImgInput">Choose background image</label>
+                            <input type="file" class="ds-file-input" id="ds_bgImgInput" name="bgImage" accept="image/jpeg,image/png,image/webp">
+                        </div>
+                    </div>
+                </div>
+
+                {# Header #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Header</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Background color</label>
+                        <div class="ds-color-row">
+                            <input type="color" class="ds-color-input" id="ds_headerBg" name="headerBg" value="{{ tc.headerBg }}">
+                            <input type="text" class="ds-color-text" id="ds_headerBgTxt" value="{{ tc.headerBg }}" maxlength="7">
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Logo position</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="logo_l" name="logoAlign" value="flex-start" {% if tc.logoAlign == 'flex-start' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="logo_l">Left</label>
+                            <input type="radio" id="logo_c" name="logoAlign" value="center" {% if tc.logoAlign == 'center' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="logo_c">Center</label>
+                            <input type="radio" id="logo_r" name="logoAlign" value="flex-end" {% if tc.logoAlign == 'flex-end' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="logo_r">Right</label>
+                        </div>
+                    </div>
+                </div>
+
+                {# Colors #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Colors</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Accent (prices · active pills)</label>
+                        <div class="ds-color-row">
+                            <input type="color" class="ds-color-input" id="ds_accent" name="accent" value="{{ tc.accent }}">
+                            <input type="text" class="ds-color-text" id="ds_accentTxt" value="{{ tc.accent }}" maxlength="7">
+                        </div>
+                    </div>
+                </div>
+
+                {# Cards #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Item Cards</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Style</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="card_flat" name="cardStyle" value="flat" {% if tc.cardStyle == 'flat' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="card_flat">Flat</label>
+                            <input type="radio" id="card_glass" name="cardStyle" value="glass" {% if tc.cardStyle == 'glass' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="card_glass">Glass</label>
+                            <input type="radio" id="card_bordered" name="cardStyle" value="bordered" {% if tc.cardStyle == 'bordered' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="card_bordered">Bordered</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Card color</label>
+                        <div class="ds-color-row">
+                            <input type="color" class="ds-color-input" id="ds_cardBg" name="cardBg" value="{{ tc.cardBg }}">
+                            <input type="text" class="ds-color-text" id="ds_cardBgTxt" value="{{ tc.cardBg }}" maxlength="7">
+                        </div>
+                    </div>
+                    <div id="ds_glassCtrl">
+                        <div class="ds-row">
+                            <label class="ds-label">Blur — <span id="ds_blurVal">{{ tc.glassBlur }}</span>px</label>
+                            <div class="ds-slider-row">
+                                <input type="range" class="ds-slider" id="ds_blur" name="glassBlur" min="2" max="30" step="1" value="{{ tc.glassBlur }}">
+                            </div>
+                        </div>
+                        <div class="ds-row">
+                            <label class="ds-label">Opacity — <span id="ds_opacVal">{{ tc.glassOpacity }}</span></label>
+                            <div class="ds-slider-row">
+                                <input type="range" class="ds-slider" id="ds_opac" name="glassOpacity" min="0.05" max="0.6" step="0.01" value="{{ tc.glassOpacity }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Pills #}
+                <div class="ds-section">
+                    <p class="ds-section-title">Category Pills</p>
+                    <div class="ds-row">
+                        <label class="ds-label">Style</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="pill_pill" name="pillStyle" value="pill" {% if tc.pillStyle == 'pill' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="pill_pill">Pill</label>
+                            <input type="radio" id="pill_ul" name="pillStyle" value="underline" {% if tc.pillStyle == 'underline' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="pill_ul">Underline</label>
+                            <input type="radio" id="pill_chip" name="pillStyle" value="chip" {% if tc.pillStyle == 'chip' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="pill_chip">Chip</label>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>{# /.ds-controls #}
+    </div>{# /.ds-body #}
+</div>{# /.ds-panel #}
+
+<script>
+(function () {
+    var panel   = document.getElementById('dsPanel');
+    var iframe  = document.getElementById('dsPreview');
+    var form    = document.getElementById('ds_form');
+    var saveBtn = document.getElementById('ds_saveBtn');
+    var pdoc    = null; // iframe contentDocument
+
+    /* ── helpers ────────────────────────────────────────── */
+    function g(id) { return document.getElementById(id); }
+    function radVal(name) {
+        var els = document.querySelectorAll('[name="' + name + '"]');
+        for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
+        return '';
+    }
+    function getBg() {
+        var t = radVal('bgType');
+        if (t === 'gradient') return 'linear-gradient(' + g('ds_bgGDir').value + ',' + g('ds_bgGS').value + ',' + g('ds_bgGE').value + ')';
+        if (t === 'image') return pdoc ? getComputedStyle(pdoc.documentElement).getPropertyValue('--pub-bg').trim() : '';
+        return g('ds_bgColor').value;
+    }
+
+    /* ── sub-control visibility (runs without iframe) ───── */
+    function refreshVisibility() {
+        var bt = radVal('bgType');
+        var cs = radVal('cardStyle');
+        g('ds_bgSolid').style.display    = bt === 'solid'    ? 'block' : 'none';
+        g('ds_bgGradient').style.display = bt === 'gradient' ? 'block' : 'none';
+        g('ds_bgImage').style.display    = bt === 'image'    ? 'block' : 'none';
+        g('ds_glassCtrl').style.display  = cs === 'glass'    ? 'block' : 'none';
+    }
+
+    /* ── push all vars to iframe ─────────────────────────── */
+    function push() {
+        refreshVisibility();
+        if (!pdoc) return;
+        var root = pdoc.documentElement;
+        var body = pdoc.body;
+        if (!body) return;
+        var theme     = radVal('theme');
+        var cardStyle = radVal('cardStyle');
+
+        root.style.setProperty('--pub-font',    "'" + g('ds_font').value + "', sans-serif");
+        root.style.setProperty('--pub-bg',       getBg());
+        root.style.setProperty('--pub-header-bg', g('ds_headerBg').value);
+        root.style.setProperty('--pub-accent',   g('ds_accent').value);
+        root.style.setProperty('--pub-card-bg',  g('ds_cardBg').value);
+        root.style.setProperty('--pub-glass-blur', g('ds_blur').value + 'px');
+        root.style.setProperty('--pub-glass-opacity', g('ds_opac').value);
+        root.style.setProperty('--pub-logo-align', radVal('logoAlign'));
+
+        if (theme === 'dark') {
+            root.style.setProperty('--pub-ink',        '#f5f0e8');
+            root.style.setProperty('--pub-muted',      'rgba(245,240,232,.55)');
+            root.style.setProperty('--pub-border',     'rgba(255,255,255,.12)');
+            root.style.setProperty('--pub-cat-title',  'rgba(245,240,232,.45)');
+            root.style.setProperty('--pub-cat-border', 'rgba(255,255,255,.08)');
+            root.style.setProperty('--pub-sheet-bg',   '#1e1812');
+            root.style.setProperty('--pub-sheet-ink',  '#f5f0e8');
+        } else {
+            root.style.setProperty('--pub-ink',        '#18120a');
+            root.style.setProperty('--pub-muted',      '#7a6f60');
+            root.style.setProperty('--pub-border',     '#ece7df');
+            root.style.setProperty('--pub-cat-title',  '#7a6f60');
+            root.style.setProperty('--pub-cat-border', '#e0d9ce');
+            root.style.setProperty('--pub-sheet-bg',   '#fff');
+            root.style.setProperty('--pub-sheet-ink',  '#18120a');
+        }
+
+        body.dataset.cardStyle = cardStyle;
+        body.dataset.pillStyle = radVal('pillStyle');
+        body.dataset.theme     = theme;
+    }
+
+    /* ── sync colour text inputs ─────────────────────────── */
+    function syncText(colorId, textId) {
+        var c = g(colorId), t = g(textId);
+        if (!c || !t) return;
+        c.addEventListener('input', function () { t.value = c.value; push(); });
+        t.addEventListener('input', function () { if (/^#[0-9a-f]{6}$/i.test(t.value)) { c.value = t.value; push(); } });
+    }
+    syncText('ds_bgColor',   'ds_bgColorTxt');
+    syncText('ds_bgGS',      'ds_bgGSTxt');
+    syncText('ds_bgGE',      'ds_bgGETxt');
+    syncText('ds_headerBg',  'ds_headerBgTxt');
+    syncText('ds_accent',    'ds_accentTxt');
+    syncText('ds_cardBg',    'ds_cardBgTxt');
+
+    /* ── attach all other listeners ─────────────────────── */
+    ['ds_font','ds_bgGDir'].forEach(function(id){ g(id).addEventListener('change', push); });
+    ['ds_blur','ds_opac'].forEach(function(id){
+        g(id).addEventListener('input', function() {
+            if (id === 'ds_blur')  g('ds_blurVal').textContent = this.value;
+            if (id === 'ds_opac')  g('ds_opacVal').textContent = parseFloat(this.value).toFixed(2);
+            push();
+        });
+    });
+    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"]').forEach(function(el) {
+        el.addEventListener('change', function () {
+            /* auto-swap bg+card colours on theme switch */
+            if (el.name === 'theme') {
+                if (el.value === 'dark')  { g('ds_bgColor').value = '#1a140e'; g('ds_cardBg').value = '#2a2218'; }
+                else                       { g('ds_bgColor').value = '#f7f4ef'; g('ds_cardBg').value = '#ffffff'; }
+                g('ds_bgColorTxt').value = g('ds_bgColor').value;
+                g('ds_cardBgTxt').value  = g('ds_cardBg').value;
+            }
+            push();
+        });
+    });
+
+    /* ── background image live preview ─────────────────── */
+    g('ds_bgImgInput').addEventListener('change', function () {
+        var file = this.files[0];
+        if (!file) return;
+        var url = URL.createObjectURL(file);
+        g('ds_bgImgPrev').src = url;
+        g('ds_bgImgPrev').style.display = 'block';
+        if (pdoc) pdoc.documentElement.style.setProperty('--pub-bg', 'url(' + url + ') center/cover no-repeat fixed');
+    });
+
+    /* ── iframe load ────────────────────────────────────── */
+    iframe.addEventListener('load', function () {
+        try { pdoc = iframe.contentDocument || iframe.contentWindow.document; push(); }
+        catch (e) { pdoc = null; }
+    });
+
+    /* ── open / close ───────────────────────────────────── */
+    g('ds_openBtn').addEventListener('click', function () {
+        panel.classList.add('open');
+        if (iframe.src === 'about:blank') iframe.src = iframe.dataset.src;
+        else push();
+    });
+    g('ds_closeBtn').addEventListener('click', function () { panel.classList.remove('open'); });
+
+    /* ── save ───────────────────────────────────────────── */
+    saveBtn.addEventListener('click', function () {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+        fetch(form.action, { method: 'POST', body: new FormData(form) })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                saveBtn.classList.toggle('saved', !!d.ok);
+                saveBtn.textContent = d.ok ? 'Saved ✓' : (d.error || 'Error');
+                if (d.ok) {
+                    /* reload iframe from server so it reflects the DB state */
+                    iframe.src = iframe.dataset.src + '&t=' + Date.now();
+                }
+                setTimeout(function () {
+                    saveBtn.classList.remove('saved');
+                    saveBtn.textContent = 'Save';
+                    saveBtn.disabled = false;
+                }, 2000);
+            })
+            .catch(function () {
+                saveBtn.textContent = 'Error'; saveBtn.disabled = false;
+            });
+    });
+
+    /* ── initial sub-control visibility ─────────────────── */
+    refreshVisibility();
+})();
+</script>
 {% endblock %}

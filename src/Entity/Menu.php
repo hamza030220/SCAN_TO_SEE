@@ -34,6 +34,28 @@ class Menu
     #[ORM\Column(length: 40)]
     private string $themePreset = 'modern';
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $themeConfig = null;
+
+    public const DEFAULT_THEME = [
+        'theme'           => 'light',
+        'font'            => 'DM Sans',
+        'bgType'          => 'solid',
+        'bgColor'         => '#f7f4ef',
+        'bgGradientStart' => '#f7f4ef',
+        'bgGradientEnd'   => '#e8e0d5',
+        'bgGradientDir'   => 'to bottom',
+        'bgImagePath'     => null,
+        'headerBg'        => '#18120a',
+        'accent'          => '#E8A020',
+        'cardStyle'       => 'flat',
+        'cardBg'          => '#ffffff',
+        'glassBlur'       => 8,
+        'glassOpacity'    => 0.15,
+        'pillStyle'       => 'pill',
+        'logoAlign'       => 'flex-start',
+    ];
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -64,6 +86,8 @@ class Menu
     public function setCurrency(string $c): static { $this->currency = $c; return $this; }
     public function getThemePreset(): string { return $this->themePreset; }
     public function setThemePreset(string $t): static { $this->themePreset = $t; return $this; }
+    public function getThemeConfig(): array { return array_merge(self::DEFAULT_THEME, $this->themeConfig ?? []); }
+    public function setThemeConfig(?array $c): static { $this->themeConfig = $c; return $this; }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
     public function setUpdatedAt(\DateTimeImmutable $dt): static { $this->updatedAt = $dt; return $this; }
