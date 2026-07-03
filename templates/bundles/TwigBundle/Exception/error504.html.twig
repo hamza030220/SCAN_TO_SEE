@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>504 — Gateway Timeout · Scan to See</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #0f0a07;
+            --accent:  #6b9fff;
+            --muted:   #7a6a5a;
+            --sand:    #fffbf4;
+            --border:  rgba(255,255,255,.08);
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--sand);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 24px;
+        }
+
+        /* ── Brand ── */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 56px;
+        }
+        .brand img {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+        .brand-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.85);
+            letter-spacing: .02em;
+        }
+
+        /* ── Error card ── */
+        .card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 52px 48px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .err-icon {
+            font-size: 3.5rem;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+
+        .err-code {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 6rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--accent);
+            letter-spacing: -.03em;
+            margin-bottom: 16px;
+        }
+
+        .err-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.9);
+            margin-bottom: 12px;
+        }
+
+        .err-body {
+            font-size: .95rem;
+            color: rgba(255,255,255,.45);
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        /* ── Spinning clock ── */
+        .clock-wrap {
+            margin-bottom: 32px;
+        }
+        .clock {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border: 2px solid rgba(107,159,255,.35);
+            border-radius: 50%;
+            position: relative;
+        }
+        .clock::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 2px; height: 14px;
+            background: var(--accent);
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%);
+            border-radius: 2px;
+            animation: tick 2s linear infinite;
+        }
+        .clock::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 2px; height: 10px;
+            background: rgba(107,159,255,.6);
+            transform-origin: bottom center;
+            transform: translate(-50%, -100%) rotate(90deg);
+            border-radius: 2px;
+        }
+        @keyframes tick {
+            from { transform: translate(-50%, -100%) rotate(0deg); }
+            to   { transform: translate(-50%, -100%) rotate(360deg); }
+        }
+
+        /* ── Buttons ── */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-refresh {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--bg);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 700;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: opacity .15s, transform .12s;
+            letter-spacing: .01em;
+        }
+        .btn-refresh:hover { opacity: .85; transform: translateY(-1px); }
+
+        .btn-home {
+            display: inline-block;
+            background: transparent;
+            color: rgba(255,255,255,.6);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            border: 1.5px solid rgba(255,255,255,.15);
+            transition: border-color .15s, color .15s, transform .12s;
+            letter-spacing: .01em;
+        }
+        .btn-home:hover {
+            border-color: rgba(255,255,255,.45);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        /* ── Footer ── */
+        .foot {
+            margin-top: 48px;
+            font-size: .75rem;
+            color: rgba(255,255,255,.18);
+        }
+
+        @media (max-width: 540px) {
+            .card { padding: 36px 24px; }
+            .err-code { font-size: 4.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="brand">
+        <img src="{{ asset('image/logoS2S.png') }}" alt="S2S logo">
+        <span class="brand-name">Scan to See</span>
+    </div>
+
+    <div class="card">
+        <div class="err-icon">⏳</div>
+        <div class="err-code">504</div>
+        <h1 class="err-title">Our waiter is taking forever…</h1>
+        <p class="err-body">
+            Something upstream is moving at a snail's pace today.<br>
+            Give it a moment, then try refreshing — it usually sorts itself out.
+        </p>
+        <div class="clock-wrap">
+            <div class="clock"></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn-refresh" onclick="location.reload()">Refresh page</button>
+            <a href="/" class="btn-home">Back to Home</a>
+        </div>
+    </div>
+
+    <p class="foot">&copy; {{ "now"|date("Y") }} Scan to See. All rights reserved.</p>
+
+</body>
+</html>

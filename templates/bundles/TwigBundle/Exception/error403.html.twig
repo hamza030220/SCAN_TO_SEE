@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>403 — Access Denied · Scan to See</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #0f0a07;
+            --accent:  #E8A020;
+            --muted:   #7a6a5a;
+            --sand:    #fffbf4;
+            --border:  rgba(255,255,255,.08);
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--sand);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 24px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 56px;
+        }
+        .brand img { width: 36px; height: 36px; object-fit: contain; }
+        .brand-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.85);
+            letter-spacing: .02em;
+        }
+
+        .card {
+            background: rgba(255,255,255,.04);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 52px 48px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .err-icon { font-size: 3.5rem; line-height: 1; margin-bottom: 20px; }
+
+        .err-code {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 6rem;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--accent);
+            letter-spacing: -.03em;
+            margin-bottom: 16px;
+        }
+
+        .err-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: rgba(255,255,255,.9);
+            margin-bottom: 12px;
+        }
+
+        .err-body {
+            font-size: .95rem;
+            color: rgba(255,255,255,.45);
+            line-height: 1.7;
+            margin-bottom: 36px;
+        }
+
+        .btn-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+        .btn-login {
+            display: inline-block;
+            background: var(--accent);
+            color: #18120a;
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 700;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: opacity .15s, transform .12s;
+        }
+        .btn-login:hover { opacity: .85; transform: translateY(-1px); }
+
+        .btn-home {
+            display: inline-block;
+            background: transparent;
+            color: rgba(255,255,255,.6);
+            font-family: 'DM Sans', sans-serif;
+            font-size: .9rem;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            border: 1.5px solid rgba(255,255,255,.15);
+            transition: border-color .15s, color .15s, transform .12s;
+        }
+        .btn-home:hover { border-color: rgba(255,255,255,.45); color: #fff; transform: translateY(-1px); }
+
+        .foot { margin-top: 48px; font-size: .75rem; color: rgba(255,255,255,.18); }
+
+        @media (max-width: 540px) {
+            .card { padding: 36px 24px; }
+            .err-code { font-size: 4.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="brand">
+        <img src="{{ asset('image/logoS2S.png') }}" alt="S2S logo">
+        <span class="brand-name">Scan to See</span>
+    </div>
+
+    <div class="card">
+        <div class="err-icon">🚫</div>
+        <div class="err-code">403</div>
+        <h1 class="err-title">This table's reserved</h1>
+        <p class="err-body">
+            You don't have permission to be here.<br>
+            If you think that's a mistake, try logging in with the right account.
+        </p>
+        <div class="btn-row">
+            <a href="{{ path('app_login') }}" class="btn-login">Log in</a>
+            <a href="/" class="btn-home">Back to Home</a>
+        </div>
+    </div>
+
+    <p class="foot">&copy; {{ "now"|date("Y") }} Scan to See. All rights reserved.</p>
+
+</body>
+</html>
