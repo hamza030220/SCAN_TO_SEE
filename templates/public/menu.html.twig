@@ -28,6 +28,75 @@
   --pub-sheet-bg:   {{ tc.theme == 'dark' ? '#1e1812' : '#fff' }};
   --pub-sheet-ink:  {{ tc.theme == 'dark' ? '#f5f0e8' : '#18120a' }};
 }
+
+/* ── Currency switcher ──────────────────────────────────────────── */
+.pub-curr-bar {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px 8px;
+}
+.curr-btn {
+    font-family: var(--pub-font, 'DM Sans', sans-serif);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 99px;
+    border: 1.5px solid rgba(255,255,255,.22);
+    background: transparent;
+    color: rgba(255,255,255,.55);
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.curr-btn.active {
+    background: var(--pub-accent, #e84040);
+    border-color: var(--pub-accent, #e84040);
+    color: #fff;
+}
+.curr-btn:hover:not(.active) {
+    border-color: rgba(255,255,255,.5);
+    color: rgba(255,255,255,.9);
+}
+.curr-btn[disabled] {
+    opacity: .3;
+    cursor: default;
+}
+
+/* ── Header scroll-shrink ─────────────────────────────────────────── */
+.pub-header,
+.pub-header-inner,
+.pub-header-logo,
+.pub-header-initials,
+.pub-header-name {
+    transition: all .28s ease;
+}
+.pub-header--minimal {
+    padding-top: 8px !important;
+}
+.pub-header--minimal .pub-header-inner {
+    padding-bottom: 8px;
+    gap: 10px;
+}
+.pub-header--minimal .pub-header-logo,
+.pub-header--minimal .pub-header-initials {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 6px;
+    font-size: .7rem;
+}
+.pub-header--minimal .pub-header-name {
+    font-size: .82rem;
+}
+.pub-header--minimal .pub-header-menu,
+.pub-header--minimal .pub-other-menus-link {
+    display: none;
+}
+.pub-header--minimal .pub-curr-bar {
+    padding: 4px 16px 4px;
+}
 </style>
 {% endblock %}
 
@@ -57,6 +126,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
     {% endif %}
+    <div id="currBar" class="pub-curr-bar" role="group" aria-label="Currency"></div>
 </header>
 
 {# ── Category pill nav ───────────────────────────────────────────────── #}
@@ -130,7 +200,8 @@
 {# ── Footer ──────────────────────────────────────────────────────────── #}
 <footer class="pub-footer">
     <span>Powered by</span>
-    <strong>Scan to See</strong>
+    <strong>Scan to See </strong>
+    <p>made with love by hamza Z</p>
 </footer>
 
 {# ── Item detail bottom sheet ────────────────────────────────────────── #}
@@ -168,7 +239,7 @@
         var image    = card.dataset.itemImage;
 
         nameEl.textContent  = name;
-        priceEl.textContent = price + ' ' + currency;
+        priceEl.textContent = window.s2sFmtPrice ? window.s2sFmtPrice(price, currency) : (price + ' ' + currency);
         descEl.textContent  = desc || '';
         descEl.style.display = desc ? 'block' : 'none';
 
@@ -228,6 +299,15 @@
     stickyNav();
     window.addEventListener('resize', stickyNav, { passive: true });
 
+    /* ── Header shrinks on scroll, full only at the very top ─────────── */
+    function updateHeaderSize() {
+        var atTop = (window.scrollY || window.pageYOffset) <= 10;
+        header.classList.toggle('pub-header--minimal', !atTop);
+        stickyNav(); /* recalc catNav position after header height changes */
+    }
+    window.addEventListener('scroll', updateHeaderSize, { passive: true });
+    updateHeaderSize();
+
     /* ── Category pill scroll tracking ───────────────────────────────── */
     var pills    = Array.from(document.querySelectorAll('[data-cat-pill]'));
     var sections = pills.map(function (p) {
@@ -286,6 +366,96 @@
 
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll(); // set initial active state on page load
+})();
+
+/* ── Currency switcher ───────────────────────────────────────────── */
+(function () {
+    var BASE     = '{{ menu.currency }}';
+    var OPTS     = ['EUR', 'USD'].filter(function (c) { return c !== BASE; });
+    var ALL_CURR = [BASE].concat(OPTS);
+
+    var rates    = {}; rates[BASE] = 1;
+    var saved    = sessionStorage.getItem('s2s-currency');
+    var selected = (saved && ALL_CURR.indexOf(saved) !== -1) ? saved : BASE;
+
+    var bar    = document.getElementById('currBar');
+    var btnMap = {};
+
+    /* Build all buttons immediately — EUR/USD disabled until rates arrive */
+    ALL_CURR.forEach(function (c) {
+        var btn = document.createElement('button');
+        btn.className        = 'curr-btn' + (c === selected ? ' active' : '');
+        btn.dataset.currency = c;
+        btn.setAttribute('type', 'button');
+        btn.textContent      = c;
+        if (c !== BASE) btn.disabled = true;
+        btn.addEventListener('click', function () {
+            if (!btn.disabled) selectCurrency(c);
+        });
+        bar.appendChild(btn);
+        btnMap[c] = btn;
+    });
+
+    /* Expose formatter so the item sheet uses the active currency */
+    window.s2sFmtPrice = function (rawPrice, baseCurr) {
+        var num = parseFloat(String(rawPrice).replace(',', '.')) || 0;
+        if (selected === BASE || !rates[selected]) {
+            return rawPrice + ' ' + BASE;
+        }
+        return (num * rates[selected]).toFixed(2) + ' ' + selected;
+    };
+
+    function parsePrice(str) {
+        return parseFloat(String(str).replace(',', '.')) || 0;
+    }
+
+    function updateAllCards() {
+        document.querySelectorAll('.pub-item-card').forEach(function (card) {
+            var span = card.querySelector('.pub-item-price');
+            if (!span) return;
+            var raw = card.dataset.itemPrice;
+            var num = parsePrice(raw);
+            if (selected === BASE || !rates[selected]) {
+                span.textContent = raw + ' ' + BASE;
+            } else {
+                span.textContent = (num * rates[selected]).toFixed(2) + ' ' + selected;
+            }
+        });
+    }
+
+    function selectCurrency(c) {
+        selected = c;
+        sessionStorage.setItem('s2s-currency', c);
+        ALL_CURR.forEach(function (k) {
+            btnMap[k].classList.toggle('active', k === c);
+        });
+        updateAllCards();
+    }
+
+    if (OPTS.length === 0) return; /* only base currency, nothing to fetch */
+
+    /* open.er-api.com — free, no API key, supports 160+ currencies incl. TND */
+    fetch('https://open.er-api.com/v6/latest/' + BASE)
+        .then(function (r) {
+            if (!r.ok) throw new Error('fetch failed');
+            return r.json();
+        })
+        .then(function (data) {
+            if (!data.rates) throw new Error('no rates');
+            OPTS.forEach(function (c) {
+                if (data.rates[c]) {
+                    rates[c] = data.rates[c];
+                    btnMap[c].disabled = false;
+                }
+            });
+            /* Restore saved preference now that rates are ready */
+            if (selected !== BASE && rates[selected]) {
+                selectCurrency(selected);
+            }
+        })
+        .catch(function () {
+            /* API unavailable — EUR/USD stay disabled, base currency works fine */
+        });
 })();
 </script>
 {% endblock %}
