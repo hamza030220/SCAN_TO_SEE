@@ -44,6 +44,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $backupCodes = null;
 
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $passwordResetToken = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $passwordResetTokenExpiresAt = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -125,4 +131,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
     public function getBackupCodes(): array { return $this->backupCodes ?? []; }
 
     public function setBackupCodes(array $codes): static { $this->backupCodes = $codes; return $this; }
+
+    // ── Password reset ────────────────────────────────────────────────────────
+
+    public function getPasswordResetToken(): ?string { return $this->passwordResetToken; }
+    public function setPasswordResetToken(?string $token): static { $this->passwordResetToken = $token; return $this; }
+
+    public function getPasswordResetTokenExpiresAt(): ?\DateTimeImmutable { return $this->passwordResetTokenExpiresAt; }
+    public function setPasswordResetTokenExpiresAt(?\DateTimeImmutable $dt): static { $this->passwordResetTokenExpiresAt = $dt; return $this; }
 }
