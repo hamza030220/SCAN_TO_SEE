@@ -55,9 +55,9 @@ final class RegistrationController extends AbstractController
                         $em->persist($user);
                         $em->flush();
 
-                        $this->addFlash('success', 'Account created! You can now log in.');
+                        $this->addFlash('success', 'Account created! Please choose a subscription plan to get started.');
 
-                        return $this->redirectToRoute('app_login');
+                        return $this->redirectToRoute('app_owner_subscription');
                     }
                 }
             }

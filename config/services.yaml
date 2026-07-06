@@ -22,3 +22,23 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    App\Service\SubscriptionService:
+        arguments:
+            $stripeSecretKey:     '%env(STRIPE_SECRET_KEY)%'
+            $stripeWebhookSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
+            $stripePriceIds:
+                basic:
+                    monthly: '%env(STRIPE_PRICE_BASIC_MONTHLY)%'
+                    yearly:  '%env(STRIPE_PRICE_BASIC_YEARLY)%'
+                premium:
+                    monthly: '%env(STRIPE_PRICE_PREMIUM_MONTHLY)%'
+                    yearly:  '%env(STRIPE_PRICE_PREMIUM_YEARLY)%'
+                pro:
+                    monthly: '%env(STRIPE_PRICE_PRO_MONTHLY)%'
+                    yearly:  '%env(STRIPE_PRICE_PRO_YEARLY)%'
+
+    App\MessageHandler\SubscriptionDailyCheckHandler:
+        arguments:
+            $mailerFrom:    '%env(MAILER_FROM)%'
+            $mailerBaseUrl: '%env(MAILER_BASE_URL)%'

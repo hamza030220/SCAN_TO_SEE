@@ -9,6 +9,7 @@ use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
+use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -62,7 +63,7 @@ final class OwnerMenuController extends AbstractController
     // ── Menus ────────────────────────────────────────────────────────────────
 
     #[Route('/owner/menus', name: 'app_owner_menus')]
-    public function menuIndex(BusinessRepository $businessRepo, MenuRepository $menuRepo): Response
+    public function menuIndex(BusinessRepository $businessRepo, MenuRepository $menuRepo, SubscriptionService $subscriptionService): Response
     {
         $businesses = $this->getOwnedBusinesses($businessRepo);
         if (!$businesses) {
@@ -76,9 +77,12 @@ final class OwnerMenuController extends AbstractController
             ->orderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
 
+        $canCreate = $subscriptionService->canCreateMenu($this->getUser());
+
         return $this->render('owner/menu/index.html.twig', [
             'businesses' => $businesses,
             'menus'      => $allMenus,
+            'canCreate'  => $canCreate,
         ]);
     }
 
@@ -89,6 +93,7 @@ final class OwnerMenuController extends AbstractController
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
         EntityManagerInterface $em,
+        SubscriptionService $subscriptionService,
         ?int $id = null,
     ): Response {
         $businesses = $this->getOwnedBusinesses($businessRepo);
@@ -110,6 +115,17 @@ final class OwnerMenuController extends AbstractController
                 $status      = $request->request->get('status', 'draft');
                 $businessId  = (int) $request->request->get('business_id', 0);
 
+                // Guard: check slot availability for this status transition
+                $currentStatus = $menu ? $menu->getStatus() : null;
+                if (!$subscriptionService->canSetMenuStatus($this->getUser(), $currentStatus, $status)) {
+                    // New menu hitting total limit → redirect; status change on existing → modal
+                    if (!$menu) {
+                        $this->addFlash('error', 'You\'ve reached the maximum number of menus for your plan. Upgrade to add more.');
+                        return $this->redirectToRoute('app_owner_menus');
+                    }
+                    $error = 'limit_reached';
+                }
+
                 $selectedBusiness = null;
                 foreach ($businesses as $b) {
                     if ($b->getId() === $businessId) { $selectedBusiness = $b; break; }
@@ -118,7 +134,7 @@ final class OwnerMenuController extends AbstractController
 
                 if (!$name) {
                     $error = 'Menu name is required.';
-                } else {
+                } elseif ($error !== 'limit_reached') {
                     $isNew = !$menu;
                     if ($isNew) {
                         $menu = new Menu();
@@ -138,10 +154,22 @@ final class OwnerMenuController extends AbstractController
             }
         }
 
+        // Determine if publishing is allowed from this menu's current state
+        $currentStatus  = $menu?->getStatus() ?? 'draft';
+        $canPublish     = $subscriptionService->canSetMenuStatus($this->getUser(), $currentStatus, 'published');
+        $canCreate      = $subscriptionService->canCreateMenu($this->getUser());
+
+        // If creating a new menu but no slots available → redirect with flash
+        if (!$menu && !$canCreate) {
+            $this->addFlash('error', 'You\'ve reached the maximum number of menus for your plan. Upgrade to add more.');
+            return $this->redirectToRoute('app_owner_menus');
+        }
+
         return $this->render('owner/menu/form.html.twig', [
             'menu'       => $menu,
             'businesses' => $businesses,
             'error'      => $error,
+            'canPublish' => $canPublish,
         ]);
     }
 

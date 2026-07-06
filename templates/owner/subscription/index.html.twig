@@ -1,0 +1,593 @@
+﻿{% extends 'base.html.twig' %}
+
+{% block title %}Choose Your Plan — S2S{% endblock %}
+
+{% block body %}
+{% set planOrder = ['basic', 'premium', 'pro'] %}
+{% set planIcons = { basic: '🍽️', premium: '⭐', pro: '🚀' } %}
+{% set planDescs = {
+    basic:   'Perfect for getting started with one digital menu.',
+    premium: 'Grow your venue with up to 3 full menus.',
+    pro:     'No limits. Unlimited menus and drafts.'
+} %}
+
+<style>
+:root {
+    --adm-bg:      #0f0a07;
+    --adm-accent:  #e84040;
+    --adm-amber:   #E8A020;
+    --adm-muted:   #7a6a5a;
+    --adm-ink:     #18120a;
+    --adm-sand:    #fffbf4;
+    --adm-border:  #ede4d8;
+}
+body {
+    background: var(--adm-bg);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    color: #f5f0e8;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.sub-header {
+    background: var(--adm-ink);
+    border-bottom: 1px solid rgba(232,160,32,.12);
+    padding: 20px 24px;
+}
+.sub-header-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.sub-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sub-logo-icon { font-size: 1.3rem; }
+.sub-back-link {
+    font-size: .85rem;
+    color: var(--adm-amber);
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid rgba(232,160,32,.2);
+    transition: all .15s;
+}
+.sub-back-link:hover {
+    background: rgba(232,160,32,.1);
+    border-color: var(--adm-amber);
+}
+
+/* ── Main container ───────────────────────────────────────────────────── */
+.sub-container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+}
+.sub-page-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    margin: 0 0 12px;
+}
+.sub-page-subtitle {
+    text-align: center;
+    font-size: .95rem;
+    color: rgba(245,240,232,.55);
+    margin: 0 0 36px;
+}
+
+/* ── Status banners ───────────────────────────────────────────────────── */
+.sub-banner {
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: .875rem;
+    font-weight: 500;
+    margin-bottom: 24px;
+    border: 1px solid transparent;
+    text-align: center;
+}
+.sub-banner--warn { background: rgba(232,160,32,.15); color: #ffb347; border-color: rgba(232,160,32,.3); }
+.sub-banner--err  { background: rgba(232,64,64,.15); color: #ff6b6b; border-color: rgba(232,64,64,.3); }
+.sub-banner--info { background: rgba(96,165,250,.15); color: #93c5fd; border-color: rgba(96,165,250,.3); }
+
+/* ── Current subscription ─────────────────────────────────────────────── */
+.sub-current {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.sub-current-info { display: flex; align-items: center; gap: 14px; }
+.sub-current-label {
+    font-size: .85rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 4px;
+}
+.sub-current-exp {
+    font-size: .78rem;
+    color: rgba(245,240,232,.45);
+    margin: 0;
+}
+.sub-plan-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.sub-plan-badge--basic   { background: rgba(34,197,94,.2); color: #86efac; }
+.sub-plan-badge--premium { background: rgba(232,160,32,.2); color: #fbbf24; }
+.sub-plan-badge--pro     { background: rgba(96,165,250,.2); color: #93c5fd; }
+
+.btn-cancel {
+    background: transparent;
+    border: 1px solid rgba(232,64,64,.4);
+    color: #ff6b6b;
+    padding: 8px 20px;
+    border-radius: 7px;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.btn-cancel:hover {
+    background: rgba(232,64,64,.15);
+    border-color: #e84040;
+}
+
+/* ── Period toggle ────────────────────────────────────────────────────── */
+.sub-period-toggle {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 36px;
+}
+.sub-period-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .88rem;
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,.12);
+    background: transparent;
+    color: rgba(245,240,232,.5);
+    cursor: pointer;
+    transition: all .18s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.sub-period-btn.active {
+    background: rgba(232,160,32,.12);
+    border-color: var(--adm-amber);
+    color: var(--adm-amber);
+}
+.sub-period-btn:hover:not(.active) {
+    border-color: rgba(255,255,255,.2);
+    color: rgba(245,240,232,.7);
+}
+.sub-period-badge {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    background: rgba(34,197,94,.2);
+    color: #86efac;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* ── Plan cards ───────────────────────────────────────────────────────── */
+.sub-plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+.sub-plan-card {
+    background: rgba(255,255,255,.03);
+    border: 1.5px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: all .2s;
+}
+.sub-plan-card:hover {
+    border-color: rgba(232,160,32,.3);
+    background: rgba(255,255,255,.05);
+    transform: translateY(-4px);
+}
+.sub-plan-card.is-current {
+    border-color: rgba(34,197,94,.4);
+    background: rgba(34,197,94,.05);
+}
+.sub-plan-card.is-featured {
+    border-color: var(--adm-amber);
+    box-shadow: 0 0 0 3px rgba(232,160,32,.08);
+}
+
+.sub-popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--adm-amber);
+    color: var(--adm-ink);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 99px;
+}
+
+.sub-plan-head { margin-bottom: 20px; }
+.sub-plan-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 12px;
+}
+.sub-plan-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 6px;
+}
+.sub-plan-desc {
+    font-size: .85rem;
+    color: rgba(245,240,232,.5);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.sub-plan-price {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    margin-bottom: 24px;
+}
+.sub-price-amount {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+}
+.sub-price-cur {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: rgba(245,240,232,.55);
+    margin-bottom: 8px;
+}
+.sub-price-period {
+    font-size: .88rem;
+    color: rgba(245,240,232,.45);
+    margin-bottom: 10px;
+}
+
+.sub-plan-features {
+    list-style: none;
+    margin: 0 0 28px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+.sub-plan-features li {
+    font-size: .875rem;
+    color: rgba(245,240,232,.75);
+    line-height: 1.5;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+.btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .875rem;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    border: none;
+}
+.btn-full { display: block; width: 100%; }
+.btn-primary {
+    background: rgba(255,255,255,.08);
+    border: 1.5px solid rgba(255,255,255,.15);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: rgba(255,255,255,.12);
+    border-color: rgba(255,255,255,.25);
+}
+.btn-accent {
+    background: var(--adm-amber) !important;
+    color: var(--adm-ink) !important;
+    border: 1.5px solid var(--adm-amber) !important;
+}
+.btn-accent:hover {
+    background: #c88a10 !important;
+    border-color: #c88a10 !important;
+}
+.btn-outline {
+    background: transparent;
+    border: 1.5px solid rgba(255,255,255,.2);
+    color: rgba(245,240,232,.7);
+}
+.btn-outline:hover {
+    border-color: rgba(255,255,255,.35);
+    background: rgba(255,255,255,.05);
+}
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── FAQ ──────────────────────────────────────────────────────────────── */
+.sub-faq {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 28px;
+}
+.sub-faq h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 20px;
+}
+.sub-faq details {
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 14px 0;
+}
+.sub-faq details:last-child {
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sub-faq summary {
+    font-size: .875rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    list-style: none;
+}
+.sub-faq summary::before {
+    content: '+ ';
+    color: var(--adm-amber);
+    font-weight: 700;
+}
+.sub-faq details[open] summary::before {
+    content: '− ';
+}
+.sub-faq p {
+    font-size: .85rem;
+    color: rgba(245,240,232,.55);
+    margin: 10px 0 0;
+    line-height: 1.7;
+}
+</style>
+
+{# ── Header ────────────────────────────────────────────────────────────── #}
+<header class="sub-header">
+    <div class="sub-header-inner">
+        <a href="{{ path('app_dashboard') }}" class="sub-logo">
+            <span class="sub-logo-icon">🍽️</span>
+            Scan to See
+        </a>
+        {% if app.user %}
+            <a href="{{ path('app_owner') }}" class="sub-back-link">← Back to Dashboard</a>
+        {% endif %}
+    </div>
+</header>
+
+<div class="sub-container">
+    <h1 class="sub-page-title">Choose Your Plan</h1>
+    <p class="sub-page-subtitle">Start publishing beautiful digital menus in minutes</p>
+
+    {# ── Current status banner ──────────────────────────────────────────── #}
+    {% if sub %}
+        {% if sub.isActive() %}
+            {% set daysLeft = sub.getDaysUntilExpiry() %}
+            {% if daysLeft is not null and daysLeft <= 7 %}
+                <div class="sub-banner sub-banner--warn">
+                    ⚠️ Your <strong>{{ sub.getPlanLabel() }}</strong> subscription expires in <strong>{{ daysLeft }} day{{ daysLeft != 1 ? 's' }}</strong>. Renew below to keep your menus live.
+                </div>
+            {% endif %}
+            <div class="sub-current">
+                <div class="sub-current-info">
+                    <span class="sub-plan-badge sub-plan-badge--{{ sub.plan }}">{{ sub.getPlanLabel() }}</span>
+                    <div>
+                        <p class="sub-current-label">Current plan · {{ sub.billingPeriod|capitalize }}</p>
+                        {% if sub.currentPeriodEnd %}
+                            <p class="sub-current-exp">Renews on {{ sub.currentPeriodEnd|date('d M Y') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <form method="post" action="{{ path('app_owner_subscription_cancel') }}"
+                      onsubmit="return confirm('Cancel your subscription? All your menus will be set to draft.')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('cancel-subscription') }}">
+                    <button type="submit" class="btn-cancel">Cancel subscription</button>
+                </form>
+            </div>
+        {% elseif sub.status == 'pending' %}
+            <div class="sub-banner sub-banner--info">
+                ⏳ Payment is being confirmed. Refresh in a few seconds.
+            </div>
+        {% else %}
+            <div class="sub-banner sub-banner--err">
+                ❌ Your subscription has <strong>expired</strong>. Choose a plan below to reactivate your menus.
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="sub-banner sub-banner--info">
+            👋 Welcome! Choose a plan to start publishing your menus.
+        </div>
+    {% endif %}
+
+    {# ── Billing period toggle ───────────────────────────────────────────── #}
+    <div class="sub-period-toggle">
+        <button class="sub-period-btn active" data-period="monthly">Monthly</button>
+        <button class="sub-period-btn" data-period="yearly">
+            Yearly
+            <span class="sub-period-badge">Save ~17%</span>
+        </button>
+    </div>
+
+    {# ── Plan cards ──────────────────────────────────────────────────────── #}
+    <div class="sub-plans">
+        {% for plan in planOrder %}
+            {% set isCurrentPlan = sub and sub.isActive() and sub.plan == plan %}
+            {% set rank = {'basic':1,'premium':2,'pro':3} %}
+            {% set currentRank = sub ? rank[sub.plan] : 0 %}
+            {% set planRank = rank[plan] %}
+
+            <div class="sub-plan-card {{ isCurrentPlan ? 'is-current' }} {{ plan == 'premium' ? 'is-featured' }}">
+                {% if plan == 'premium' %}<div class="sub-popular-badge">Most Popular</div>{% endif %}
+
+                <div class="sub-plan-head">
+                    <span class="sub-plan-icon">{{ planIcons[plan] }}</span>
+                    <h2 class="sub-plan-name">{{ labels[plan] }}</h2>
+                    <p class="sub-plan-desc">{{ planDescs[plan] }}</p>
+                </div>
+
+                <div class="sub-plan-price" data-plan="{{ plan }}">
+                    <span class="sub-price-amount" data-monthly="{{ (prices[plan]['monthly'] / 100)|number_format(0) }}" data-yearly="{{ (prices[plan]['yearly'] / 100)|number_format(0) }}">
+                        {{ (prices[plan]['monthly'] / 100)|number_format(0) }}
+                    </span>
+                    <span class="sub-price-cur">€</span>
+                    <span class="sub-price-period">/mo</span>
+                </div>
+
+                <ul class="sub-plan-features">
+                    <li>
+                        {% if limits[plan]['published'] is null %}
+                            ✅ <strong>Unlimited</strong> published menus
+                        {% else %}
+                            ✅ <strong>{{ limits[plan]['published'] }}</strong> published menu{{ limits[plan]['published'] > 1 ? 's' }}
+                        {% endif %}
+                    </li>
+                    <li>
+                        {% if limits[plan]['draft'] is null %}
+                            ✅ <strong>Unlimited</strong> drafts
+                        {% else %}
+                            ✅ <strong>{{ limits[plan]['draft'] }}</strong> draft{{ limits[plan]['draft'] > 1 ? 's' }}
+                        {% endif %}
+                    </li>
+                    <li>✅ Permanent QR codes</li>
+                    <li>✅ Live menu updates</li>
+                    {% if plan != 'basic' %}<li>✅ Multiple businesses</li>{% endif %}
+                    {% if plan == 'pro' %}<li>✅ Priority support</li>{% endif %}
+                </ul>
+
+                <div class="sub-plan-action">
+                    {% if isCurrentPlan %}
+                        <button class="btn btn-outline btn-full" disabled>Current plan</button>
+
+                    {% elseif sub and sub.isActive() and planRank < currentRank %}
+                        {# Downgrade #}
+                        <a href="{{ path('app_owner_subscription_downgrade', {plan: plan, period: sub.billingPeriod}) }}"
+                           class="btn btn-outline btn-full sub-cta" data-plan="{{ plan }}">
+                            Downgrade to {{ labels[plan] }}
+                        </a>
+
+                    {% else %}
+                        {# New subscription or upgrade #}
+                        <a href="{{ path('app_owner_subscription_checkout', {plan: plan, period: 'monthly'}) }}"
+                           class="btn btn-primary btn-full sub-cta {{ plan == 'premium' ? 'btn-accent' }}"
+                           data-plan="{{ plan }}">
+                            {{ sub and sub.isActive() ? 'Upgrade to ' ~ labels[plan] : 'Get ' ~ labels[plan] }}
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ── FAQ ─────────────────────────────────────────────────────────────── #}
+    <div class="sub-faq">
+        <h3>Common questions</h3>
+        <details>
+            <summary>What happens when my subscription expires?</summary>
+            <p>All your published menus will be automatically set to draft — customers scanning your QR codes will see nothing until you renew.</p>
+        </details>
+        <details>
+            <summary>Can I downgrade my plan?</summary>
+            <p>Yes — if you have more published menus than your new plan allows, you'll be asked to choose which ones to keep published. The rest become drafts.</p>
+        </details>
+        <details>
+            <summary>Do prices include VAT?</summary>
+            <p>Prices shown are in EUR (excl. VAT). Stripe handles local tax calculations at checkout.</p>
+        </details>
+    </div>
+</div>
+
+<script>
+(function () {
+    var period = 'monthly';
+
+    var btns    = document.querySelectorAll('.sub-period-btn');
+    var amounts = document.querySelectorAll('.sub-price-amount');
+    var periods = document.querySelectorAll('.sub-price-period');
+    var ctas    = document.querySelectorAll('.sub-cta');
+
+    // Period toggle handler
+    btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            period = btn.dataset.period;
+            btns.forEach(function (b) { b.classList.toggle('active', b === btn); });
+
+            // Update displayed prices
+            amounts.forEach(function (el) {
+                el.textContent = el.dataset[period];
+            });
+            periods.forEach(function (el) {
+                el.textContent = period === 'yearly' ? '/yr' : '/mo';
+            });
+
+            // Update button hrefs
+            ctas.forEach(function (el) {
+                var plan = el.dataset.plan;
+                el.href = '/owner/subscription/checkout/' + plan + '/' + period;
+            });
+        });
+    });
+
+    // Initialize button hrefs on page load
+    ctas.forEach(function (el) {
+        var plan = el.dataset.plan;
+        el.href = '/owner/subscription/checkout/' + plan + '/monthly';
+    });
+})();
+</script>
+
+{% endblock %}

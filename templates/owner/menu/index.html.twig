@@ -7,9 +7,15 @@
 <div class="owner-panel">
     <div class="owner-panel-head">
         <h2>All menus</h2>
-        <a href="{{ path('app_owner_menu_new') }}"
-           data-modal="{{ path('app_owner_menu_new') }}"
-           class="btn btn-primary btn-sm">+ New menu</a>
+        {% if canCreate %}
+            <a href="{{ path('app_owner_menu_new') }}"
+               data-modal="{{ path('app_owner_menu_new') }}"
+               class="btn btn-primary btn-sm">+ New menu</a>
+        {% else %}
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('menuLimitModal').style.display='flex'">
+                + New menu
+            </button>
+        {% endif %}
     </div>
     {% if menus|length == 0 %}
         <div class="owner-empty">
@@ -61,4 +67,37 @@
         </table>
     {% endif %}
 </div>
+
+{# ── Plan limit modal ─────────────────────────────────────────────────── #}
+{% if not canCreate %}
+<div id="menuLimitModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(10,6,2,.75); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:24px;">
+    <div style="background:#fff; border-radius:16px; max-width:460px; width:100%; padding:32px 28px; box-shadow:0 24px 80px rgba(0,0,0,.4); text-align:center;">
+        <div style="font-size:3rem; margin-bottom:16px; animation: menuBounce .6s ease;">⚠️</div>
+        <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.4rem; font-weight:700; color:#18120a; margin:0 0 12px;">Plan Limit Reached</h3>
+        <p style="font-size:.95rem; color:#737373; line-height:1.6; margin:0 0 28px;">
+            You've used all your menu slots for your current plan.<br>
+            Upgrade to create more menus.
+        </p>
+        <div style="display:flex; gap:12px;">
+            <button onclick="document.getElementById('menuLimitModal').style.display='none'" 
+                    style="flex:1; padding:11px 20px; border:1.5px solid #d4d4d4; border-radius:8px; background:#fff; font-family:'DM Sans',sans-serif; font-size:.875rem; font-weight:600; cursor:pointer;">
+                Got it
+            </button>
+            <a href="{{ path('app_owner_subscription') }}" 
+               style="flex:1; padding:11px 20px; background:#E8A020; border:1.5px solid #E8A020; border-radius:8px; color:#fff; font-family:'DM Sans',sans-serif; font-size:.875rem; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+                Upgrade Plan
+            </a>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes menuBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+</style>
+<script>
+document.getElementById('menuLimitModal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endif %}
+
 {% endblock %}

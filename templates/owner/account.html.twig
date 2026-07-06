@@ -1,0 +1,336 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Account Settings — S2S{% endblock %}
+{% block page_title %}Account Settings{% endblock %}
+
+{% block content %}
+
+<div class="owner-panel" style="max-width: 800px;">
+    <div class="owner-panel-head">
+        <h2>👤 Account Details</h2>
+    </div>
+    
+    <table class="owner-table owner-table--borderless">
+        <tbody>
+            <tr>
+                <td style="font-weight:600; width:180px;">Email</td>
+                <td style="color:var(--adm-muted)">{{ app.user.email }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight:600">Role</td>
+                <td>
+                    <span style="display:inline-block; padding:3px 10px; background:rgba(232,160,32,.12); color:#c88a10; border-radius:6px; font-size:.8rem; font-weight:600;">
+                        {{ app.user.role|capitalize }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600">2FA Status</td>
+                <td>
+                    {% if app.user.isTotpAuthenticationEnabled() %}
+                        <span style="display:inline-block; padding:3px 10px; background:#f0fdf4; color:#166534; border-radius:6px; font-size:.8rem; font-weight:600;">
+                            ✅ Enabled
+                        </span>
+                    {% else %}
+                        <span style="color:var(--adm-muted); font-size:.9rem">Not enabled</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight:600">Member Since</td>
+                <td style="color:var(--adm-muted)">{{ app.user.createdAt|date('F j, Y') }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="owner-panel" style="max-width: 800px; margin-top: 24px;">
+    <div class="owner-panel-head">
+        <h2>💳 Subscription</h2>
+        <a href="{{ path('app_owner_subscription') }}" class="btn btn-outline btn-sm">Manage</a>
+    </div>
+    
+    {% if sub and (sub.isActive() or sub.status == 'pending') %}
+        <table class="owner-table owner-table--borderless">
+            <tbody>
+                <tr>
+                    <td style="font-weight:600; width:180px;">Current Plan</td>
+                    <td>
+                        <span style="display:inline-block; padding:3px 10px; background:rgba(232,160,32,.12); color:#c88a10; border-radius:6px; font-size:.8rem; font-weight:600; margin-right:8px;">
+                            {{ sub.getPlanLabel() }}
+                        </span>
+                        <span style="color:var(--adm-muted); font-size:.85rem">{{ sub.billingPeriod|capitalize }}</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600">Status</td>
+                    <td>
+                        {% if sub.status == 'pending' %}
+                            <span style="display:inline-block; padding:3px 10px; background:#fffbeb; color:#92400e; border-radius:6px; font-size:.8rem; font-weight:600;">
+                                ⏳ Confirming Payment
+                            </span>
+                        {% else %}
+                            <span style="display:inline-block; padding:3px 10px; background:#f0fdf4; color:#166534; border-radius:6px; font-size:.8rem; font-weight:600;">
+                                ✅ Active
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if sub.currentPeriodEnd %}
+                    <tr>
+                        <td style="font-weight:600">Renewal Date</td>
+                        <td style="color:var(--adm-muted)">{{ sub.currentPeriodEnd|date('F j, Y') }}</td>
+                    </tr>
+                    {% set daysLeft = sub.getDaysUntilExpiry() %}
+                    {% if daysLeft is not null and daysLeft <= 7 %}
+                        <tr>
+                            <td style="font-weight:600; color:var(--adm-accent)">⚠️ Expiring Soon</td>
+                            <td style="color:var(--adm-accent); font-weight:600">
+                                {{ daysLeft }} day{{ daysLeft != 1 ? 's' }} remaining
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endif %}
+                <tr>
+                    <td style="font-weight:600">Published Menus</td>
+                    <td style="color:var(--adm-muted)">
+                        {% set limit = sub.getPublishedMenuLimit() %}
+                        {% if limit is null %}
+                            Unlimited ✨
+                        {% else %}
+                            Up to {{ limit }} menu{{ limit != 1 ? 's' }}
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="owner-panel-footer">
+            <button class="btn btn-danger-outline btn-sm" onclick="showCancelModal()">
+                Cancel Subscription
+            </button>
+        </div>
+
+    {% else %}
+        <div style="padding: 32px 24px; text-align:center;">
+            <p style="color:var(--adm-muted); margin:0 0 20px; font-size:.95rem">
+                You don't have an active subscription. Choose a plan to start publishing menus.
+            </p>
+            <a href="{{ path('app_owner_subscription') }}" class="btn btn-primary">
+                View Plans
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% if sub and (sub.isActive() or sub.status == 'pending') %}
+{# ── Cancel Subscription Modal ─────────────────────────────────────────── #}
+<div class="cancel-modal" id="cancelModal">
+    <div class="cancel-modal-inner">
+        <div class="cancel-modal-header">
+            <h3>⚠️ Cancel Subscription</h3>
+            <button class="cancel-modal-close" onclick="hideCancelModal()">&times;</button>
+        </div>
+        <div class="cancel-modal-body">
+            <p style="margin:0 0 20px; color:var(--adm-muted); line-height:1.6; font-size:.9rem">
+                This will <strong>immediately cancel</strong> your subscription. 
+                All your menus will be set to <strong>draft</strong> and your QR codes will stop working.
+            </p>
+
+            <form method="post" action="{{ path('app_owner_account_cancel_sub') }}" id="cancelForm">
+                <input type="hidden" name="_token" value="{{ csrf_token('cancel-subscription') }}">
+
+                <div class="form-field">
+                    <label for="password">Confirm your password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required 
+                        autocomplete="current-password"
+                        style="width:100%; padding:10px 14px; border:1.5px solid var(--adm-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.9rem">
+                </div>
+
+                {% if app.user.isTotpAuthenticationEnabled() %}
+                <div class="form-field">
+                    <label for="auth_code">2FA Code</label>
+                    <input 
+                        type="text" 
+                        id="auth_code" 
+                        name="auth_code" 
+                        placeholder="000000" 
+                        maxlength="6" 
+                        pattern="[0-9]{6}"
+                        required 
+                        autocomplete="one-time-code"
+                        style="width:100%; padding:10px 14px; border:1.5px solid var(--adm-border); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:.9rem">
+                    <small style="display:block; color:var(--adm-muted); font-size:.75rem; margin-top:6px">
+                        Enter the 6-digit code from your authenticator app
+                    </small>
+                </div>
+                {% endif %}
+
+                <div style="display:flex; gap:12px; margin-top:24px">
+                    <button type="button" class="btn btn-outline" onclick="hideCancelModal()" style="flex:1">
+                        Keep Subscription
+                    </button>
+                    <button type="submit" class="btn btn-danger" style="flex:1" id="confirmBtn">
+                        Yes, Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+:root {
+    --adm-bg: #0f0a07;
+    --adm-ink: #18120a;
+    --adm-amber: #E8A020;
+    --adm-muted: #737373;
+    --adm-border: rgba(0,0,0,.08);
+    --adm-accent: #E84040;
+}
+
+.owner-table--borderless tr {
+    border-bottom: 1px solid var(--adm-border);
+}
+
+.owner-table--borderless tr:last-child {
+    border-bottom: none;
+}
+
+.owner-panel-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--adm-border);
+    text-align: right;
+}
+
+.btn-danger-outline {
+    border: 1.5px solid var(--adm-accent);
+    color: var(--adm-accent);
+    background: transparent;
+    transition: all .15s;
+}
+
+.btn-danger-outline:hover {
+    background: var(--adm-accent);
+    color: #fff;
+}
+
+.btn-danger {
+    background: var(--adm-accent);
+    color: #fff;
+    border: 1.5px solid var(--adm-accent);
+    transition: all .15s;
+}
+
+.btn-danger:hover {
+    background: #d63636;
+    border-color: #d63636;
+}
+
+.cancel-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(10, 6, 2, 0.75);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.cancel-modal-inner {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+}
+
+.cancel-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--adm-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cancel-modal-header h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0;
+}
+
+.cancel-modal-close {
+    background: none;
+    border: none;
+    color: var(--adm-muted);
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.15s;
+    line-height: 1;
+}
+
+.cancel-modal-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--adm-ink);
+}
+
+.cancel-modal-body {
+    padding: 24px;
+}
+
+.form-field {
+    margin-bottom: 16px;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--adm-ink);
+    margin-bottom: 6px;
+}
+</style>
+
+<script>
+function showCancelModal() {
+    document.getElementById('cancelModal').style.display = 'flex';
+}
+
+function hideCancelModal() {
+    document.getElementById('cancelModal').style.display = 'none';
+}
+
+// Close modal on outside click
+document.getElementById('cancelModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideCancelModal();
+    }
+});
+
+// Form submission state
+document.getElementById('cancelForm')?.addEventListener('submit', function() {
+    const btn = document.getElementById('confirmBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Cancelling...';
+    }
+});
+</script>
+
+{% endblock %}

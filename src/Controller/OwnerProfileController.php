@@ -4,13 +4,17 @@ namespace App\Controller;
 
 use App\Entity\Business;
 use App\Repository\BusinessRepository;
+use App\Repository\SubscriptionRepository;
 use App\Service\ImageUploadService;
+use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Scheb\TwoFactorBundle\Security\TwoFactor\Provider\Totp\TotpAuthenticatorInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[IsGranted('ROLE_OWNER')]
@@ -118,6 +122,67 @@ final class OwnerProfileController extends AbstractController
         $em->flush();
         $this->addFlash('success', 'Business deleted.');
         return $this->redirectToRoute('app_owner_businesses');
+    }
+
+    // ── Account Settings ───────────────────────────────────────────────────────
+
+    #[Route('/owner/account', name: 'app_owner_account')]
+    public function account(SubscriptionRepository $subRepo): Response
+    {
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $sub  = $subRepo->findOneBy(['owner' => $user]);
+
+        return $this->render('owner/account.html.twig', [
+            'sub' => $sub,
+        ]);
+    }
+
+    #[Route('/owner/account/cancel-subscription', name: 'app_owner_account_cancel_sub', methods: ['POST'])]
+    public function cancelSubscription(
+        Request $request,
+        SubscriptionRepository $subRepo,
+        SubscriptionService $service,
+        EntityManagerInterface $em,
+        UserPasswordHasherInterface $passwordHasher,
+        TotpAuthenticatorInterface $totpAuth,
+    ): Response {
+        if (!$this->isCsrfTokenValid('cancel-subscription', $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $sub  = $subRepo->findOneBy(['owner' => $user]);
+
+        // Verify password
+        $password = $request->request->get('password', '');
+        if (!$passwordHasher->isPasswordValid($user, $password)) {
+            $this->addFlash('error', 'Incorrect password. Subscription not cancelled.');
+            return $this->redirectToRoute('app_owner_account');
+        }
+
+        // Verify 2FA code if enabled
+        if ($user->isTotpAuthenticationEnabled()) {
+            $code = $request->request->get('auth_code', '');
+            if (!$totpAuth->checkCode($user, $code)) {
+                $this->addFlash('error', 'Invalid 2FA code. Subscription not cancelled.');
+                return $this->redirectToRoute('app_owner_account');
+            }
+        }
+
+        // Cancel subscription
+        if ($sub && ($sub->isActive() || $sub->getStatus() === 'pending')) {
+            $service->cancelStripeSubscription($sub);
+            $sub->setStatus(\App\Entity\Subscription::STATUS_CANCELLED);
+            $service->expireOwnerMenus($user);
+            $em->flush();
+            $this->addFlash('success', 'Subscription cancelled successfully. All your menus have been set to draft.');
+        } else {
+            $this->addFlash('error', 'No active subscription to cancel.');
+        }
+
+        return $this->redirectToRoute('app_owner_account');
     }
 
     // ── Slug helpers ───────────────────────────────────────────────────────

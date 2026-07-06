@@ -182,6 +182,10 @@
                {% if route starts with 'app_owner_menu' or route starts with 'app_owner_category' or route starts with 'app_owner_item' %} class="active"{% endif %}>
                 Menus
             </a>
+            <a href="{{ path('app_owner_account') }}"
+               {% if route == 'app_owner_account' %} class="active"{% endif %}>
+                Account
+            </a>
         </nav>
         <div class="owner-sidebar-foot">
             <span class="owner-email">{{ app.user.userIdentifier }}</span>

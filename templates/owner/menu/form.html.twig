@@ -10,7 +10,7 @@
         <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← All menus</a>
     </div>
     <div class="owner-panel-body">
-        {% if error %}
+        {% if error and error != 'limit_reached' %}
             <div class="owner-flash owner-flash--error" style="margin-bottom:16px">{{ error }}</div>
         {% endif %}
         <form class="owner-form" method="post">
@@ -47,7 +47,7 @@
 
             <div class="form-field">
                 <label for="status">Status</label>
-                <select id="status" name="status">
+                <select id="status" name="status" onchange="checkPublishLimit(this)">
                     <option value="draft"     {{ not menu or menu.status == 'draft'      ? 'selected' : '' }}>Draft</option>
                     <option value="published" {{ menu and menu.status == 'published'     ? 'selected' : '' }}>Published</option>
                 </select>
@@ -62,4 +62,112 @@
         </form>
     </div>
 </div>
+
+{# ── Plan Limit Modal ──────────────────────────────────────────────────── #}
+<div class="limit-modal" id="limitModal" style="display: {% if error == 'limit_reached' %}flex{% else %}none{% endif %};">
+    <div class="limit-modal-inner">
+        <div class="limit-modal-icon">⚠️</div>
+        <h3 class="limit-modal-title">Plan Limit Reached</h3>
+        <p class="limit-modal-text">
+            {% if not menu %}
+                You've reached the maximum number of menus for your plan.
+            {% else %}
+                You've reached your plan's published menu limit.
+            {% endif %}
+            Upgrade to a higher tier to get more slots.
+        </p>
+        <div class="limit-modal-actions">
+            <button class="btn btn-outline" onclick="closeModal()">
+                Stay on Draft
+            </button>
+            <a href="{{ path('app_owner_subscription') }}" class="btn btn-primary">
+                Upgrade Plan
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.limit-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(10, 6, 2, 0.75);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.limit-modal-inner {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 460px;
+    width: 100%;
+    padding: 32px 28px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+    text-align: center;
+}
+
+.limit-modal-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    animation: bounce 0.6s ease;
+}
+
+.limit-modal-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--adm-ink);
+    margin: 0 0 12px;
+}
+
+.limit-modal-text {
+    font-size: 0.95rem;
+    color: var(--adm-muted);
+    line-height: 1.6;
+    margin: 0 0 28px;
+}
+
+.limit-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.limit-modal-actions .btn {
+    flex: 1;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+</style>
+
+<script>
+const canPublish = {{ canPublish ? 'true' : 'false' }};
+
+function checkPublishLimit(select) {
+    if (select.value === 'published' && !canPublish) {
+        document.getElementById('limitModal').style.display = 'flex';
+        select.value = 'draft';
+    }
+}
+
+function closeModal() {
+    document.getElementById('limitModal').style.display = 'none';
+    document.getElementById('status').value = 'draft';
+}
+
+// Close modal when clicking outside
+document.getElementById('limitModal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+</script>
+
 {% endblock %}

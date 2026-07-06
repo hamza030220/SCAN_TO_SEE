@@ -1,0 +1,74 @@
+{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Choose menus to keep — S2S{% endblock %}
+{% block page_title %}Downgrade to {{ newPlan|capitalize }}{% endblock %}
+
+{% block content %}
+<div class="admin-panel" style="max-width:640px">
+    <div class="admin-panel-head">
+        <h2>Select menus to keep published</h2>
+    </div>
+    <div style="padding:24px">
+        <p style="font-size:.875rem;color:var(--adm-muted);margin-bottom:20px;line-height:1.6">
+            Your new <strong>{{ newPlan|capitalize }}</strong> plan allows
+            <strong>{{ newLimit }} published menu{{ newLimit > 1 ? 's' }}</strong>.
+            You currently have <strong>{{ published|length }}</strong> published menus.
+            Select up to <strong>{{ newLimit }}</strong> to keep — the rest will become drafts.
+        </p>
+
+        <form method="post" action="{{ path('app_owner_subscription_downgrade', {plan: newPlan, period: newPeriod}) }}">
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+                {% for menu in published %}
+                    <label class="menu-keep-row">
+                        <input type="checkbox" name="keep_menus[]" value="{{ menu.id }}">
+                        <div class="menu-keep-info">
+                            <span class="menu-keep-name">{{ menu.name }}</span>
+                            <span class="menu-keep-biz">{{ menu.business.name }}</span>
+                        </div>
+                        <span class="badge-active">Published</span>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button type="submit" class="btn btn-danger"
+                        onclick="return validateKeep({{ newLimit }})">
+                    Confirm downgrade
+                </button>
+                <a href="{{ path('app_owner_subscription') }}" class="btn btn-outline-adm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+.menu-keep-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; border-radius: 8px;
+    border: 1.5px solid var(--adm-border);
+    background: #fff; cursor: pointer;
+    transition: border-color .12s;
+}
+.menu-keep-row:has(input:checked) { border-color: var(--adm-amber); background: #fffdf5; }
+.menu-keep-row input { width: 18px; height: 18px; accent-color: var(--adm-amber); flex-shrink: 0; }
+.menu-keep-info { flex: 1; min-width: 0; }
+.menu-keep-name { display: block; font-size: .875rem; font-weight: 600; color: var(--adm-ink); }
+.menu-keep-biz  { display: block; font-size: .75rem; color: var(--adm-muted); }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function validateKeep(limit) {
+    var checked = document.querySelectorAll('input[name="keep_menus[]"]:checked').length;
+    if (checked > limit) {
+        alert('Please select at most ' + limit + ' menu' + (limit > 1 ? 's' : '') + '.');
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}
