@@ -261,4 +261,5 @@ The app will be available at **http://127.0.0.1:8000** (or the port you specifie
 ## Contributing
 
 This is a private project. For access or collaboration, contact the repository owner at [GitHub](https://github.com/hamza030220).
-Made with love by Hamza Z ❤️
+
+<h3 align="center">Made with love by Hamza Z ❤️</h3>
