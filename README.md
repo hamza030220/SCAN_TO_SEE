@@ -13,6 +13,9 @@
   <img src="https://img.shields.io/badge/MariaDB-10.4-003545?logo=mariadb&logoColor=white" />
   <img src="https://img.shields.io/badge/Doctrine_ORM-3.x-FC6A31" />
   <img src="https://img.shields.io/badge/Twig-3.x-bacf29?logo=twig&logoColor=black" />
+  <img src="https://img.shields.io/badge/PHPUnit-11.5-3776E6?logo=php&logoColor=white" />
+  <img src="https://img.shields.io/badge/Tests-140_passing-brightgreen?logo=checkmarx&logoColor=white" />
+  <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen" />
   <img src="https://img.shields.io/badge/license-proprietary-red" />
 </p>
 
@@ -26,6 +29,7 @@
   - [Owner Dashboard](#owner-dashboard)
   - [Admin Panel](#admin-panel)
   - [Customer-Facing Menu](#customer-facing-menu)
+  - [Subscription Management](#subscription-management)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -35,6 +39,7 @@
   - [Creating Accounts](#creating-accounts)
 - [Environment Variables](#environment-variables)
 - [Running the App](#running-the-app)
+- [Testing](#testing)
 - [User Roles & Access](#user-roles--access)
 - [Security](#security)
 - [Contributing](#contributing)
@@ -91,6 +96,17 @@ The QR code encodes a fixed URL (e.g. `s2s.app/m/blue-bean-cafe`) tied to a menu
 - Real-time availability — sold-out items clearly marked
 - *(Multilingual support — planned for v2)*
 
+### Subscription Management
+
+| Feature | Description |
+|---|---|
+| **Tiered plans** | Basic (1+1), Premium (3+3), Pro (unlimited menus) |
+| **Stripe integration** | Secure payment processing with webhook support |
+| **Auto-swap feature** | Smart menu status swapping when limits are reached — no blocking |
+| **Limit enforcement** | Automatic enforcement on plan downgrades with user-friendly selection UI |
+| **Draft/Published limits** | Separate limits for draft and published menus per plan |
+| **Flexible management** | Users can always edit within their plan capacity |
+
 ---
 
 ## Tech Stack
@@ -104,7 +120,9 @@ The QR code encodes a fixed URL (e.g. `s2s.app/m/blue-bean-cafe`) tied to a menu
 | **Templating** | Twig 3.x |
 | **Frontend assets** | Symfony AssetMapper (no Webpack / no Node build step) |
 | **JS components** | Stimulus (`@symfony/stimulus-bundle`) + Turbo Drive (`@hotwired/turbo`) |
-| **Auth** | Symfony Security — form_login, remember-me (7 days), CSRF protection |
+| **Auth** | Symfony Security — form_login, remember-me (7 days), CSRF protection, 2FA (TOTP) |
+| **Payments** | Stripe (subscriptions, webhooks) |
+| **Testing** | PHPUnit 11.5 — 140 tests, 337 assertions (100% pass rate) |
 | **Typography** | Space Grotesk + DM Sans (via Google Fonts) |
 | **Dev server** | Symfony CLI (`symfony serve --no-tls`) |
 
@@ -132,17 +150,23 @@ my_project_directory/
 │   │   ├── OwnerMenuController.php
 │   │   ├── OwnerProfileController.php
 │   │   ├── RegistrationController.php
+│   │   ├── SubscriptionController.php
+│   │   ├── SubscriptionEnforcementController.php
 │   │   └── SiteController.php
-│   ├── Entity/               # Doctrine entities (User, Business, Menu, Category, Item)
-│   ├── EventSubscriber/      # Kernel event subscribers (inactive user enforcement)
+│   ├── Entity/               # Doctrine entities (User, Business, Menu, Category, Item, Subscription)
+│   ├── EventSubscriber/      # Kernel event subscribers (inactive user enforcement, limit enforcement)
 │   ├── Repository/           # Doctrine repositories
-│   └── Security/             # Custom UserChecker (blocks deactivated logins)
+│   ├── Security/             # Custom UserChecker (blocks deactivated logins)
+│   └── Service/              # Business logic (SubscriptionService, ImageUploadService)
 ├── templates/
 │   ├── admin/                # Admin panel templates
 │   ├── owner/                # Owner dashboard + menu builder templates
-│   │   └── menu/
+│   │   ├── menu/
+│   │   └── subscription/
 │   └── site/                 # Public pages (home, login, register, pricing)
 └── tests/
+    ├── Entity/               # Entity unit tests (6 entities, 108 tests)
+    └── Service/              # Service unit tests (2 services, 32 tests)
 ```
 
 ---
@@ -227,6 +251,69 @@ The app will be available at **http://127.0.0.1:8000** (or the port you specifie
 
 ---
 
+## Testing
+
+The application includes a comprehensive test suite covering all entities and core services.
+
+### Running Tests
+
+```bash
+# Run all tests
+php bin/phpunit
+
+# Run specific test suite
+php bin/phpunit tests/Entity/
+php bin/phpunit tests/Service/
+
+# Run a specific test file
+php bin/phpunit tests/Service/SubscriptionServiceTest.php
+
+# Run tests with coverage (requires Xdebug)
+php bin/phpunit --coverage-html coverage/
+```
+
+### Test Coverage
+
+| Test Suite | Tests | Assertions | Coverage |
+|---|---|---|---|
+| **Entity Tests** | 108 | 236 | 100% (6/6 entities) |
+| **Service Tests** | 32 | 101 | 100% (2/2 services) |
+| **Total** | **140** | **337** | **100% pass rate** |
+
+#### Entity Tests
+
+- ✅ **Business** (14 tests) — Ownership, timestamps, slug management
+- ✅ **Category** (16 tests) — Nested structure, visibility, items collection
+- ✅ **Item** (22 tests) — Pricing, availability, image handling
+- ✅ **Menu** (22 tests) — Theme config, status, categories collection
+- ✅ **Subscription** (18 tests) — Plans, limits, expiry calculations
+- ✅ **User** (16 tests) — Auth, 2FA with backup codes, enforcement flag
+
+#### Service Tests
+
+- ✅ **SubscriptionService** (20 tests)
+  - Active subscription validation
+  - Menu counting (published/draft)
+  - Status change permissions
+  - Auto-swap functionality for plan limits
+  
+- ✅ **ImageUploadService** (30 tests)
+  - File validation (MIME types, 2MB size limit)
+  - Upload paths for logos, items, backgrounds
+  - Slugification with internationalization
+  - File deletion safety
+
+### Key Features Tested
+
+- **Subscription limit enforcement** — Smart auto-swapping when users reach plan limits
+- **File upload validation** — MIME type checking, size limits, secure path generation
+- **Entity relationships** — Proper cascade operations and collection management
+- **Business logic** — Plan-based restrictions, menu status transitions
+- **Security** — 2FA requirement validation, password reset tokens
+- **Edge cases** — Null handling, boundary conditions, timing issues
+
+---
+
 ## User Roles & Access
 
 | Role | Access | Login Redirect |
@@ -250,10 +337,14 @@ The app will be available at **http://127.0.0.1:8000** (or the port you specifie
 
 - **CSRF protection** on all state-changing forms (login, delete, toggle)
 - **Password hashing** via Symfony's `UserPasswordHasher` (bcrypt)
+- **Two-Factor Authentication (2FA)** — TOTP with backup codes via scheb/2fa-bundle
 - **UserChecker** blocks deactivated accounts at login
 - **InactiveUserSubscriber** invalidates active sessions of accounts deactivated by an admin — enforced on every request
+- **LimitEnforcementSubscriber** blocks dashboard access when subscription limits are exceeded
 - **Remember-me** tokens expire after 7 days
 - **Role-based access control** enforced via `access_control` in `security.yaml` and `#[IsGranted]` attributes on controllers
+- **File upload validation** — MIME type whitelist, 2MB size limit, secure path generation
+- **Stripe webhook signature verification** for payment security
 - `.env` is excluded from version control — secrets stay local
 
 ---
