@@ -1,0 +1,442 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Action Required: Select Menus to Keep — S2S{% endblock %}
+
+{% block body %}
+<style>
+:root {
+    --enf-bg:      #0f0a07;
+    --enf-accent:  #E8A020;
+    --enf-warn:    #ff6b6b;
+    --enf-ink:     #18120a;
+    --enf-sand:    #fffbf4;
+    --enf-border:  #ede4d8;
+}
+body {
+    background: var(--enf-bg);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    color: #f5f0e8;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+.enf-header {
+    background: var(--enf-ink);
+    border-bottom: 1px solid rgba(232,160,32,.12);
+    padding: 20px 24px;
+}
+.enf-header-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.enf-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── Main container ───────────────────────────────────────────────────── */
+.enf-container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px;
+}
+
+.enf-banner {
+    background: rgba(255,107,107,.12);
+    border: 2px solid rgba(255,107,107,.3);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+}
+.enf-banner-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.enf-banner-text {
+    font-size: .95rem;
+    color: rgba(245,240,232,.75);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── Plan info ────────────────────────────────────────────────────────── */
+.enf-plan-info {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+.enf-stat {
+    text-align: center;
+}
+.enf-stat-label {
+    font-size: .8rem;
+    color: rgba(245,240,232,.5);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.enf-stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+}
+.enf-stat-value.limit { color: var(--enf-accent); }
+.enf-stat-value.over { color: var(--enf-warn); }
+
+/* ── Menu sections ────────────────────────────────────────────────────── */
+.enf-section {
+    margin-bottom: 40px;
+}
+.enf-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+.enf-section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+.enf-counter {
+    font-size: .85rem;
+    padding: 6px 14px;
+    border-radius: 99px;
+    background: rgba(255,255,255,.08);
+    color: rgba(245,240,232,.7);
+    font-weight: 600;
+}
+.enf-counter.valid { background: rgba(34,197,94,.2); color: #86efac; }
+.enf-counter.invalid { background: rgba(255,107,107,.2); color: #ff6b6b; }
+
+.enf-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.enf-menu-card {
+    background: rgba(255,255,255,.03);
+    border: 2px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    padding: 18px;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+}
+.enf-menu-card:hover {
+    border-color: rgba(232,160,32,.3);
+    background: rgba(255,255,255,.05);
+}
+.enf-menu-card.selected {
+    border-color: var(--enf-accent);
+    background: rgba(232,160,32,.08);
+}
+.enf-menu-card input[type="checkbox"] {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+.enf-menu-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #fff;
+    margin: 0 0 6px;
+    padding-right: 30px;
+}
+.enf-menu-business {
+    font-size: .85rem;
+    color: rgba(245,240,232,.5);
+    margin: 0 0 8px;
+}
+.enf-menu-date {
+    font-size: .75rem;
+    color: rgba(245,240,232,.4);
+    margin: 0;
+}
+
+.enf-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: rgba(245,240,232,.4);
+    font-size: .9rem;
+}
+
+/* ── Form actions ─────────────────────────────────────────────────────── */
+.enf-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--enf-ink);
+    border-top: 1px solid rgba(232,160,32,.12);
+    padding: 20px 24px;
+    margin: 40px -24px -40px;
+}
+.enf-actions-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.enf-help-text {
+    font-size: .875rem;
+    color: rgba(245,240,232,.6);
+    flex: 1;
+}
+.btn-submit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .95rem;
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 8px;
+    border: none;
+    background: var(--enf-accent);
+    color: var(--enf-ink);
+    cursor: pointer;
+    transition: all .15s;
+}
+.btn-submit:hover:not(:disabled) {
+    background: #c88a10;
+}
+.btn-submit:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .enf-menu-grid {
+        grid-template-columns: 1fr;
+    }
+    .enf-plan-info {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{# ── Header ────────────────────────────────────────────────────────────── #}
+<header class="enf-header">
+    <div class="enf-header-inner">
+        <div class="enf-logo">
+            <span>🍽️</span>
+            Scan to See
+        </div>
+    </div>
+</header>
+
+<div class="enf-container">
+    {# ── Alert banner ────────────────────────────────────────────────────── #}
+    <div class="enf-banner">
+        <h1 class="enf-banner-title">
+            <span>⚠️</span>
+            Action Required: Select Menus to Keep
+        </h1>
+        <p class="enf-banner-text">
+            Your <strong>{{ planLabel }}</strong> plan allows
+
+            {% if publishedLimit is not null %}
+                <strong>{{ publishedLimit }} published menu{{ publishedLimit != 1 ? 's' }}</strong>
+            {% else %}
+                <strong>unlimited published menus</strong>
+            {% endif %}
+            and
+            {% if draftLimit is not null %}
+                <strong>{{ draftLimit }} draft{{ draftLimit != 1 ? 's' }}</strong>
+            {% else %}
+                <strong>unlimited drafts</strong>
+            {% endif %}.
+            Please select which menus to keep. <strong>Unselected menus will be permanently deleted.</strong>
+        </p>
+    </div>
+
+    {# ── Plan stats ──────────────────────────────────────────────────────── #}
+    <div class="enf-plan-info">
+        <div class="enf-stat">
+            <div class="enf-stat-label">Published Menus</div>
+            <div class="enf-stat-value {{ publishedLimit and publishedCount > publishedLimit ? 'over' : '' }}">
+                {{ publishedCount }}
+            </div>
+        </div>
+        <div class="enf-stat">
+            <div class="enf-stat-label">New Limit (Published)</div>
+            <div class="enf-stat-value limit">
+                {{ publishedLimit ?? '∞' }}
+            </div>
+        </div>
+        <div class="enf-stat">
+            <div class="enf-stat-label">Draft Menus</div>
+            <div class="enf-stat-value {{ draftLimit and draftCount > draftLimit ? 'over' : '' }}">
+                {{ draftCount }}
+            </div>
+        </div>
+        <div class="enf-stat">
+            <div class="enf-stat-label">New Limit (Draft)</div>
+            <div class="enf-stat-value limit">
+                {{ draftLimit ?? '∞' }}
+            </div>
+        </div>
+    </div>
+
+    <form method="post" action="{{ path('app_owner_subscription_enforce_limits_post') }}" id="enforcementForm">
+        <input type="hidden" name="_token" value="{{ csrf_token('enforce-limits') }}">
+
+        {# ── Published menus ──────────────────────────────────────────────── #}
+        {% if publishedMenus is not empty %}
+            <div class="enf-section">
+                <div class="enf-section-header">
+                    <h2 class="enf-section-title">Published Menus</h2>
+                    <span class="enf-counter" id="publishedCounter">0 selected</span>
+                </div>
+                <div class="enf-menu-grid">
+                    {% for menu in publishedMenus %}
+                        <label class="enf-menu-card" data-type="published">
+                            <input type="checkbox" name="keep_published[]" value="{{ menu.id }}" data-type="published">
+                            <div class="enf-menu-name">{{ menu.name }}</div>
+                            <div class="enf-menu-business">{{ menu.business.name }}</div>
+                            <div class="enf-menu-date">Created {{ menu.createdAt|date('M d, Y') }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {# ── Draft menus ──────────────────────────────────────────────────── #}
+        {% if draftMenus is not empty %}
+            <div class="enf-section">
+                <div class="enf-section-header">
+                    <h2 class="enf-section-title">Draft Menus</h2>
+                    <span class="enf-counter" id="draftCounter">0 selected</span>
+                </div>
+                <div class="enf-menu-grid">
+                    {% for menu in draftMenus %}
+                        <label class="enf-menu-card" data-type="draft">
+                            <input type="checkbox" name="keep_draft[]" value="{{ menu.id }}" data-type="draft">
+                            <div class="enf-menu-name">{{ menu.name }}</div>
+                            <div class="enf-menu-business">{{ menu.business.name }}</div>
+                            <div class="enf-menu-date">Created {{ menu.createdAt|date('M d, Y') }}</div>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {# ── Form actions ─────────────────────────────────────────────────── #}
+        <div class="enf-actions">
+            <div class="enf-actions-inner">
+                <div class="enf-help-text">
+                    Select exactly
+                    {% if publishedLimit is not null %}
+                        <strong>{{ min(publishedLimit, publishedCount) }} published</strong>
+                    {% endif %}
+                    {% if publishedLimit is not null and draftLimit is not null %}and{% endif %}
+                    {% if draftLimit is not null %}
+                        <strong>{{ min(draftLimit, draftCount) }} draft</strong>
+                    {% endif %}
+                    menu{{ ((publishedLimit ?? 999) + (draftLimit ?? 999)) != 1 ? 's' : '' }} to continue.
+                </div>
+                <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                    Confirm Selection
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+(function() {
+    const publishedRequired = {{ publishedLimit is not null ? min(publishedLimit, publishedCount) : 0 }};
+    const draftRequired = {{ draftLimit is not null ? min(draftLimit, draftCount) : 0 }};
+
+    const publishedCheckboxes = document.querySelectorAll('input[data-type="published"]');
+    const draftCheckboxes = document.querySelectorAll('input[data-type="draft"]');
+    const publishedCounter = document.getElementById('publishedCounter');
+    const draftCounter = document.getElementById('draftCounter');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function updateUI() {
+        const publishedChecked = Array.from(publishedCheckboxes).filter(cb => cb.checked).length;
+        const draftChecked = Array.from(draftCheckboxes).filter(cb => cb.checked).length;
+
+        // Update counters
+        publishedCounter.textContent = publishedChecked + ' selected';
+        publishedCounter.className = 'enf-counter';
+        if (publishedRequired > 0) {
+            if (publishedChecked === publishedRequired) {
+                publishedCounter.classList.add('valid');
+            } else {
+                publishedCounter.classList.add('invalid');
+            }
+        }
+
+        draftCounter.textContent = draftChecked + ' selected';
+        draftCounter.className = 'enf-counter';
+        if (draftRequired > 0) {
+            if (draftChecked === draftRequired) {
+                draftCounter.classList.add('valid');
+            } else {
+                draftCounter.classList.add('invalid');
+            }
+        }
+
+        // Update card styling
+        document.querySelectorAll('.enf-menu-card').forEach(card => {
+            const checkbox = card.querySelector('input[type="checkbox"]');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+
+        // Enable submit only if exact counts match
+        const publishedValid = publishedRequired === 0 || publishedChecked === publishedRequired;
+        const draftValid = draftRequired === 0 || draftChecked === draftRequired;
+        submitBtn.disabled = !(publishedValid && draftValid);
+    }
+
+    // Add event listeners
+    publishedCheckboxes.forEach(cb => cb.addEventListener('change', updateUI));
+    draftCheckboxes.forEach(cb => cb.addEventListener('change', updateUI));
+
+    // Initial state
+    updateUI();
+
+    // Prevent accidental navigation
+    window.addEventListener('beforeunload', function(e) {
+        if (!submitBtn.disabled) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+})();
+</script>
+
+{% endblock %}

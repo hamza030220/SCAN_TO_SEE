@@ -1,7 +1,7 @@
 
 ###> symfony/framework-bundle ###
 /.env
-
+/.kiro
 /.env.dev
 /.env.test
 /.env.local

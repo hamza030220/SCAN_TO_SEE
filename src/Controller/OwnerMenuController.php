@@ -77,12 +77,22 @@ final class OwnerMenuController extends AbstractController
             ->orderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
 
-        $canCreate = $subscriptionService->canCreateMenu($this->getUser());
+        // With auto-swapping, users can always create menus
+        // The system will automatically swap statuses to make room
+        $canCreate = true;
+        
+        // Get subscription info to show helpful hints
+        $subscription = $subscriptionService->getSubscription($this->getUser());
+        $publishedCount = $subscriptionService->countPublishedMenus($this->getUser());
+        $draftCount = $subscriptionService->countDraftMenus($this->getUser());
 
         return $this->render('owner/menu/index.html.twig', [
-            'businesses' => $businesses,
-            'menus'      => $allMenus,
-            'canCreate'  => $canCreate,
+            'businesses'     => $businesses,
+            'menus'          => $allMenus,
+            'canCreate'      => $canCreate,
+            'subscription'   => $subscription,
+            'publishedCount' => $publishedCount,
+            'draftCount'     => $draftCount,
         ]);
     }
 
@@ -115,15 +125,18 @@ final class OwnerMenuController extends AbstractController
                 $status      = $request->request->get('status', 'draft');
                 $businessId  = (int) $request->request->get('business_id', 0);
 
-                // Guard: check slot availability for this status transition
+                // Smart auto-swap: instead of blocking, automatically swap menu states to make room
                 $currentStatus = $menu ? $menu->getStatus() : null;
-                if (!$subscriptionService->canSetMenuStatus($this->getUser(), $currentStatus, $status)) {
-                    // New menu hitting total limit → redirect; status change on existing → modal
-                    if (!$menu) {
-                        $this->addFlash('error', 'You\'ve reached the maximum number of menus for your plan. Upgrade to add more.');
-                        return $this->redirectToRoute('app_owner_menus');
-                    }
-                    $error = 'limit_reached';
+                $menuId = $menu ? $menu->getId() : null;
+                
+                $swapResult = $subscriptionService->autoSwapMenuStatus($this->getUser(), $menuId, $currentStatus, $status);
+                
+                if (!$swapResult['allowed']) {
+                    $error = $swapResult['message'] ?? 'Unable to proceed. Please check your subscription.';
+                    $this->addFlash('error', $error);
+                } elseif ($swapResult['swapped_menu']) {
+                    // A menu was auto-swapped - show success message
+                    $this->addFlash('info', $swapResult['message']);
                 }
 
                 $selectedBusiness = null;
@@ -134,7 +147,7 @@ final class OwnerMenuController extends AbstractController
 
                 if (!$name) {
                     $error = 'Menu name is required.';
-                } elseif ($error !== 'limit_reached') {
+                } elseif (!$error) {
                     $isNew = !$menu;
                     if ($isNew) {
                         $menu = new Menu();
@@ -154,22 +167,24 @@ final class OwnerMenuController extends AbstractController
             }
         }
 
-        // Determine if publishing is allowed from this menu's current state
-        $currentStatus  = $menu?->getStatus() ?? 'draft';
-        $canPublish     = $subscriptionService->canSetMenuStatus($this->getUser(), $currentStatus, 'published');
-        $canCreate      = $subscriptionService->canCreateMenu($this->getUser());
+        // Get subscription info for display
+        $subscription = $subscriptionService->getSubscription($this->getUser());
+        $publishedCount = $subscriptionService->countPublishedMenus($this->getUser());
+        $draftCount = $subscriptionService->countDraftMenus($this->getUser());
 
-        // If creating a new menu but no slots available → redirect with flash
-        if (!$menu && !$canCreate) {
-            $this->addFlash('error', 'You\'ve reached the maximum number of menus for your plan. Upgrade to add more.');
-            return $this->redirectToRoute('app_owner_menus');
-        }
+        // With auto-swapping, we always allow creating/editing
+        // The system will automatically make room by swapping statuses
+        $canPublish = true;
+        $canCreate  = true;
 
         return $this->render('owner/menu/form.html.twig', [
-            'menu'       => $menu,
-            'businesses' => $businesses,
-            'error'      => $error,
-            'canPublish' => $canPublish,
+            'menu'           => $menu,
+            'businesses'     => $businesses,
+            'error'          => $error,
+            'canPublish'     => $canPublish,
+            'subscription'   => $subscription,
+            'publishedCount' => $publishedCount,
+            'draftCount'     => $draftCount,
         ]);
     }
 

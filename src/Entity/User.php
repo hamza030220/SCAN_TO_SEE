@@ -50,6 +50,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $passwordResetTokenExpiresAt = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $enforcementRequired = false;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -139,4 +142,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
 
     public function getPasswordResetTokenExpiresAt(): ?\DateTimeImmutable { return $this->passwordResetTokenExpiresAt; }
     public function setPasswordResetTokenExpiresAt(?\DateTimeImmutable $dt): static { $this->passwordResetTokenExpiresAt = $dt; return $this; }
+
+    public function isEnforcementRequired(): bool { return $this->enforcementRequired; }
+    public function setEnforcementRequired(bool $required): static { $this->enforcementRequired = $required; return $this; }
 }

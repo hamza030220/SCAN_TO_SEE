@@ -80,6 +80,9 @@ class SubscriptionService
      * Pass the menu's CURRENT status (or null for a new menu) and the DESIRED new status.
      * Returns true if the transition is allowed by the plan limits.
      *
+     * NOTE: This method only CHECKS if the transition is possible. 
+     * Use autoSwapMenuStatus() to automatically make room when limits are reached.
+     *
      * Examples:
      *   canSetMenuStatus($user, null,        'draft')      → new draft
      *   canSetMenuStatus($user, null,        'published')  → new published
@@ -123,6 +126,130 @@ class SubscriptionService
         }
 
         return true;
+    }
+
+    /**
+     * Automatically swap menu statuses to make room for a new menu or status change.
+     * 
+     * When a user wants to create/change a menu but would exceed limits, this method
+     * automatically demotes the oldest menu of the target status to make room.
+     * 
+     * Returns array with:
+     *   'allowed' => bool (whether the transition can proceed)
+     *   'swapped_menu' => Menu|null (menu that was auto-swapped, if any)
+     *   'message' => string (user-friendly message explaining what happened)
+     */
+    public function autoSwapMenuStatus(User $user, ?int $excludeMenuId, ?string $currentStatus, string $newStatus): array
+    {
+        // If already allowed, no swap needed
+        if ($this->canSetMenuStatus($user, $currentStatus, $newStatus)) {
+            return [
+                'allowed' => true,
+                'swapped_menu' => null,
+                'message' => null,
+            ];
+        }
+
+        $sub = $this->getSubscription($user);
+        if (!$sub || (!$sub->isActive() && $sub->getStatus() !== Subscription::STATUS_PENDING)) {
+            return [
+                'allowed' => false,
+                'swapped_menu' => null,
+                'message' => 'No active subscription found.',
+            ];
+        }
+
+        $plan = $sub->getPlan();
+        $publishedLimit = Subscription::LIMITS[$plan]['published'] ?? null;
+        $draftLimit     = Subscription::LIMITS[$plan]['draft'] ?? null;
+
+        // Pro plan: unlimited, should never need swapping
+        if ($publishedLimit === null && $draftLimit === null) {
+            return [
+                'allowed' => true,
+                'swapped_menu' => null,
+                'message' => null,
+            ];
+        }
+
+        $swappedMenu = null;
+        $message = null;
+
+        // Scenario 1: Want to create/change to published, but published limit reached
+        if ($newStatus === 'published' && $publishedLimit !== null) {
+            $publishedCount = $this->countPublishedMenus($user);
+            if ($publishedCount >= $publishedLimit) {
+                // Find oldest published menu (excluding the one being edited)
+                $qb = $this->menuRepo->createQueryBuilder('m')
+                    ->join('m.business', 'b')
+                    ->where('b.owner = :owner')
+                    ->andWhere('m.status = :status')
+                    ->setParameter('owner', $user)
+                    ->setParameter('status', 'published')
+                    ->orderBy('m.createdAt', 'ASC')
+                    ->setMaxResults(1);
+
+                if ($excludeMenuId) {
+                    $qb->andWhere('m.id != :exclude')
+                       ->setParameter('exclude', $excludeMenuId);
+                }
+
+                $oldestPublished = $qb->getQuery()->getOneOrNullResult();
+
+                if ($oldestPublished) {
+                    $oldestPublished->setStatus('draft');
+                    $oldestPublished->setUpdatedAt(new \DateTimeImmutable());
+                    $this->em->flush();
+                    
+                    $swappedMenu = $oldestPublished;
+                    $message = sprintf(
+                        '✨ "%s" was automatically set to draft to make room for your published menu.',
+                        $oldestPublished->getName()
+                    );
+                }
+            }
+        }
+
+        // Scenario 2: Want to create/change to draft, but draft limit reached
+        if ($newStatus === 'draft' && $draftLimit !== null) {
+            $draftCount = $this->countDraftMenus($user);
+            if ($draftCount >= $draftLimit) {
+                // Find oldest draft menu (excluding the one being edited)
+                $qb = $this->menuRepo->createQueryBuilder('m')
+                    ->join('m.business', 'b')
+                    ->where('b.owner = :owner')
+                    ->andWhere('m.status = :status')
+                    ->setParameter('owner', $user)
+                    ->setParameter('status', 'draft')
+                    ->orderBy('m.createdAt', 'ASC')
+                    ->setMaxResults(1);
+
+                if ($excludeMenuId) {
+                    $qb->andWhere('m.id != :exclude')
+                       ->setParameter('exclude', $excludeMenuId);
+                }
+
+                $oldestDraft = $qb->getQuery()->getOneOrNullResult();
+
+                if ($oldestDraft) {
+                    $oldestDraft->setStatus('published');
+                    $oldestDraft->setUpdatedAt(new \DateTimeImmutable());
+                    $this->em->flush();
+                    
+                    $swappedMenu = $oldestDraft;
+                    $message = sprintf(
+                        '✨ "%s" was automatically published to make room for your draft menu.',
+                        $oldestDraft->getName()
+                    );
+                }
+            }
+        }
+
+        return [
+            'allowed' => true,
+            'swapped_menu' => $swappedMenu,
+            'message' => $message,
+        ];
     }
 
     /**
@@ -239,6 +366,10 @@ class SubscriptionService
         $sub = $this->subscriptionRepo->findOneBy(['owner' => $user])
             ?? (new Subscription())->setOwner($user);
 
+        $oldPlan = $sub->getPlan();
+        $oldRank = $sub->getPlanRank();
+        $newRank = (new Subscription())->setPlan($plan)->getPlanRank();
+
         $sub->setStripeCustomerId($session->customer);
         $sub->setStripeSubscriptionId($session->subscription);
         $sub->setPlan($plan);
@@ -246,6 +377,14 @@ class SubscriptionService
         $sub->setStatus(Subscription::STATUS_ACTIVE);
         $sub->setCurrentPeriodEnd(\DateTimeImmutable::createFromFormat('U', (string) $stripeSub->current_period_end));
         $sub->setExpiryReminderSent(false);
+
+        // Check if enforcement is needed (downgrade or new subscription with existing menus)
+        if ($newRank < $oldRank || $oldPlan === null) {
+            $this->checkAndSetEnforcement($user, $plan);
+        } else {
+            // Upgrade: clear enforcement
+            $user->setEnforcementRequired(false);
+        }
 
         $this->em->persist($sub);
         $this->em->flush();
@@ -261,9 +400,18 @@ class SubscriptionService
         $stripeClient = new StripeClient($this->stripeSecretKey);
         $stripeSub    = $stripeClient->subscriptions->retrieve($invoice->subscription);
 
+        $oldPlan = $sub->getPlan();
+        
         $sub->setStatus(Subscription::STATUS_ACTIVE);
         $sub->setCurrentPeriodEnd(\DateTimeImmutable::createFromFormat('U', (string) $stripeSub->current_period_end));
         $sub->setExpiryReminderSent(false);
+        
+        // Check if plan changed (renewal might include plan change)
+        $newPlan = $sub->getPlan();
+        if ($oldPlan !== $newPlan) {
+            $this->checkAndSetEnforcement($sub->getOwner(), $newPlan);
+        }
+        
         $this->em->flush();
     }
 
@@ -287,7 +435,8 @@ class SubscriptionService
 
     /**
      * Downgrade to a lower plan. $keepMenuIds = IDs of menus to keep published.
-     * All other published menus are demoted to draft.
+     * DEPRECATED: This method only handles published menus. 
+     * New enforcement flow handles both published and draft limits.
      */
     public function applyDowngrade(User $user, string $newPlan, string $newPeriod, array $keepMenuIds = []): void
     {
@@ -299,6 +448,9 @@ class SubscriptionService
         $newPriceId = $this->stripePriceIds[$newPlan][$newPeriod]
             ?? throw new \InvalidArgumentException("No Stripe price for {$newPlan}/{$newPeriod}");
 
+        $oldRank = $sub->getPlanRank();
+        $newRank = (new Subscription())->setPlan($newPlan)->getPlanRank();
+
         // Update Stripe subscription to new price
         if ($sub->getStripeSubscriptionId()) {
             $stripeClient    = new StripeClient($this->stripeSecretKey);
@@ -309,7 +461,7 @@ class SubscriptionService
             ]);
         }
 
-        // Demote extra menus to draft
+        // Demote extra menus to draft (legacy behavior)
         $limit = Subscription::LIMITS[$newPlan]['published'] ?? null;
         if ($limit !== null) {
             $menus = $this->menuRepo->createQueryBuilder('m')
@@ -330,6 +482,12 @@ class SubscriptionService
 
         $sub->setPlan($newPlan);
         $sub->setBillingPeriod($newPeriod);
+        
+        // Check if enforcement is needed (downgrade might create draft overflow)
+        if ($newRank < $oldRank) {
+            $this->checkAndSetEnforcement($user, $newPlan);
+        }
+        
         $this->em->flush();
     }
 
@@ -358,5 +516,34 @@ class SubscriptionService
         if (!$sub->getStripeSubscriptionId()) return;
         $client = new StripeClient($this->stripeSecretKey);
         $client->subscriptions->cancel($sub->getStripeSubscriptionId());
+    }
+
+    // ── Enforcement check ─────────────────────────────────────────────────────
+
+    /**
+     * Check if the user exceeds the new plan's limits and set enforcement flag if needed.
+     */
+    private function checkAndSetEnforcement(User $user, string $newPlan): void
+    {
+        $publishedLimit = Subscription::LIMITS[$newPlan]['published'] ?? null;
+        $draftLimit     = Subscription::LIMITS[$newPlan]['draft'] ?? null;
+
+        // Pro plan: unlimited, no enforcement needed
+        if ($publishedLimit === null && $draftLimit === null) {
+            $user->setEnforcementRequired(false);
+            return;
+        }
+
+        $publishedCount = $this->countPublishedMenus($user);
+        $draftCount     = $this->countDraftMenus($user);
+
+        $exceededPublished = $publishedLimit !== null && $publishedCount > $publishedLimit;
+        $exceededDraft     = $draftLimit !== null && $draftCount > $draftLimit;
+
+        if ($exceededPublished || $exceededDraft) {
+            $user->setEnforcementRequired(true);
+        } else {
+            $user->setEnforcementRequired(false);
+        }
     }
 }

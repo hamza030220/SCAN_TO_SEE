@@ -42,3 +42,7 @@ services:
         arguments:
             $mailerFrom:    '%env(MAILER_FROM)%'
             $mailerBaseUrl: '%env(MAILER_BASE_URL)%'
+
+    App\Command\SyncStripeSubscriptionCommand:
+        arguments:
+            $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'

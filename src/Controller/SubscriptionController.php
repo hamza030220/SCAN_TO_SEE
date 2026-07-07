@@ -157,6 +157,7 @@ class SubscriptionController extends AbstractController
         $currentSub = $subRepo->findOneBy(['owner' => $user]);
 
         if (!$currentSub || !$currentSub->isActive()) {
+            $this->addFlash('info', 'Please select a subscription plan to continue.');
             return $this->redirectToRoute('app_owner_subscription');
         }
 
@@ -171,44 +172,53 @@ class SubscriptionController extends AbstractController
             return $this->redirectToRoute('app_owner_subscription_checkout', ['plan' => $plan, 'period' => $period]);
         }
 
-        // Check how many published menus the owner has vs the new limit
-        $newLimit  = Subscription::LIMITS[$plan]['published'];
-        $published = $menuRepo->createQueryBuilder('m')
-            ->join('m.business', 'b')
-            ->where('b.owner = :owner')
-            ->andWhere('m.status = :status')
-            ->setParameter('owner', $user)
-            ->setParameter('status', 'published')
-            ->getQuery()
-            ->getResult();
-
-        $needsSelection = $newLimit !== null && count($published) > $newLimit;
-
+        // For downgrades, use the new enforcement flow
+        // Apply the downgrade and let the enforcement subscriber handle menu selection
         if ($request->isMethod('POST')) {
-            $keepIds = array_map('intval', $request->request->all('keep_menus') ?: []);
-
-            if ($needsSelection && $newLimit !== null && count($keepIds) > $newLimit) {
-                $this->addFlash('error', sprintf('Please select at most %d menu(s) to keep published.', $newLimit));
-            } else {
-                $service->applyDowngrade($user, $plan, $period, $keepIds);
-                $this->addFlash('success', sprintf('Downgraded to %s plan.', ucfirst($plan)));
-                return $this->redirectToRoute('app_owner_subscription');
+            if (!$this->isCsrfTokenValid('downgrade', $request->request->get('_token'))) {
+                throw $this->createAccessDeniedException('Invalid CSRF token.');
             }
-        }
 
-        // If no selection needed, apply immediately on GET
-        if (!$needsSelection) {
+            // Apply downgrade - this will trigger enforcement check
             $service->applyDowngrade($user, $plan, $period, []);
-            $this->addFlash('success', sprintf('Downgraded to %s plan.', ucfirst($plan)));
+            
+            // Check if enforcement is now required
+            if ($user->isEnforcementRequired()) {
+                $this->addFlash('info', sprintf(
+                    '✅ Plan changed to %s. Please select which menus to keep.',
+                    Subscription::LABELS[$plan]
+                ));
+                return $this->redirectToRoute('app_owner_subscription_enforce_limits');
+            }
+            
+            $this->addFlash('success', sprintf(
+                '✅ Successfully downgraded to %s plan.',
+                Subscription::LABELS[$plan]
+            ));
             return $this->redirectToRoute('app_owner_subscription');
         }
 
-        return $this->render('owner/subscription/downgrade.html.twig', [
-            'newPlan'    => $plan,
-            'newPeriod'  => $period,
-            'newLimit'   => $newLimit,
-            'published'  => $published,
-            'currentSub' => $currentSub,
+        // Show confirmation page
+        $newPublishedLimit = Subscription::LIMITS[$plan]['published'];
+        $newDraftLimit     = Subscription::LIMITS[$plan]['draft'];
+        
+        $publishedCount = $service->countPublishedMenus($user);
+        $draftCount     = $service->countDraftMenus($user);
+        
+        $willNeedEnforcement = 
+            ($newPublishedLimit !== null && $publishedCount > $newPublishedLimit) ||
+            ($newDraftLimit !== null && $draftCount > $newDraftLimit);
+
+        return $this->render('owner/subscription/downgrade_confirm.html.twig', [
+            'currentSub'          => $currentSub,
+            'newPlan'             => $plan,
+            'newPlanLabel'        => Subscription::LABELS[$plan],
+            'newPeriod'           => $period,
+            'newPublishedLimit'   => $newPublishedLimit,
+            'newDraftLimit'       => $newDraftLimit,
+            'publishedCount'      => $publishedCount,
+            'draftCount'          => $draftCount,
+            'willNeedEnforcement' => $willNeedEnforcement,
         ]);
     }
 
