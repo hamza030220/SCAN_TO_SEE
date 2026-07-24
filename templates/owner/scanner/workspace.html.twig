@@ -1,0 +1,208 @@
+﻿{% extends 'owner/layout.html.twig' %}
+
+{% block title %}Menu Scanner Workspace — S2S{% endblock %}
+{% block page_title %}Menu Scanner{% endblock %}
+
+{% block content %}
+<style>
+.scanner-ws {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 140px);
+    text-align: center;
+    padding: 40px 24px;
+}
+.scanner-ws-icon {
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #18120a 0%, #2a1f10 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    box-shadow: 0 16px 48px rgba(24, 18, 10, .28);
+    position: relative;
+}
+.scanner-ws-icon::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 30px;
+    border: 2px solid rgba(232, 160, 32, .25);
+    animation: wsRing 2.4s ease-in-out infinite;
+}
+@keyframes wsRing {
+    0%, 100% { opacity: 0; transform: scale(1); }
+    50%       { opacity: 1; transform: scale(1.06); }
+}
+.scanner-ws-scan-line {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #E8A020, transparent);
+    border-radius: 1px;
+    animation: wsScanLine 2s ease-in-out infinite;
+    top: 20px;
+}
+@keyframes wsScanLine {
+    0%   { top: 20px; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 76px; opacity: 0; }
+}
+.scanner-ws-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    background: #E8A020;
+    color: #18120a;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+.scanner-ws h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #18120a;
+    margin: 0 0 14px;
+    line-height: 1.2;
+}
+.scanner-ws-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    color: #7a6248;
+    line-height: 1.65;
+    max-width: 440px;
+    margin: 0 auto 36px;
+}
+.scanner-ws-grid {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+    max-width: 560px;
+}
+.scanner-ws-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #faf7f2;
+    border: 1px solid #ede4d6;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: .85rem;
+    color: #5c4a35;
+    font-weight: 500;
+}
+.scanner-ws-chip span { font-size: 1.05rem; }
+.scanner-ws-cs {
+    background: #18120a;
+    border-radius: 16px;
+    padding: 32px 36px;
+    max-width: 480px;
+    width: 100%;
+    margin-bottom: 32px;
+}
+.scanner-ws-cs h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #E8A020;
+    margin: 0 0 8px;
+}
+.scanner-ws-cs p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .9rem;
+    color: rgba(255, 255, 255, .6);
+    margin: 0;
+    line-height: 1.6;
+}
+.scanner-ws-cs-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 20px;
+}
+.scanner-ws-cs-dots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(232, 160, 32, .35);
+    animation: csDot 1.4s ease-in-out infinite;
+    font-style: normal;
+}
+.scanner-ws-cs-dots i:nth-child(2) { animation-delay: .2s; }
+.scanner-ws-cs-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes csDot {
+    0%, 80%, 100% { background: rgba(232, 160, 32, .3); transform: scale(1); }
+    40%           { background: #E8A020; transform: scale(1.4); }
+}
+.scanner-ws-back {
+    font-family: 'DM Sans', sans-serif;
+    font-size: .875rem;
+    font-weight: 600;
+    color: #9c8874;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .15s;
+}
+.scanner-ws-back:hover { color: #E8A020; }
+</style>
+
+<div class="scanner-ws">
+
+    <div class="scanner-ws-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <rect x="7" y="7" width="10" height="10" rx="1"/>
+        </svg>
+        <div class="scanner-ws-scan-line"></div>
+    </div>
+
+    <div class="scanner-ws-badge">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Beta
+    </div>
+
+    <h1>Menu Scanner Workspace</h1>
+    <p class="scanner-ws-sub">The workspace is being crafted. Soon you will be able to upload a photo of your physical menu and let the AI turn it into a structured digital menu — categories, items, and prices included.</p>
+
+    <div class="scanner-ws-grid">
+        <div class="scanner-ws-chip"><span>📷</span> Photo upload</div>
+        <div class="scanner-ws-chip"><span>🤖</span> AI extraction</div>
+        <div class="scanner-ws-chip"><span>✅</span> Review &amp; confirm</div>
+        <div class="scanner-ws-chip"><span>📋</span> Import to menu</div>
+    </div>
+
+    <div class="scanner-ws-cs">
+        <h2>Coming Very Soon</h2>
+        <p>We are putting the finishing touches on the scanner interface. Check back shortly — it will be worth the wait.</p>
+        <div class="scanner-ws-cs-dots">
+            <i></i><i></i><i></i>
+        </div>
+    </div>
+
+    <a href="javascript:history.back()" class="scanner-ws-back">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to menu
+    </a>
+
+</div>
+{% endblock %}

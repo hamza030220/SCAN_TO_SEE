@@ -456,4 +456,18 @@ final class OwnerMenuController extends AbstractController
         $this->addFlash('success', 'Item deleted.');
         return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
     }
+
+    // ── Menu Scanner (beta) ──────────────────────────────────────────────────
+
+    #[Route('/owner/scanner/workspace', name: 'app_owner_scanner_workspace')]
+    public function scannerWorkspace(): Response
+    {
+        return $this->render('owner/scanner/workspace.html.twig');
+    }
+
+    #[Route('/owner/scanner/privacy', name: 'app_owner_scanner_privacy')]
+    public function scannerPrivacy(): Response
+    {
+        return $this->render('owner/scanner/privacy.html.twig');
+    }
 }
