@@ -498,8 +498,5 @@ php bin/phpunit --coverage-html coverage/
 
 ---
 
-## Contributing
-
-This is a private project. For access or collaboration, contact the repository owner at [GitHub](https://github.com/hamza030220).
 
 <h3 align="center">Made with love by Hamza Z ❤️</h3>
