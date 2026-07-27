@@ -51,3 +51,8 @@ npm-debug.log*
 ###> Node (if added later) ###
 node_modules/
 ###< Node ###
+
+###> Internal planning docs (not for repo) ###
+symfony-integration-plan.md
+*.integration-plan.md
+###< Internal planning docs ###
