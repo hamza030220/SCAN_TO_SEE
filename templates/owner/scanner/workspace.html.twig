@@ -1,208 +1,605 @@
-﻿{% extends 'owner/layout.html.twig' %}
-
-{% block title %}Menu Scanner Workspace — S2S{% endblock %}
-{% block page_title %}Menu Scanner{% endblock %}
-
+{% extends 'owner/layout.html.twig' %}
+{% block title %}Scanner Workspace{% if menu %} — {{ menu.name }}{% endif %} — S2S{% endblock %}
+{% block page_title %}Scanner Workspace{% if menu %} <span style="color:#E8A020;font-weight:400;font-size:.85em">→ {{ menu.name }}</span>{% endif %}{% endblock %}
 {% block content %}
 <style>
-.scanner-ws {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: calc(100vh - 140px);
-    text-align: center;
-    padding: 40px 24px;
-}
-.scanner-ws-icon {
-    width: 96px;
-    height: 96px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #18120a 0%, #2a1f10 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 24px;
-    box-shadow: 0 16px 48px rgba(24, 18, 10, .28);
-    position: relative;
-}
-.scanner-ws-icon::after {
-    content: '';
-    position: absolute;
-    inset: -6px;
-    border-radius: 30px;
-    border: 2px solid rgba(232, 160, 32, .25);
-    animation: wsRing 2.4s ease-in-out infinite;
-}
-@keyframes wsRing {
-    0%, 100% { opacity: 0; transform: scale(1); }
-    50%       { opacity: 1; transform: scale(1.06); }
-}
-.scanner-ws-scan-line {
-    position: absolute;
-    left: 14px;
-    right: 14px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #E8A020, transparent);
-    border-radius: 1px;
-    animation: wsScanLine 2s ease-in-out infinite;
-    top: 20px;
-}
-@keyframes wsScanLine {
-    0%   { top: 20px; opacity: 0; }
-    10%  { opacity: 1; }
-    90%  { opacity: 1; }
-    100% { top: 76px; opacity: 0; }
-}
-.scanner-ws-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: .7rem;
-    font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    background: #E8A020;
-    color: #18120a;
-    padding: 4px 10px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-}
-.scanner-ws h1 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.9rem;
-    font-weight: 700;
-    color: #18120a;
-    margin: 0 0 14px;
-    line-height: 1.2;
-}
-.scanner-ws-sub {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1rem;
-    color: #7a6248;
-    line-height: 1.65;
-    max-width: 440px;
-    margin: 0 auto 36px;
-}
-.scanner-ws-grid {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-bottom: 40px;
-    max-width: 560px;
-}
-.scanner-ws-chip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    background: #faf7f2;
-    border: 1px solid #ede4d6;
-    border-radius: 10px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: .85rem;
-    color: #5c4a35;
-    font-weight: 500;
-}
-.scanner-ws-chip span { font-size: 1.05rem; }
-.scanner-ws-cs {
-    background: #18120a;
-    border-radius: 16px;
-    padding: 32px 36px;
-    max-width: 480px;
-    width: 100%;
-    margin-bottom: 32px;
-}
-.scanner-ws-cs h2 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #E8A020;
-    margin: 0 0 8px;
-}
-.scanner-ws-cs p {
-    font-family: 'DM Sans', sans-serif;
-    font-size: .9rem;
-    color: rgba(255, 255, 255, .6);
-    margin: 0;
-    line-height: 1.6;
-}
-.scanner-ws-cs-dots {
-    display: flex;
-    gap: 6px;
-    justify-content: center;
-    margin-top: 20px;
-}
-.scanner-ws-cs-dots i {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(232, 160, 32, .35);
-    animation: csDot 1.4s ease-in-out infinite;
-    font-style: normal;
-}
-.scanner-ws-cs-dots i:nth-child(2) { animation-delay: .2s; }
-.scanner-ws-cs-dots i:nth-child(3) { animation-delay: .4s; }
-@keyframes csDot {
-    0%, 80%, 100% { background: rgba(232, 160, 32, .3); transform: scale(1); }
-    40%           { background: #E8A020; transform: scale(1.4); }
-}
-.scanner-ws-back {
-    font-family: 'DM Sans', sans-serif;
-    font-size: .875rem;
-    font-weight: 600;
-    color: #9c8874;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: color .15s;
-}
-.scanner-ws-back:hover { color: #E8A020; }
+/* Give the workspace the full viewport — remove owner-content padding */
+.owner-content:has(.wsRoot){ padding:0 !important; }
+.wsRoot{display:flex;height:calc(100vh - 62px);overflow:hidden}
+.wsCenter{flex:1;display:flex;flex-direction:column;background:#f5f0ea;overflow:hidden;min-width:0}
+.wsSidebar{width:360px;min-width:360px;background:#fff;border-left:1px solid #ede4d6;display:flex;flex-direction:column;overflow:hidden;position:relative;flex-shrink:0}
+.wsSideResizer{position:absolute;top:0;left:0;width:5px;height:100%;cursor:col-resize;z-index:20;transition:background .15s}
+.wsSideResizer:hover,.wsSideResizer.resizing{background:rgba(232,160,32,.45)}
+.wsDropZone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;cursor:pointer;transition:all .2s}
+.wsDropBorder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;max-width:520px;border:2.5px dashed #d4c4ae;border-radius:20px;padding:48px 36px;text-align:center;transition:all .2s;background:rgba(255,255,255,.6)}
+.wsDropBorder.drag-over{border-color:#E8A020;background:rgba(232,160,32,.06);box-shadow:0 0 0 6px rgba(232,160,32,.12)}
+.wsDropBorder:hover{border-color:#E8A020;box-shadow:0 0 0 4px rgba(232,160,32,.1)}
+.wsDropIconWrap{width:72px;height:72px;border-radius:18px;background:#18120a;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(24,18,10,.25)}
+.wsDropH{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:#18120a;margin:0 0 8px}
+.wsDropSub{font-family:'DM Sans',sans-serif;font-size:.9rem;color:#9c8874;margin:0 0 6px}
+.wsDropHint{font-family:'DM Sans',sans-serif;font-size:.78rem;color:#c4b49e;margin:0;letter-spacing:.03em}
+.wsBrowseLink{font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:#E8A020;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.wsImageArea{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.wsImageCards{flex:1;display:flex;gap:16px;padding:20px;overflow-x:auto;align-items:center;justify-content:center}
+.wsImageCard{position:relative;flex-shrink:0;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.16);background:#000;max-height:calc(100vh - 200px)}
+.wsCardImg{display:block;max-height:calc(100vh - 210px);max-width:280px;object-fit:contain;border-radius:14px;transition:opacity .3s}
+.wsCardImg.scanning{opacity:.55}
+.wsCardBadge{position:absolute;top:10px;left:10px;width:28px;height:28px;border-radius:50%;background:#18120a;color:#E8A020;font-family:'Space Grotesk',sans-serif;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.wsCardRemove{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:1rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .15s}
+.wsCardRemove:hover{background:rgba(220,50,50,.8)}
+.wsCardScanOverlay{position:absolute;inset:0;z-index:3;overflow:hidden;border-radius:14px;display:none}
+.wsCardScanLine{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#E8A020,transparent);box-shadow:0 0 16px #E8A020;animation:scanLine 2s ease-in-out infinite;top:0}
+@keyframes scanLine{0%{top:-3px;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.wsCardScanGlow{position:absolute;left:0;right:0;height:60px;background:linear-gradient(to bottom,rgba(232,160,32,.14),transparent);animation:scanGlow 2s ease-in-out infinite;top:0}
+@keyframes scanGlow{0%{top:-60px}100%{top:100%}}
+.wsAddCard{flex-shrink:0;width:100px;height:130px;border-radius:14px;border:2px dashed #d4c4ae;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .2s;background:rgba(255,255,255,.5)}
+.wsAddCard:hover{border-color:#E8A020;background:rgba(232,160,32,.06)}
+.wsAddCard span{font-size:1.6rem;color:#d4c4ae}.wsAddCard small{font-family:'DM Sans',sans-serif;font-size:.75rem;color:#b4a494;font-weight:500}
+.wsScanBar{padding:14px 20px;background:#fff;border-top:1px solid #ede4d6;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.wsCurrencyLabel{font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:700;color:#9c8874;letter-spacing:.06em;text-transform:uppercase}
+.wsCurrencyInput{width:72px;padding:8px 10px;border:1.5px solid #e3d9cc;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#18120a;text-align:center;text-transform:uppercase;outline:none;transition:border-color .15s}
+.wsCurrencyInput:focus{border-color:#E8A020;box-shadow:0 0 0 3px rgba(232,160,32,.14)}
+.wsScanBtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:#18120a;color:#E8A020;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.02em}
+.wsScanBtn:hover{background:#2a1f10}.wsScanBtn:disabled{opacity:.5;cursor:not-allowed}
+.wsScanBtn.scanning svg{animation:spinIcon .8s linear infinite}
+@keyframes spinIcon{to{transform:rotate(360deg)}}
+.wsSideHead{padding:16px 18px;border-bottom:1px solid #f0e9de;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.wsSideHeadTitle{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#18120a}
+.wsSideHeadMenu{font-family:'DM Sans',sans-serif;font-size:.75rem;color:#E8A020;font-weight:600;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wsSideEmpty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;min-height:0}
+.wsSideEmpty p{font-family:'DM Sans',sans-serif;font-size:.88rem;color:#b4a494;line-height:1.6;max-width:210px;margin:12px auto 0}
+.wsTabBar{display:flex;gap:4px;padding:10px 12px 0;flex-shrink:0;border-bottom:1px solid #f0e9de;flex-wrap:wrap}
+.wsTabBtn{padding:7px 14px;border-radius:8px 8px 0 0;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;color:#9c8874;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent}
+.wsTabBtn.active{color:#18120a;border-bottom-color:#E8A020;background:#faf7f2}
+.wsTabBtn:hover:not(.active){color:#18120a;background:#fdf9f4}
+.wsTabContent{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-height:0}
+.wsCatBlock{background:#faf7f2;border-radius:10px;border:1px solid #ede4d6;overflow:hidden;margin-bottom:8px}
+.wsCatHeader{padding:8px 10px;background:#18120a;display:flex;align-items:center;gap:8px}
+.wsCatTag{font-family:'DM Sans',sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#E8A020;opacity:.7;white-space:nowrap}
+.wsCatInput{flex:1;background:transparent;border:none;border-bottom:1.5px solid rgba(232,160,32,.3);padding:2px 4px;font-family:'Space Grotesk',sans-serif;font-size:.88rem;font-weight:700;color:#fff;outline:none;transition:border-color .15s}
+.wsCatInput:focus{border-bottom-color:#E8A020}
+.wsCatRemove{flex-shrink:0;width:22px;height:22px;border-radius:5px;border:none;background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);font-size:.9rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background .15s,color .15s;margin-left:4px}
+.wsCatRemove:hover{background:rgba(239,68,68,.8);color:#fff}
+.wsItemsList{padding:6px 8px;display:flex;flex-direction:column;gap:4px;max-height:190px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#e3d9cc transparent}
+.wsItemsList::-webkit-scrollbar{width:4px}.wsItemsList::-webkit-scrollbar-thumb{background:#e3d9cc;border-radius:2px}
+.wsItemRow{display:flex;gap:6px;align-items:center}
+.wsItemName{flex:1;padding:6px 8px;border:1.5px solid #e3d9cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#18120a;background:#fff;outline:none;transition:border-color .15s,box-shadow .15s;min-width:0}
+.wsItemPrice{width:72px;padding:6px 8px;border:1.5px solid #e3d9cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#18120a;background:#fff;outline:none;text-align:right;transition:border-color .15s,box-shadow .15s;flex-shrink:0}
+.wsItemName:focus,.wsItemPrice:focus{box-shadow:0 0 0 3px rgba(232,160,32,.14)}
+.wsItemRemove{width:22px;height:22px;border-radius:5px;border:none;background:#f4ebe0;color:#c0a882;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;padding:0;line-height:1}
+.wsItemRemove:hover{background:#ef4444;color:#fff}
+.conf-green{border-color:#22c55e !important}
+.conf-yellow{border-color:#eab308 !important}
+.conf-orange{border-color:#f97316 !important}
+.conf-red{border-color:#ef4444 !important}
+.wsAddItemBtn{width:100%;padding:5px 0;background:none;border:1.5px dashed #e3d9cc;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:#b4a494;cursor:pointer;transition:all .15s;text-align:center;margin:2px 0 4px}
+.wsAddItemBtn:hover{border-color:#E8A020;color:#E8A020}
+.wsWarningBanner{padding:8px 10px;background:#fffbf0;border:1px solid #fce8b2;border-radius:8px;margin-bottom:8px}
+.wsWarningLine{font-family:'DM Sans',sans-serif;font-size:.76rem;color:#9c6a00;line-height:1.45;margin-bottom:3px}
+.wsOrphanSection{padding:10px 10px 6px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;margin-top:4px}
+.wsOrphanTitle{font-family:'Space Grotesk',sans-serif;font-size:.75rem;font-weight:700;color:#b91c1c;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.wsOrphanRow{display:flex;gap:6px;align-items:center;margin-bottom:4px}
+.wsOrphanLabel{font-family:'DM Sans',sans-serif;font-size:.75rem;color:#9c8874;flex-shrink:0}
+.wsOrphanInput{flex:1;padding:5px 8px;border:1.5px solid #fca5a5;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#18120a;background:#fff;outline:none}
+.wsNeedsReview{font-family:'DM Sans',sans-serif;font-size:.65rem;font-weight:700;color:#ef4444;letter-spacing:.06em;text-transform:uppercase;margin:0 2px;white-space:nowrap}
+.wsSaveArea{padding:12px 14px;border-top:1px solid #f0e9de;flex-shrink:0}
+.wsSaveBtn{width:100%;padding:12px;background:#18120a;color:#E8A020;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:.02em}
+.wsSaveBtn:hover{background:#2a1f10}.wsSaveBtn:disabled{opacity:.5;cursor:not-allowed}
+.wsSideError{padding:10px 12px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:#b91c1c;margin-bottom:8px}
+.wsPopupBackdrop{position:fixed;inset:0;z-index:1200;background:rgba(10,6,2,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px}
+.wsPopupCard{background:#fff;border-radius:20px;max-width:440px;width:100%;padding:40px 32px;text-align:center;box-shadow:0 40px 100px rgba(0,0,0,.45);animation:popIn .28s cubic-bezier(.22,.68,0,1.2) both}
+@keyframes popIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+.wsPopupAnim{width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#18120a 0%,#2a1f10 100%);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 12px 32px rgba(24,18,10,.3);position:relative}
+.wsPopupAnim::after{content:'';position:absolute;inset:-5px;border-radius:24px;border:2px solid rgba(232,160,32,.3);animation:wsRing 2s ease-in-out infinite}
+@keyframes wsRing{0%,100%{opacity:0;transform:scale(1)}50%{opacity:1;transform:scale(1.06)}}
+.wsPopupTitle{font-family:'Space Grotesk',sans-serif;font-size:1.3rem;font-weight:700;color:#18120a;margin:0 0 8px}
+.wsPopupSub{font-family:'DM Sans',sans-serif;font-size:.9rem;color:#9c8874;margin:0 0 24px;line-height:1.6}
+.wsProgressTrack{height:8px;background:#f0e9de;border-radius:4px;overflow:hidden;margin-bottom:10px}
+.wsProgressFill{height:100%;background:linear-gradient(90deg,#E8A020,#f4b940);border-radius:4px;transition:width .5s ease;width:0%}
+.wsProgressText{font-family:'DM Sans',sans-serif;font-size:.8rem;color:#b4a494;margin:0 0 24px}
+.wsPopupSeeBtn{padding:12px 28px;background:#18120a;color:#E8A020;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
+.wsPopupSeeBtn:hover{background:#2a1f10}
 </style>
 
-<div class="scanner-ws">
+<div id="wsRoot" class="wsRoot">
 
-    <div class="scanner-ws-icon">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
-            <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-            <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+  {# === CENTRAL PANEL === #}
+  <div class="wsCenter">
+
+    {# Drop Zone #}
+    <div id="wsDropZone" class="wsDropZone">
+      <input type="file" id="wsFileInput" accept=".jpg,.jpeg,.png" multiple style="display:none">
+      <div id="wsDropBorder" class="wsDropBorder">
+        <div class="wsDropIconWrap">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
             <rect x="7" y="7" width="10" height="10" rx="1"/>
-        </svg>
-        <div class="scanner-ws-scan-line"></div>
-    </div>
-
-    <div class="scanner-ws-badge">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Beta
-    </div>
-
-    <h1>Menu Scanner Workspace</h1>
-    <p class="scanner-ws-sub">The workspace is being crafted. Soon you will be able to upload a photo of your physical menu and let the AI turn it into a structured digital menu — categories, items, and prices included.</p>
-
-    <div class="scanner-ws-grid">
-        <div class="scanner-ws-chip"><span>📷</span> Photo upload</div>
-        <div class="scanner-ws-chip"><span>🤖</span> AI extraction</div>
-        <div class="scanner-ws-chip"><span>✅</span> Review &amp; confirm</div>
-        <div class="scanner-ws-chip"><span>📋</span> Import to menu</div>
-    </div>
-
-    <div class="scanner-ws-cs">
-        <h2>Coming Very Soon</h2>
-        <p>We are putting the finishing touches on the scanner interface. Check back shortly — it will be worth the wait.</p>
-        <div class="scanner-ws-cs-dots">
-            <i></i><i></i><i></i>
+          </svg>
         </div>
+        <h3 class="wsDropH">Drop your menu images here</h3>
+        <p class="wsDropSub">or <span class="wsBrowseLink" id="wsBrowseLink">browse files</span></p>
+        <p class="wsDropHint">Up to 3 images &middot; PNG, JPG, JPEG</p>
+      </div>
     </div>
 
-    <a href="javascript:history.back()" class="scanner-ws-back">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-        Back to menu
-    </a>
+    {# Image Area — shown once files are loaded #}
+    <div id="wsImageArea" class="wsImageArea" style="display:none">
+      <div id="wsImageCards" class="wsImageCards"></div>
+      <div class="wsScanBar">
+        <span class="wsCurrencyLabel">Currency</span>
+        <input type="text" id="wsCurrency" class="wsCurrencyInput"
+               value="{{ menu ? menu.currency : 'TND' }}" maxlength="3">
+        <button id="wsScanBtn" class="wsScanBtn">
+          <svg id="wsScanIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+            <rect x="7" y="7" width="10" height="10" rx="1"/>
+          </svg>
+          Scan
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  {# === RIGHT SIDEBAR === #}
+  <div class="wsSidebar" id="wsSidebar">
+    <div class="wsSideResizer" id="wsSideResizer" title="Drag to resize"></div>
+    <div class="wsSideHead">
+      <span class="wsSideHeadTitle">Extracted Data</span>
+      {% if menu %}<span class="wsSideHeadMenu">{{ menu.name }}</span>{% endif %}
+    </div>
+
+    {# Empty state #}
+    <div id="wsSideEmpty" class="wsSideEmpty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d4c4ae" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/>
+        <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+      </svg>
+      <p>Upload an image and click <strong>Scan</strong> to extract your menu data.</p>
+    </div>
+
+    {# Results area #}
+    <div id="wsSideResults" style="display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0">
+      <div id="wsTabBar" class="wsTabBar"></div>
+      <div id="wsTabContent" class="wsTabContent"></div>
+    </div>
+
+    {# Save button #}
+    <div id="wsSaveArea" class="wsSaveArea" style="display:none">
+      <button id="wsSaveBtn" class="wsSaveBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save to Menu
+      </button>
+    </div>
+  </div>
 
 </div>
+
+{# === PROCESSING POPUP (2-3 images) === #}
+<div id="wsPopup" class="wsPopupBackdrop" style="display:none">
+  <div class="wsPopupCard">
+    <div class="wsPopupAnim">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="10" height="10" rx="1"/>
+      </svg>
+    </div>
+    <h3 class="wsPopupTitle" id="wsPopupTitle">Processing your images</h3>
+    <p class="wsPopupSub" id="wsPopupSub">Scanning image by image. Please wait&hellip;</p>
+    <div class="wsProgressTrack">
+      <div class="wsProgressFill" id="wsProgressFill"></div>
+    </div>
+    <p class="wsProgressText" id="wsProgressText">Starting&hellip;</p>
+    <div id="wsPopupSeeBtnWrap" style="display:none">
+      <button class="wsPopupSeeBtn" id="wsPopupSeeBtn">See Results &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+var SCAN_URL = '{{ path("app_owner_scanner_scan") }}';
+var SAVE_URL = '{{ path("app_owner_scanner_save") }}';
+var MENU_ID  = {{ menu ? menu.id : 'null' }};
+
+var files         = [];
+var results       = [];
+var activeTab     = 0;
+var tabDOMStates  = []; // caches edited DOM per tab so user edits survive tab switches
+
+var dropZone    = document.getElementById('wsDropZone');
+var dropBorder  = document.getElementById('wsDropBorder');
+var fileInput   = document.getElementById('wsFileInput');
+var imageArea   = document.getElementById('wsImageArea');
+var imageCards  = document.getElementById('wsImageCards');
+var scanBtn     = document.getElementById('wsScanBtn');
+var currencyIn  = document.getElementById('wsCurrency');
+var sideEmpty   = document.getElementById('wsSideEmpty');
+var sideResults = document.getElementById('wsSideResults');
+var tabBar      = document.getElementById('wsTabBar');
+var tabContent  = document.getElementById('wsTabContent');
+var saveArea    = document.getElementById('wsSaveArea');
+var saveBtn     = document.getElementById('wsSaveBtn');
+var popup       = document.getElementById('wsPopup');
+var popupTitle  = document.getElementById('wsPopupTitle');
+var popupSub    = document.getElementById('wsPopupSub');
+var progressFill= document.getElementById('wsProgressFill');
+var progressTxt = document.getElementById('wsProgressText');
+var seeBtnWrap  = document.getElementById('wsPopupSeeBtnWrap');
+var seeBtn      = document.getElementById('wsPopupSeeBtn');
+
+/* ── Drop zone ── */
+document.getElementById('wsBrowseLink').addEventListener('click', function(e){ e.stopPropagation(); fileInput.click(); });
+dropZone.addEventListener('click', function(e){ if(e.target===dropZone||e.target===dropBorder||e.target.closest('.wsDropBorder')) fileInput.click(); });
+fileInput.addEventListener('change', function(){ handleFiles(fileInput.files); fileInput.value=''; });
+dropZone.addEventListener('dragover', function(e){ e.preventDefault(); dropBorder.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', function(){ dropBorder.classList.remove('drag-over'); });
+dropZone.addEventListener('drop', function(e){ e.preventDefault(); dropBorder.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+imageArea.addEventListener('dragover', function(e){ e.preventDefault(); });
+imageArea.addEventListener('drop', function(e){ e.preventDefault(); handleFiles(e.dataTransfer.files); });
+
+function handleFiles(fileList){
+  var ok=['image/jpeg','image/jpg','image/png'];
+  for(var i=0;i<fileList.length;i++){
+    if(files.length>=3) break;
+    if(ok.indexOf(fileList[i].type)===-1) continue;
+    files.push(fileList[i]);
+    results.push(null);
+  }
+  renderView();
+}
+
+/* ── View render ── */
+function renderView(){
+  if(files.length===0){ dropZone.style.display='flex'; imageArea.style.display='none'; }
+  else{ dropZone.style.display='none'; imageArea.style.display='flex'; renderCards(); }
+}
+
+function renderCards(){
+  imageCards.innerHTML='';
+  files.forEach(function(file,i){
+    var url=URL.createObjectURL(file);
+    var card=document.createElement('div');
+    card.className='wsImageCard'; card.id='wsCard-'+i;
+    card.innerHTML='<div class="wsCardBadge">'+(i+1)+'</div>'+
+      '<img src="'+url+'" class="wsCardImg" id="wsCardImg-'+i+'" alt="Menu '+(i+1)+'">'+
+      '<button class="wsCardRemove" data-idx="'+i+'" title="Remove">\u00d7</button>'+
+      '<div class="wsCardScanOverlay" id="wsOverlay-'+i+'">'+
+        '<div class="wsCardScanGlow"></div><div class="wsCardScanLine"></div></div>';
+    imageCards.appendChild(card);
+  });
+  if(files.length<3){
+    var a=document.createElement('div'); a.className='wsAddCard';
+    a.innerHTML='<span>+</span><small>Add image</small>';
+    a.addEventListener('click', function(){ fileInput.click(); });
+    imageCards.appendChild(a);
+  }
+  imageCards.querySelectorAll('.wsCardRemove').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var idx=parseInt(btn.getAttribute('data-idx'));
+      files.splice(idx,1); results.splice(idx,1);
+      if(activeTab>=files.length) activeTab=Math.max(0,files.length-1);
+      renderView(); renderSidebar();
+    });
+  });
+}
+
+/* ── Scan ── */
+scanBtn.addEventListener('click', function(){
+  if(files.length===0||scanBtn.disabled) return;
+  var cur=(currencyIn.value.trim().toUpperCase()||'TND').substr(0,3);
+  if(files.length===1) scanSingle(cur);
+  else scanMultiple(cur);
+});
+
+function setScanLoading(on){
+  scanBtn.disabled=on;
+  scanBtn.classList.toggle('scanning',on);
+  var txt=scanBtn.lastChild;
+  if(txt&&txt.nodeType===3) txt.nodeValue=on?' Scanning\u2026':' Scan';
+}
+
+async function scanSingle(currency){
+  setScanLoading(true); showOverlay(0);
+  try{ results[0]=await callScan(files[0],currency); }
+  catch(e){ results[0]={error:e.message}; }
+  hideOverlay(0); setScanLoading(false);
+  activeTab=0; renderSidebar();
+}
+
+async function scanMultiple(currency){
+  scanBtn.disabled=true; showPopup(files.length);
+  for(var i=0;i<files.length;i++){
+    updatePopupProgress(i,files.length,i+1);
+    try{ results[i]=await callScan(files[i],currency); }
+    catch(e){ results[i]={error:e.message}; }
+  }
+  updatePopupProgress(files.length,files.length,files.length);
+  showPopupDone();
+  scanBtn.disabled=false;
+}
+
+async function callScan(file,currency){
+  var fd=new FormData(); fd.append('image',file); fd.append('currency',currency);
+  var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
+  var json=await resp.json();
+  if(!resp.ok) throw new Error(json.error||'Scan failed. Please retry.');
+  return json;
+}
+
+function showOverlay(i){ var o=document.getElementById('wsOverlay-'+i),img=document.getElementById('wsCardImg-'+i); if(o)o.style.display='block'; if(img)img.classList.add('scanning'); }
+function hideOverlay(i){ var o=document.getElementById('wsOverlay-'+i),img=document.getElementById('wsCardImg-'+i); if(o)o.style.display='none'; if(img)img.classList.remove('scanning'); }
+
+/* ── Popup ── */
+function showPopup(total){
+  popupTitle.textContent='Processing your images';
+  popupSub.textContent='Scanning image by image. This may take up to '+(total*35)+'s\u2014 please wait.';
+  progressFill.style.width='0%'; progressTxt.textContent='Starting\u2026';
+  seeBtnWrap.style.display='none'; popup.style.display='flex';
+}
+function updatePopupProgress(done,total,current){
+  var pct=total>0?Math.round((done/total)*100):0;
+  progressFill.style.width=pct+'%';
+  progressTxt.textContent=done<total?'Processing image '+current+' of '+total+'\u2026':'All done!';
+}
+function showPopupDone(){
+  popupTitle.textContent='\u2705 Processing complete!';
+  popupSub.textContent='Your results are ready for review.';
+  progressFill.style.width='100%'; progressTxt.textContent='';
+  seeBtnWrap.style.display='block';
+}
+seeBtn.addEventListener('click', function(){ popup.style.display='none'; activeTab=0; renderSidebar(); });
+
+/* ── Sidebar ── */
+function renderSidebar(){
+  var any=results.some(function(r){ return r!==null; });
+  if(!any){ sideEmpty.style.display='flex'; sideResults.style.display='none'; saveArea.style.display='none'; return; }
+  tabDOMStates=[];
+  sideEmpty.style.display='none'; sideResults.style.display='flex'; saveArea.style.display='block';
+  renderTabBar(); renderTabContent(activeTab);
+}
+
+function renderTabBar(){
+  tabBar.innerHTML='';
+  results.forEach(function(r,i){
+    if(r===null) return;
+    var btn=document.createElement('button');
+    btn.className='wsTabBtn'+(i===activeTab?' active':'');
+    btn.textContent='Image '+(i+1);
+    btn.addEventListener('click',(function(idx){ return function(){ switchToTab(idx); }; })(i));
+    tabBar.appendChild(btn);
+  });
+}
+
+// Snapshot: sync typed values → attributes THEN save innerHTML
+// (innerHTML only captures the 'value' attribute, not the live .value property)
+function snapshotCurrentTab(){
+  tabContent.querySelectorAll('input,textarea').forEach(function(inp){
+    inp.setAttribute('value', inp.value);
+  });
+  tabDOMStates[activeTab]=tabContent.innerHTML;
+}
+
+// Save current tab DOM, switch to idx, restore or render
+function switchToTab(idx){
+  if(tabContent.innerHTML!=='') snapshotCurrentTab();
+  activeTab=idx;
+  renderTabBar();
+  if(tabDOMStates[idx]!==undefined){
+    tabContent.innerHTML=tabDOMStates[idx];
+    rebindHandlers();
+  } else {
+    renderTabContent(idx);
+  }
+}
+
+// Re-attach click listeners after innerHTML restore (loses event listeners)
+function rebindHandlers(){
+  tabContent.querySelectorAll('.wsAddItemBtn').forEach(function(addBtn){
+    var list=addBtn.previousElementSibling;
+    if(list&&list.classList.contains('wsItemsList')){
+      addBtn.onclick=(function(l){ return function(){ l.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(l); }; })(list);
+    }
+  });
+  tabContent.querySelectorAll('.wsCatRemove').forEach(function(btn){
+    var block=btn.closest('.wsCatBlock');
+    btn.onclick=function(){ if(block) block.remove(); };
+  });
+  bindRemoveIn(tabContent);
+}
+
+function renderTabContent(idx){
+  tabContent.innerHTML='';
+  var r=results[idx]; if(!r) return;
+  if(r.error){ var e=document.createElement('div'); e.className='wsSideError'; e.textContent='\u26a0\ufe0f '+r.error; tabContent.appendChild(e); return; }
+
+  if(r.quality_metrics&&r.quality_metrics.warnings&&r.quality_metrics.warnings.length){
+    var wb=document.createElement('div'); wb.className='wsWarningBanner';
+    r.quality_metrics.warnings.forEach(function(w){ var l=document.createElement('div'); l.className='wsWarningLine'; l.textContent='\u26a0\ufe0f '+w; wb.appendChild(l); });
+    tabContent.appendChild(wb);
+  }
+
+  var curList=null; var uncatList=null;
+  (r.items||[]).forEach(function(item){
+    if(item.is_category_header){
+      var block=buildCatBlock(item.name);
+      tabContent.appendChild(block);
+      curList=block.querySelector('.wsItemsList');
+      var addBtn=block.querySelector('.wsAddItemBtn');
+      addBtn.addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(list); }; })(curList));
+    } else {
+      if(!curList){
+        if(!uncatList){
+          var ub=buildCatBlock('');
+          tabContent.insertBefore(ub,tabContent.firstChild);
+          uncatList=ub.querySelector('.wsItemsList');
+          ub.querySelector('.wsAddItemBtn').addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(list); }; })(uncatList));
+        }
+        curList=uncatList;
+      }
+      var row=makeItemRow(item.name, item.price_raw||(item.price_value!=null?String(item.price_value):''), item.name_confidence, item.price_confidence, item.needs_review);
+      curList.appendChild(row); bindRemoveIn(curList);
+    }
+  });
+
+  if(r.orphan_prices&&r.orphan_prices.length){
+    var os=document.createElement('div'); os.className='wsOrphanSection';
+    os.innerHTML='<div class="wsOrphanTitle"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Unmatched prices</div>';
+    r.orphan_prices.forEach(function(p){
+      var row=document.createElement('div'); row.className='wsOrphanRow';
+      row.innerHTML='<span class="wsOrphanLabel">Price:</span><input type="text" class="wsOrphanInput conf-'+cc(p.confidence)+'" value="'+esc(p.price_raw||String(p.price_value))+'">';
+      os.appendChild(row);
+    });
+    tabContent.appendChild(os);
+  }
+}
+
+function buildCatBlock(name){
+  var block=document.createElement('div'); block.className='wsCatBlock';
+  var hdr=document.createElement('div'); hdr.className='wsCatHeader';
+  hdr.innerHTML='<span class="wsCatTag">Category</span><input type="text" class="wsCatInput" value="'+esc(name)+'" placeholder="Category name"><button class="wsCatRemove" title="Remove category">×</button>';
+  hdr.querySelector('.wsCatRemove').addEventListener('click', function(){ block.remove(); });
+  block.appendChild(hdr);
+  var list=document.createElement('div'); list.className='wsItemsList'; block.appendChild(list);
+  var addBtn=document.createElement('button'); addBtn.className='wsAddItemBtn'; addBtn.textContent='+ Add item'; block.appendChild(addBtn);
+  return block;
+}
+
+function makeItemRow(name,price,nc,pc,needsReview){
+  var row=document.createElement('div'); row.className='wsItemRow';
+  var ncls=needsReview?'conf-red':'conf-'+cc(nc);
+  var pcls=(pc===null||pc===undefined)?'':'conf-'+cc(pc);
+  var rvw=(needsReview||nc<0.25)?'<span class="wsNeedsReview">review</span>':'';
+  row.innerHTML='<input type="text" class="wsItemName '+ncls+'" placeholder="Item name" value="'+esc(name)+'">'
+    +rvw
+    +'<input type="text" class="wsItemPrice '+pcls+'" placeholder="0.00" value="'+esc(price)+'">'
+    +'<button class="wsItemRemove" title="Remove">\u00d7</button>';
+  return row;
+}
+
+function bindRemoveIn(container){
+  container.querySelectorAll('.wsItemRemove').forEach(function(b){ b.onclick=function(){ b.closest('.wsItemRow').remove(); }; });
+}
+
+/* ── Save ── */
+saveBtn.addEventListener('click', async function(){
+  if(!MENU_ID){ alert('No target menu. Open the scanner from a menu page.'); return; }
+
+  // Snapshot current tab (syncs typed values to attributes first)
+  if(tabContent.innerHTML!=='') snapshotCurrentTab();
+
+  var payload={menu_id:MENU_ID, images:[]};
+
+  results.forEach(function(r,imgIdx){
+    if(!r||r.error) return;
+    var cats;
+    if(tabDOMStates[imgIdx]!==undefined){
+      // Restore cached (user-edited) DOM and collect
+      tabContent.innerHTML=tabDOMStates[imgIdx];
+      cats=collectFromDOM();
+    } else {
+      // Never visited — render fresh from OCR data
+      tabContent.innerHTML='';
+      renderTabContent(imgIdx);
+      cats=collectFromDOM();
+    }
+    payload.images.push({categories:cats});
+  });
+
+  // Restore active tab view
+  if(tabDOMStates[activeTab]!==undefined){
+    tabContent.innerHTML=tabDOMStates[activeTab];
+    rebindHandlers();
+  } else {
+    tabContent.innerHTML=''; renderTabContent(activeTab);
+  }
+
+  saveBtn.disabled=true;
+  saveBtn.childNodes[saveBtn.childNodes.length-1].nodeValue=' Saving…';
+  try{
+    var resp=await fetch(SAVE_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},body:JSON.stringify(payload)});
+    var json=await resp.json();
+    if(json.ok){ window.location.href=json.redirect; }
+    else throw new Error(json.error||'Save failed.');
+  } catch(e){
+    saveBtn.disabled=false;
+    var last=saveBtn.childNodes[saveBtn.childNodes.length-1];
+    if(last&&last.nodeType===3) last.nodeValue=' Save to Menu';
+    alert('\u26a0\ufe0f '+e.message);
+  }
+});
+
+function collectFromDOM(){
+  var cats=[];
+  tabContent.querySelectorAll('.wsCatBlock').forEach(function(block){
+    var cinp=block.querySelector('.wsCatInput');
+    var items=[];
+    block.querySelectorAll('.wsItemRow').forEach(function(row){
+      var n=(row.querySelector('.wsItemName')||{}).value||'';
+      var p=(row.querySelector('.wsItemPrice')||{}).value||'';
+      if(n.trim()) items.push({name:n.trim(),price:p.trim()});
+    });
+    var cname=cinp?cinp.value.trim():'';
+    if(cname||items.length) cats.push({name:cname||'Uncategorized',items:items});
+  });
+  return cats;
+}
+
+/* ── Helpers ── */
+function cc(v){
+  if(v===null||v===undefined) return 'red';
+  if(v>=0.60) return 'green';
+  if(v>=0.40) return 'yellow';
+  if(v>=0.25) return 'orange';
+  return 'red';
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+/* ── Resizable sidebar ── */
+(function(){
+  var resizer = document.getElementById('wsSideResizer');
+  var sidebar  = document.getElementById('wsSidebar');
+  var isResizing = false, startX, startW;
+
+  resizer.addEventListener('mousedown', function(e){
+    isResizing = true;
+    startX = e.clientX;
+    startW = sidebar.getBoundingClientRect().width;
+    resizer.classList.add('resizing');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e){
+    if(!isResizing) return;
+    var dx = startX - e.clientX; // drag left = wider sidebar
+    var newW = Math.min(650, Math.max(280, startW + dx));
+    sidebar.style.width  = newW + 'px';
+    sidebar.style.minWidth = newW + 'px';
+  });
+
+  document.addEventListener('mouseup', function(){
+    if(!isResizing) return;
+    isResizing = false;
+    resizer.classList.remove('resizing');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+renderView();
+})();
+</script>
 {% endblock %}

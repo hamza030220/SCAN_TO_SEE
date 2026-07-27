@@ -690,7 +690,7 @@
 
 <script>
 (function () {
-    var WORKSPACE_URL = '{{ path("app_owner_scanner_workspace") }}';
+    var WORKSPACE_URL = '{{ path("app_owner_scanner_workspace", {"menu": menu.id}) }}';
     var TOTAL_STEPS   = 4;
     var currentStep   = 0;
 

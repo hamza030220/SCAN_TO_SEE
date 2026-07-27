@@ -46,3 +46,7 @@ services:
     App\Command\SyncStripeSubscriptionCommand:
         arguments:
             $stripeSecretKey: '%env(STRIPE_SECRET_KEY)%'
+
+    App\Service\MenuScannerClient:
+        arguments:
+            $ocrPipelineUrl: '%env(OCR_PIPELINE_URL)%'

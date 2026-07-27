@@ -9,10 +9,12 @@ use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
+use App\Service\MenuScannerClient;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -460,14 +462,119 @@ final class OwnerMenuController extends AbstractController
     // ── Menu Scanner (beta) ──────────────────────────────────────────────────
 
     #[Route('/owner/scanner/workspace', name: 'app_owner_scanner_workspace')]
-    public function scannerWorkspace(): Response
-    {
-        return $this->render('owner/scanner/workspace.html.twig');
+    public function scannerWorkspace(
+        Request           $request,
+        MenuRepository    $menuRepo,
+        BusinessRepository $businessRepo,
+    ): Response {
+        $menuId = $request->query->getInt('menu');
+        $menu   = $menuId ? $this->getOwnedMenu($menuId, $menuRepo, $businessRepo) : null;
+
+        return $this->render('owner/scanner/workspace.html.twig', [
+            'menu' => $menu,
+        ]);
     }
 
     #[Route('/owner/scanner/privacy', name: 'app_owner_scanner_privacy')]
     public function scannerPrivacy(): Response
     {
         return $this->render('owner/scanner/privacy.html.twig');
+    }
+
+    /**
+     * POST /owner/scanner/scan
+     * Receives one image + currency, proxies to FastAPI, returns JSON.
+     */
+    #[Route('/owner/scanner/scan', name: 'app_owner_scanner_scan', methods: ['POST'])]
+    public function scannerScan(Request $request, MenuScannerClient $client): JsonResponse
+    {
+        /** @var UploadedFile|null $imageFile */
+        $imageFile = $request->files->get('image');
+
+        if (!$imageFile || !$imageFile->isValid()) {
+            return $this->json(['error' => 'No valid image file received.'], 400);
+        }
+
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/jpg'];
+        if (!in_array($imageFile->getMimeType(), $allowedMimes, true)) {
+            return $this->json(['error' => 'Only JPG and PNG images are accepted.'], 400);
+        }
+
+        $currency = strtoupper(substr(trim($request->request->get('currency', 'TND')), 0, 3));
+
+        try {
+            $result = $client->scanMenu($imageFile, $currency);
+            return $this->json($result);
+        } catch (\RuntimeException $e) {
+            return $this->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * POST /owner/scanner/save
+     * Persists reviewed categories + items into the target menu.
+     * Body: { menu_id: int, images: [ { categories: [ { name, items: [ { name, price } ] } ] } ] }
+     */
+    #[Route('/owner/scanner/save', name: 'app_owner_scanner_save', methods: ['POST'])]
+    public function scannerSave(
+        Request            $request,
+        MenuRepository     $menuRepo,
+        BusinessRepository $businessRepo,
+        EntityManagerInterface $em,
+    ): JsonResponse {
+        $data = json_decode($request->getContent(), true);
+
+        if (!is_array($data) || empty($data['menu_id'])) {
+            return $this->json(['error' => 'Invalid payload.'], 400);
+        }
+
+        $menu = $this->getOwnedMenu((int) $data['menu_id'], $menuRepo, $businessRepo);
+        if (!$menu) {
+            return $this->json(['error' => 'Menu not found or access denied.'], 404);
+        }
+
+        $catSortOrder = 0;
+        $images = $data['images'] ?? [];
+
+        foreach ($images as $imageData) {
+            $categories = $imageData['categories'] ?? [];
+            foreach ($categories as $catData) {
+                $catName = trim($catData['name'] ?? '');
+                if ($catName === '') continue;
+
+                $category = new Category();
+                $category->setMenu($menu);
+                $category->setName($catName);
+                $category->setSortOrder($catSortOrder++);
+                $category->setIsVisible(true);
+                $em->persist($category);
+
+                $itemSortOrder = 0;
+                foreach ($catData['items'] ?? [] as $itemData) {
+                    $itemName = trim($itemData['name'] ?? '');
+                    if ($itemName === '') continue;
+
+                    $priceRaw = $itemData['price'] ?? '';
+                    $price    = is_numeric($priceRaw)
+                        ? number_format((float) $priceRaw, 2, '.', '')
+                        : '0.00';
+
+                    $item = new Item();
+                    $item->setCategory($category);
+                    $item->setName($itemName);
+                    $item->setPrice($price);
+                    $item->setSortOrder($itemSortOrder++);
+                    $item->setIsAvailable(true);
+                    $em->persist($item);
+                }
+            }
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'ok'       => true,
+            'redirect' => $this->generateUrl('app_owner_menu_show', ['id' => $menu->getId()]),
+        ]);
     }
 }
