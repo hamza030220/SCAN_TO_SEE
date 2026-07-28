@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Cookie Policy | S2S{% endblock %}
+{% block meta_description %}Information about essential session, security, and preference storage currently used by S2S.{% endblock %}
+
+{% block body %}
+    <section class="legal-hero">
+        <div class="shell legal-hero-inner">
+            <div><span class="eyebrow">Legal</span><h1>Cookie policy</h1></div>
+            <p>Last updated: 28 July 2026</p>
+        </div>
+    </section>
+    <section class="legal-page">
+        <div class="shell legal-layout">
+            <aside class="legal-aside">
+                <span class="material-symbols-outlined">cookie</span>
+                <strong>Essential storage only</strong>
+                <p>The current beta does not intentionally use advertising cookies or cross-site behavioral tracking.</p>
+            </aside>
+            <article class="legal-content">
+                <section><h2>1. What cookies are</h2><p>Cookies are small values stored by a browser so a website can maintain a session, remember a choice, or support security features. Similar browser storage may serve related purposes.</p></section>
+                <section><h2>2. What S2S currently uses</h2><div class="legal-table-wrap"><table class="legal-table"><thead><tr><th>Category</th><th>Purpose</th><th>Required</th></tr></thead><tbody><tr><td>Session</td><td>Keeps an authenticated owner or administrator signed in between requests.</td><td>Yes</td></tr><tr><td>Security</td><td>Supports authentication, two-factor verification, CSRF protection, and safe request handling.</td><td>Yes</td></tr><tr><td>Preferences</td><td>May remember interface or menu choices necessary for the requested experience.</td><td>When used</td></tr></tbody></table></div></section>
+                <section><h2>3. Analytics and advertising</h2><p>The current testing version does not intentionally deploy third-party advertising cookies or behavioral analytics cookies. If non-essential analytics are introduced later, this policy and any required consent controls must be updated first.</p></section>
+                <section><h2>4. Managing cookies</h2><p>You can remove or block cookies using browser settings. Blocking essential cookies can prevent sign-in, account management, scanner access, and other secured features from working.</p></section>
+                <section><h2>5. External services</h2><p>Following a link to an external service such as Stripe may place you under that provider's separate cookie policy. S2S does not control cookies set on another provider's domain.</p></section>
+                <section><h2>6. Updates</h2><p>We will revise this page if the application adds new cookie categories or tracking technologies.</p></section>
+            </article>
+        </div>
+    </section>
+{% endblock %}

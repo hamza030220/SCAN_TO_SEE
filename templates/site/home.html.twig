@@ -1,148 +1,244 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}S2S — Digital menus with a permanent QR code{% endblock %}
+{% block title %}S2S — AI-powered digital menus with one permanent QR{% endblock %}
+{% block meta_description %}Build a digital menu, scan handwritten or printed menus with AI assistance, and keep one permanent QR code across every update.{% endblock %}
 
 {% block body %}
-
-    {# ——— Hero ——— #}
-    <section class="s-hero">
-        <div class="shell hero-grid">
+    <section class="s-hero s-hero--new">
+        <div class="hero-orb hero-orb--one" aria-hidden="true"></div>
+        <div class="hero-orb hero-orb--two" aria-hidden="true"></div>
+        <div class="shell hero-grid hero-grid--new">
             <div class="hero-copy">
-                <span class="eyebrow">Scan to See</span>
-                <h1>Your menu updates.<br>Your QR code never does.</h1>
-                <p class="hero-lede">S2S gives coffee shops, restaurants, spas, and salons one permanent public link. Print the QR code once. Edit the menu whenever you need to — no reprint, no new code.</p>
+                <a class="hero-announcement" href="{{ path('app_ai_scanner') }}">
+                    <span class="announcement-mark">
+                        <span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>
+                    </span>
+                    <span><strong>New in beta</strong> AI-assisted menu scanning</span>
+                    <span class="material-symbols-outlined announcement-arrow" aria-hidden="true">arrow_forward</span>
+                </a>
+                <span class="eyebrow">The operating system for digital menus</span>
+                <h1>From paper menu to <span class="text-accent">live QR experience.</span></h1>
+                <p class="hero-lede">Create, scan, edit, publish, and update a professional menu from one workspace. Your guests open it instantly in their browser, while your printed QR code stays the same.</p>
                 <div class="hero-actions">
-                    <a class="btn btn-primary" href="{{ path('app_register') }}">Start your menu</a>
-                    <a class="btn btn-ghost" href="{{ path('app_pricing') }}">See pricing</a>
+                    <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">
+                        Create your menu
+                        <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+                    </a>
+                    <a class="btn btn-ghost btn-icon" href="{{ path('app_ai_scanner') }}">
+                        Explore the AI Scanner
+                        <span class="material-symbols-outlined" aria-hidden="true">document_scanner</span>
+                    </a>
+                </div>
+                <div class="hero-proof" aria-label="Product highlights">
+                    <span><span class="material-symbols-outlined" aria-hidden="true">phone_iphone</span>No guest app</span>
+                    <span><span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>Permanent QR</span>
+                    <span><span class="material-symbols-outlined" aria-hidden="true">edit_note</span>Owner-reviewed AI</span>
                 </div>
             </div>
-            <div class="hero-mockup-col" aria-hidden="true">
-                <div class="mockup-frame">
-                    <div class="mf-topbar">
-                        <span class="mf-business">Blue Bean Café</span>
-                        <span class="mf-live">Live</span>
+
+            <div class="hero-product" aria-label="S2S menu scanner product preview">
+                <div class="product-window">
+                    <div class="product-window-bar">
+                        <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                        <span class="window-address">app.scantosee / menu workspace</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">lock</span>
                     </div>
-                    <div class="mf-tabs">
-                        <span class="mf-tab mf-tab-active">Drinks</span>
-                        <span class="mf-tab">Food</span>
-                        <span class="mf-tab">Extras</span>
-                    </div>
-                    <div class="mf-items">
-                        {% for item in previewItems %}
-                            <div class="mf-item">
-                                <div>
-                                    <p class="mf-item-name">{{ item.name }}</p>
-                                    <p class="mf-item-desc">{{ item.detail }}</p>
-                                </div>
-                                <span class="mf-item-price">{{ item.price }}</span>
+                    <div class="product-workspace">
+                        <aside class="product-sidebar">
+                            <span class="product-logo">S2S</span>
+                            <span class="side-item is-active"><span class="material-symbols-outlined">dashboard</span></span>
+                            <span class="side-item"><span class="material-symbols-outlined">restaurant_menu</span></span>
+                            <span class="side-item"><span class="material-symbols-outlined">qr_code_2</span></span>
+                        </aside>
+                        <div class="product-main">
+                            <div class="product-heading">
+                                <div><span>Blue Bean Café</span><strong>Breakfast menu</strong></div>
+                                <span class="product-status">Draft</span>
                             </div>
-                        {% endfor %}
+                            <div class="scan-stage">
+                                <div class="paper-menu">
+                                    <div class="paper-title"></div>
+                                    <div class="paper-line w-80"></div>
+                                    <div class="paper-line w-60"></div>
+                                    <div class="paper-line w-90"></div>
+                                    <div class="paper-line w-70"></div>
+                                    <div class="paper-line w-85"></div>
+                                    <div class="scan-beam"></div>
+                                </div>
+                                <div class="scan-result">
+                                    <span class="scan-label"><span class="scan-pulse"></span>AI extracting</span>
+                                    <div><span>Cappuccino</span><strong>4.50</strong></div>
+                                    <div><span>Iced latte</span><strong>5.20</strong></div>
+                                    <div><span>Seasonal tart</span><strong>7.00</strong></div>
+                                    <p><span class="material-symbols-outlined">fact_check</span>Ready for owner review</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mf-footer">
-                        <span class="mf-url">s2s.app/m/blue-bean-cafe</span>
-                        <span class="mf-lang">EN</span>
-                    </div>
+                </div>
+                <div class="floating-card floating-card--accuracy">
+                    <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+                    <div><strong>Review before save</strong><small>You stay in control</small></div>
+                </div>
+                <div class="floating-card floating-card--qr">
+                    <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+                    <div><strong>QR stays active</strong><small>Across every edit</small></div>
                 </div>
             </div>
         </div>
     </section>
 
-    {# ——— Promise band ——— #}
-    <section class="s-promise">
-        <div class="shell">
-            <p class="promise-text">Print the QR once. Update the menu forever.</p>
-            <p class="promise-note">The slug encoded in the QR code never changes — only what customers see behind it.</p>
+    <section class="s-marquee" aria-label="Product capabilities">
+        <div class="marquee-track">
+            {% for repeat in 1..2 %}
+                <span>AI menu scanning</span><i></i>
+                <span>Permanent QR codes</span><i></i>
+                <span>Live availability</span><i></i>
+                <span>Multilingual menus</span><i></i>
+                <span>Owner-controlled publishing</span><i></i>
+            {% endfor %}
         </div>
     </section>
 
-    {# ——— How it works ——— #}
-    <section class="s-steps">
-        <div class="shell">
-            <div class="s-steps-head">
-                <span class="eyebrow">How it works</span>
-                <h2>Three steps from first setup to a live menu your customers can scan today.</h2>
+    <section class="s-intro">
+        <div class="shell intro-grid" data-reveal>
+            <div>
+                <span class="eyebrow">Less setup, more control</span>
+                <h2>A complete workflow, not just a QR generator.</h2>
             </div>
-            <div class="steps-row">
-                <div class="step-card">
-                    <span class="step-num">01</span>
-                    <h3>Create the menu</h3>
-                    <p>Add your business details, choose a theme, and build categories with items, prices, descriptions, photos, and variants like sizes or add-ons.</p>
-                </div>
-                <div class="step-card">
-                    <span class="step-num">02</span>
-                    <h3>Publish and print</h3>
-                    <p>S2S generates one permanent public URL and a ready-to-print QR code. Download it and put it on your table, wall, or counter — that code never changes.</p>
-                </div>
-                <div class="step-card">
-                    <span class="step-num">03</span>
-                    <h3>Edit whenever you need to</h3>
-                    <p>Update prices, toggle sold-out items, add new dishes, or change the whole layout. Customers always reach the current version when they scan.</p>
-                </div>
+            <div class="intro-copy">
+                <p>S2S connects the physical menu on your counter with a structured digital workspace. Start manually or use the AI Scanner beta to create a first draft from a photo.</p>
+                <p>Then refine every category, item, price, image, language, and availability state before publishing to customers.</p>
             </div>
         </div>
     </section>
 
-    {# ——— Venue types ——— #}
-    <section class="s-venues">
+    <section class="s-steps s-steps--new">
         <div class="shell">
-            <div class="s-venues-head">
-                <span class="eyebrow">Who it's for</span>
-                <h2>Any business with a list of priced items or services.</h2>
-                <p>The category → item → price structure works equally well for food, drinks, and service treatments.</p>
+            <div class="section-split-head" data-reveal>
+                <div>
+                    <span class="eyebrow">How it works</span>
+                    <h2>Paper in. Structured menu out.</h2>
+                </div>
+                <p>Move from a photo or blank workspace to a customer-ready menu through four controlled steps.</p>
             </div>
-            <div class="venues-grid">
-                <div class="venue-card">
-                    <span class="venue-icon">☕</span>
-                    <h3>Coffee shops</h3>
-                    <p>Drink menus with sizes, add-ons, and seasonal specials — toggled on and off without reprinting.</p>
-                </div>
-                <div class="venue-card">
-                    <span class="venue-icon">🍽</span>
-                    <h3>Restaurants</h3>
-                    <p>Full food menus with photos, descriptions, and instant availability updates when a dish sells out.</p>
-                </div>
-                <div class="venue-card">
-                    <span class="venue-icon">💆</span>
-                    <h3>Spas &amp; salons</h3>
-                    <p>Service menus with durations, pricing, and treatment descriptions — in multiple languages for tourist-facing venues.</p>
-                </div>
-                <div class="venue-card">
-                    <span class="venue-icon">🛍</span>
-                    <h3>Any venue with a menu</h3>
-                    <p>Bakeries, bars, fitness studios, barbershops — if you have a list of priced offerings, S2S is built for you.</p>
-                </div>
+            <div class="workflow-grid">
+                <article class="workflow-card" data-reveal>
+                    <span class="workflow-number">01</span>
+                    <span class="material-symbols-outlined workflow-icon" aria-hidden="true">add_business</span>
+                    <h3>Create your business</h3>
+                    <p>Add the venue identity and choose the empty menu that will receive your content.</p>
+                </article>
+                <article class="workflow-card" data-reveal>
+                    <span class="workflow-number">02</span>
+                    <span class="material-symbols-outlined workflow-icon" aria-hidden="true">document_scanner</span>
+                    <h3>Scan or build</h3>
+                    <p>Upload a menu photo for AI extraction, or enter categories and items manually.</p>
+                </article>
+                <article class="workflow-card" data-reveal>
+                    <span class="workflow-number">03</span>
+                    <span class="material-symbols-outlined workflow-icon" aria-hidden="true">fact_check</span>
+                    <h3>Review every field</h3>
+                    <p>Correct names, prices, categories, and uncertain results before anything is saved.</p>
+                </article>
+                <article class="workflow-card" data-reveal>
+                    <span class="workflow-number">04</span>
+                    <span class="material-symbols-outlined workflow-icon" aria-hidden="true">rocket_launch</span>
+                    <h3>Publish once, update often</h3>
+                    <p>Share the permanent QR and keep improving what customers see behind it.</p>
+                </article>
             </div>
         </div>
     </section>
 
-    {# ——— Features ——— #}
-    <section class="s-features">
-        <div class="shell">
-            <div class="s-features-head">
-                <span class="eyebrow">What owners control</span>
-                <h2>Everything behind the permanent link is fully editable.</h2>
+    <section class="s-ai-spotlight">
+        <div class="shell ai-spotlight-grid">
+            <div class="ai-visual" data-reveal>
+                <div class="ai-grid-bg" aria-hidden="true"></div>
+                <span class="ai-core"><span class="material-symbols-outlined">neurology</span></span>
+                <span class="ai-node ai-node--one"><span class="material-symbols-outlined">image</span>Menu image</span>
+                <span class="ai-node ai-node--two"><span class="material-symbols-outlined">category</span>Categories</span>
+                <span class="ai-node ai-node--three"><span class="material-symbols-outlined">sell</span>Prices</span>
+                <span class="ai-node ai-node--four"><span class="material-symbols-outlined">rate_review</span>Corrections</span>
             </div>
-            <div class="features-row">
+            <div class="ai-copy" data-reveal>
+                <span class="eyebrow">AI Menu Scanner · Beta</span>
+                <h2>Your existing menu becomes the starting point.</h2>
+                <p>The scanner combines image processing, text recognition, and menu-aware structuring to propose categories, items, and prices from a photograph.</p>
+                <ul class="check-list">
+                    <li><span class="material-symbols-outlined">check</span>Designed for handwritten and printed menu layouts</li>
+                    <li><span class="material-symbols-outlined">check</span>Highlights uncertain fields for human review</li>
+                    <li><span class="material-symbols-outlined">check</span>Stores approved corrections to improve future training data</li>
+                    <li><span class="material-symbols-outlined">check</span>Only works on an empty target menu to protect existing content</li>
+                </ul>
+                <a class="text-link" href="{{ path('app_ai_scanner') }}">See how the AI Scanner works <span class="material-symbols-outlined">arrow_forward</span></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="s-features s-features--new">
+        <div class="shell">
+            <div class="section-split-head" data-reveal>
+                <div>
+                    <span class="eyebrow">Everything connected</span>
+                    <h2>Tools for setup day and every day after.</h2>
+                </div>
+                <p>Build the menu once, then manage daily changes without replacing printed materials.</p>
+            </div>
+            <div class="feature-grid-new">
                 {% for feature in features %}
-                    <div class="feature-card">
-                        <span class="eyebrow">{{ feature.label }}</span>
+                    <article class="feature-card-new" data-reveal>
+                        <span class="feature-icon material-symbols-outlined" aria-hidden="true">{{ feature.icon }}</span>
+                        <span class="feature-label">{{ feature.label }}</span>
                         <h3>{{ feature.title }}</h3>
                         <p>{{ feature.body }}</p>
-                    </div>
+                    </article>
                 {% endfor %}
             </div>
         </div>
     </section>
 
-    {# ——— CTA ——— #}
-    <section class="s-cta">
-        <div class="shell cta-inner">
-            <div>
-                <h2>Start with one permanent menu link.</h2>
-                <p>No reprint cycle. No new QR code on every update. Just one link that keeps working.</p>
+    <section class="s-venues s-venues--new">
+        <div class="shell">
+            <div class="section-center" data-reveal>
+                <span class="eyebrow">Made for real venues</span>
+                <h2>One flexible structure for products, dishes, drinks, and services.</h2>
             </div>
-            <a class="btn btn-primary" href="{{ path('app_register') }}">Create account</a>
+            <div class="venues-grid venues-grid--icons">
+                <article class="venue-card" data-reveal>
+                    <span class="material-symbols-outlined venue-icon" aria-hidden="true">local_cafe</span>
+                    <h3>Cafés and bakeries</h3>
+                    <p>Sizes, extras, seasonal items, and instant sold-out updates.</p>
+                </article>
+                <article class="venue-card" data-reveal>
+                    <span class="material-symbols-outlined venue-icon" aria-hidden="true">restaurant</span>
+                    <h3>Restaurants and bars</h3>
+                    <p>Rich categories, descriptions, photos, variants, and prices.</p>
+                </article>
+                <article class="venue-card" data-reveal>
+                    <span class="material-symbols-outlined venue-icon" aria-hidden="true">spa</span>
+                    <h3>Spas and salons</h3>
+                    <p>Service durations, treatment details, pricing, and languages.</p>
+                </article>
+                <article class="venue-card" data-reveal>
+                    <span class="material-symbols-outlined venue-icon" aria-hidden="true">storefront</span>
+                    <h3>Studios and retail</h3>
+                    <p>Any venue that presents a changing list of priced offerings.</p>
+                </article>
+            </div>
         </div>
     </section>
 
+    <section class="s-cta s-cta--new">
+        <div class="shell cta-panel" data-reveal>
+            <div>
+                <span class="eyebrow">Your menu can be live today</span>
+                <h2>Start with one permanent link. Let every update happen behind it.</h2>
+            </div>
+            <div class="cta-actions">
+                <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Create an account <span class="material-symbols-outlined">arrow_forward</span></a>
+                <a class="cta-secondary-link" href="{{ path('app_pricing') }}">Compare plans</a>
+            </div>
+        </div>
+    </section>
 {% endblock %}

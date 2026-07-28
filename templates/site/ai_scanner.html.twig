@@ -1,0 +1,161 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}AI Menu Scanner — Turn menu photos into editable data | S2S{% endblock %}
+{% block meta_description %}Learn how the S2S AI Menu Scanner beta extracts categories, items, and prices from handwritten and printed menu photos for owner review.{% endblock %}
+
+{% block body %}
+    <section class="ai-page-hero">
+        <div class="ai-hero-grid-bg" aria-hidden="true"></div>
+        <div class="shell ai-page-hero-grid">
+            <div class="ai-page-copy" data-reveal>
+                <span class="status-pill"><span></span>Private beta</span>
+                <span class="eyebrow">S2S AI Menu Scanner</span>
+                <h1>Your menu photo becomes an editable first draft.</h1>
+                <p>Skip the repetitive first pass. Upload a handwritten or printed menu and the S2S pipeline proposes categories, item names, and prices that you verify before saving.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Create an account <span class="material-symbols-outlined">arrow_forward</span></a>
+                    <a class="btn btn-ghost" href="#workflow">See the workflow</a>
+                </div>
+            </div>
+            <div class="ai-console" data-reveal aria-label="Illustration of menu extraction">
+                <div class="ai-console-head">
+                    <span><i></i>Processing menu_01.jpg</span>
+                    <strong>Owner review required</strong>
+                </div>
+                <div class="ai-console-body">
+                    <div class="console-source">
+                        <span class="material-symbols-outlined">image</span>
+                        <div class="source-writing">
+                            <b>COFFEE</b>
+                            <em>Cappuccino ........ 4.50</em>
+                            <em>Iced Latte ........ 5.20</em>
+                            <em>Espresso .......... 3.00</em>
+                        </div>
+                        <div class="console-scanline"></div>
+                    </div>
+                    <div class="console-output">
+                        <span class="console-tag">CATEGORY · COFFEE</span>
+                        <div><span>Cappuccino</span><strong>4.50</strong><i class="confidence confidence--high">High</i></div>
+                        <div><span>Iced Latte</span><strong>5.20</strong><i class="confidence confidence--high">High</i></div>
+                        <div><span>Espresso</span><strong>3.00</strong><i class="confidence confidence--review">Review</i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-beta-note">
+        <div class="shell beta-note-inner">
+            <span class="material-symbols-outlined" aria-hidden="true">science</span>
+            <p><strong>This feature is in testing.</strong> Results vary with handwriting, lighting, image angle, language, and menu layout. Every extracted field must be reviewed by the owner.</p>
+        </div>
+    </section>
+
+    <section class="ai-workflow" id="workflow">
+        <div class="shell">
+            <div class="section-center" data-reveal>
+                <span class="eyebrow">From image to structured menu</span>
+                <h2>AI handles the first pass. You make the final decisions.</h2>
+                <p>The scanner is intentionally designed as an assisted workflow, not an automatic publisher.</p>
+            </div>
+            <div class="ai-timeline">
+                <article data-reveal>
+                    <span class="timeline-icon material-symbols-outlined">upload_file</span>
+                    <span class="timeline-number">01</span>
+                    <h3>Upload a clear image</h3>
+                    <p>Start from an empty menu and upload a JPG, PNG, or supported menu photo from the scanner workspace.</p>
+                </article>
+                <article data-reveal>
+                    <span class="timeline-icon material-symbols-outlined">document_scanner</span>
+                    <span class="timeline-number">02</span>
+                    <h3>Detect and read regions</h3>
+                    <p>The pipeline identifies text regions, recognizes their contents, and estimates the quality of each result.</p>
+                </article>
+                <article data-reveal>
+                    <span class="timeline-icon material-symbols-outlined">account_tree</span>
+                    <span class="timeline-number">03</span>
+                    <h3>Build a menu structure</h3>
+                    <p>Recognized text is organized into proposed categories, products, and prices instead of one unstructured text block.</p>
+                </article>
+                <article data-reveal>
+                    <span class="timeline-icon material-symbols-outlined">fact_check</span>
+                    <span class="timeline-number">04</span>
+                    <h3>Review and approve</h3>
+                    <p>Edit any uncertain field and save only when the structure accurately matches the source menu.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-capabilities">
+        <div class="shell ai-cap-grid">
+            <div class="sticky-heading" data-reveal>
+                <span class="eyebrow">What the beta understands</span>
+                <h2>Menu-aware extraction instead of generic copy and paste.</h2>
+                <p>The system is trained and evaluated for menu content, while the review interface catches the cases where context remains ambiguous.</p>
+            </div>
+            <div class="capability-list">
+                <article data-reveal>
+                    <span class="material-symbols-outlined">title</span>
+                    <div><h3>Item and category names</h3><p>Text regions are grouped into a hierarchy that can become editable menu categories and items.</p></div>
+                </article>
+                <article data-reveal>
+                    <span class="material-symbols-outlined">payments</span>
+                    <div><h3>Prices and decimal formats</h3><p>The workflow normalizes common price formats while leaving the final value visible for confirmation.</p></div>
+                </article>
+                <article data-reveal>
+                    <span class="material-symbols-outlined">draw</span>
+                    <div><h3>Handwritten and printed text</h3><p>The model is being improved for varied typefaces and handwriting, but complex writing may still need manual correction.</p></div>
+                </article>
+                <article data-reveal>
+                    <span class="material-symbols-outlined">analytics</span>
+                    <div><h3>Quality and confidence signals</h3><p>Recognition metadata helps direct attention to uncertain regions instead of hiding model limitations.</p></div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-feedback">
+        <div class="shell feedback-grid">
+            <div class="feedback-visual" data-reveal>
+                <span class="material-symbols-outlined feedback-main-icon">model_training</span>
+                <div class="feedback-ring feedback-ring--one"></div>
+                <div class="feedback-ring feedback-ring--two"></div>
+                <span class="feedback-chip feedback-chip--a">Prediction</span>
+                <span class="feedback-chip feedback-chip--b">Owner correction</span>
+                <span class="feedback-chip feedback-chip--c">Better dataset</span>
+            </div>
+            <div data-reveal>
+                <span class="eyebrow">A responsible feedback loop</span>
+                <h2>Corrections can help the scanner improve.</h2>
+                <p>During the beta, approved recognition results, owner corrections, source regions, and quality metadata may be retained as training records when the owner accepts the scanner data terms.</p>
+                <p>The goal is to build a dataset that represents real menu layouts and common recognition errors without allowing the model to overwrite owner decisions.</p>
+                <a class="text-link" href="{{ path('app_privacy') }}">Read the privacy policy <span class="material-symbols-outlined">arrow_forward</span></a>
+            </div>
+        </div>
+    </section>
+
+    <section class="ai-safety">
+        <div class="shell">
+            <div class="section-split-head" data-reveal>
+                <div><span class="eyebrow">Built-in safeguards</span><h2>Designed to protect the menu you already have.</h2></div>
+                <p>Product restrictions make the beta safer to test while model performance continues to improve.</p>
+            </div>
+            <div class="safety-grid">
+                <article data-reveal><span class="material-symbols-outlined">inventory_2</span><h3>Empty menus only</h3><p>Scanning is disabled when the target menu already contains categories or items.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">person_check</span><h3>No automatic publishing</h3><p>Owners inspect results before saving and still control when the finished menu is published.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">encrypted</span><h3>Controlled storage</h3><p>Scan assets and review records are stored through configured application services rather than public local folders.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="s-cta s-cta--new">
+        <div class="shell cta-panel" data-reveal>
+            <div><span class="eyebrow">Try the workflow</span><h2>Create an empty menu and let your existing paper menu become the first draft.</h2></div>
+            <div class="cta-actions">
+                <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Create an account <span class="material-symbols-outlined">arrow_forward</span></a>
+                <a class="cta-secondary-link" href="{{ path('app_pricing') }}">Compare plans</a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Privacy Policy | S2S{% endblock %}
+{% block meta_description %}How S2S handles account, menu, scan, payment, and technical data during the application beta.{% endblock %}
+
+{% block body %}
+    <section class="legal-hero">
+        <div class="shell legal-hero-inner">
+            <div><span class="eyebrow">Legal</span><h1>Privacy policy</h1></div>
+            <p>Last updated: 28 July 2026</p>
+        </div>
+    </section>
+    <section class="legal-page">
+        <div class="shell legal-layout">
+            <aside class="legal-aside">
+                <span class="material-symbols-outlined">privacy_tip</span>
+                <strong>Plain-language beta policy</strong>
+                <p>This page describes the application's current testing configuration. It should be reviewed by qualified counsel before production launch.</p>
+            </aside>
+            <article class="legal-content">
+                <section><h2>1. Scope</h2><p>This policy explains how Scan to See ("S2S", "we", or "the service") handles personal and business information when owners create accounts, manage menus, use the AI Menu Scanner beta, or interact with subscription features.</p></section>
+                <section><h2>2. Information we process</h2><ul><li>Account information such as email address, authentication credentials in hashed form, account role, and security settings.</li><li>Business and menu content such as names, logos, menu images, categories, items, descriptions, prices, translations, and design preferences.</li><li>Subscription identifiers and status received from Stripe. S2S does not store full payment card numbers.</li><li>Technical information needed for security and operation, which may include request logs, timestamps, IP addresses, browser information, and error diagnostics.</li><li>AI Scanner beta data described below.</li></ul></section>
+                <section><h2>3. AI Menu Scanner beta</h2><p>When an owner chooses to use the scanner and accepts its data terms, the service may process the uploaded menu image, detected text regions, recognition results, confidence or quality measurements, owner corrections, and the final approved structure.</p><p>These records may be retained to diagnose recognition problems, evaluate accuracy, and create improved training datasets. The scanner does not publish extracted content automatically; the owner reviews it before saving.</p></section>
+                <section><h2>4. Why we use information</h2><ul><li>Provide accounts, menu management, public QR pages, subscriptions, and support.</li><li>Secure the service, prevent misuse, and diagnose failures.</li><li>Process payments and synchronize subscription status.</li><li>Measure and improve AI recognition performance during testing.</li><li>Comply with applicable legal obligations.</li></ul></section>
+                <section><h2>5. Service providers</h2><p>S2S uses configured infrastructure providers to operate the application. These can include Stripe for payments, Cloudinary for object storage, hosting and database providers, and email delivery services. Providers process data only for the services they supply and under their own applicable terms.</p></section>
+                <section><h2>6. Retention</h2><p>Account and menu information is kept while the account is maintained and as needed for service operation. Subscription cancellation pauses access but does not automatically delete menu data. Beta scan records may be retained while they remain useful for model evaluation and dataset development. Production retention periods must be finalized before launch.</p></section>
+                <section><h2>7. Security</h2><p>We apply access controls, signed webhook verification, password hashing, CSRF protection, and controlled object storage. No internet service can guarantee absolute security, especially during a pre-production beta.</p></section>
+                <section><h2>8. Your choices</h2><p>Owners can choose not to use the AI Scanner and can build menus manually. Requests to access, correct, export, or delete personal data should be directed to the project administrator through the communication channel used for the beta account.</p></section>
+                <section><h2>9. Children</h2><p>S2S is a business management service and is not directed to children.</p></section>
+                <section><h2>10. Changes</h2><p>We may update this policy as the beta, providers, and legal requirements evolve. The update date at the top will change when material revisions are published.</p></section>
+            </article>
+        </div>
+    </section>
+{% endblock %}
