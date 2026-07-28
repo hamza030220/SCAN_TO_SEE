@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
+use App\Repository\SubscriptionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,10 +35,18 @@ class PublicMenuController extends AbstractController
         string $slug,
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
+        SubscriptionRepository $subscriptionRepo,
     ): Response {
         $business = $businessRepo->findOneBy(['slug' => $slug]);
         if (!$business) {
             throw $this->createNotFoundException('Business not found.');
+        }
+
+        $subscription = $subscriptionRepo->findOneBy(['owner' => $business->getOwner()]);
+        if (!$subscription?->isActive()) {
+            return $this->withNoCache($this->render('public/no_menu.html.twig', [
+                'business' => $business,
+            ]));
         }
 
         $menus = $menuRepo->findBy(
@@ -75,15 +84,26 @@ class PublicMenuController extends AbstractController
         Request $request,
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
+        SubscriptionRepository $subscriptionRepo,
     ): Response {
         $business = $businessRepo->findOneBy(['slug' => $slug]);
         if (!$business) {
             throw $this->createNotFoundException('Business not found.');
         }
 
-        $isPreview = $request->query->getBoolean('preview');
+        $viewer = $this->getUser();
+        $isOwnerPreview = $request->query->getBoolean('preview')
+            && $viewer instanceof \App\Entity\User
+            && ($viewer->getRole() === 'admin' || $viewer->getId() === $business->getOwner()?->getId());
+        $subscription = $subscriptionRepo->findOneBy(['owner' => $business->getOwner()]);
+        if (!$subscription?->isActive() && !$isOwnerPreview) {
+            return $this->withNoCache($this->render('public/no_menu.html.twig', [
+                'business' => $business,
+            ]));
+        }
+
         $criteria  = ['slug' => $menuSlug, 'business' => $business];
-        if (!$isPreview) {
+        if (!$isOwnerPreview) {
             $criteria['status'] = 'published';
         }
         $menu = $menuRepo->findOneBy($criteria);

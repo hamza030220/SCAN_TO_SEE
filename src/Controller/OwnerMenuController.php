@@ -79,9 +79,7 @@ final class OwnerMenuController extends AbstractController
             ->orderBy('m.createdAt', 'DESC')
             ->getQuery()->getResult();
 
-        // With auto-swapping, users can always create menus
-        // The system will automatically swap statuses to make room
-        $canCreate = true;
+        $canCreate = $subscriptionService->canCreateMenu($this->getUser());
         
         // Get subscription info to show helpful hints
         $subscription = $subscriptionService->getSubscription($this->getUser());
@@ -127,18 +125,8 @@ final class OwnerMenuController extends AbstractController
                 $status      = $request->request->get('status', 'draft');
                 $businessId  = (int) $request->request->get('business_id', 0);
 
-                // Smart auto-swap: instead of blocking, automatically swap menu states to make room
-                $currentStatus = $menu ? $menu->getStatus() : null;
-                $menuId = $menu ? $menu->getId() : null;
-                
-                $swapResult = $subscriptionService->autoSwapMenuStatus($this->getUser(), $menuId, $currentStatus, $status);
-                
-                if (!$swapResult['allowed']) {
-                    $error = $swapResult['message'] ?? 'Unable to proceed. Please check your subscription.';
-                    $this->addFlash('error', $error);
-                } elseif ($swapResult['swapped_menu']) {
-                    // A menu was auto-swapped - show success message
-                    $this->addFlash('info', $swapResult['message']);
+                if (!in_array($status, [Menu::STATUS_DRAFT, Menu::STATUS_PUBLISHED], true)) {
+                    $error = 'Invalid menu status.';
                 }
 
                 $selectedBusiness = null;
@@ -150,6 +138,21 @@ final class OwnerMenuController extends AbstractController
                 if (!$name) {
                     $error = 'Menu name is required.';
                 } elseif (!$error) {
+                    $currentStatus = $menu?->getStatus();
+                    $menuId = $menu?->getId();
+                    $limitResult = $subscriptionService->autoSwapMenuStatus(
+                        $this->getUser(),
+                        $menuId,
+                        $currentStatus,
+                        $status,
+                    );
+                    if (!$limitResult['allowed']) {
+                        $error = $limitResult['message'] ?? 'This plan has no free menu slot.';
+                        $this->addFlash('error', $error);
+                    }
+                }
+
+                if (!$error) {
                     $isNew = !$menu;
                     if ($isNew) {
                         $menu = new Menu();
@@ -174,10 +177,12 @@ final class OwnerMenuController extends AbstractController
         $publishedCount = $subscriptionService->countPublishedMenus($this->getUser());
         $draftCount = $subscriptionService->countDraftMenus($this->getUser());
 
-        // With auto-swapping, we always allow creating/editing
-        // The system will automatically make room by swapping statuses
-        $canPublish = true;
-        $canCreate  = true;
+        $canPublish = $subscriptionService->canSetMenuStatus(
+            $this->getUser(),
+            $menu?->getStatus(),
+            Menu::STATUS_PUBLISHED,
+        );
+        $canCreate = $subscriptionService->canCreateMenu($this->getUser());
 
         return $this->render('owner/menu/form.html.twig', [
             'menu'           => $menu,

@@ -49,6 +49,15 @@ class SubscriptionTest extends TestCase
         $this->assertFalse($subscription->isActive());
     }
 
+    public function testIsActiveReturnsFalseWithoutVerifiedPeriodEnd(): void
+    {
+        $subscription = (new Subscription())
+            ->setStatus(Subscription::STATUS_ACTIVE)
+            ->setCurrentPeriodEnd(null);
+
+        $this->assertFalse($subscription->isActive());
+    }
+
     public function testGetPublishedMenuLimitReturnsCorrectValue(): void
     {
         $subscription = new Subscription();
@@ -167,6 +176,20 @@ class SubscriptionTest extends TestCase
             ['published' => null, 'draft' => null],
             Subscription::LIMITS[Subscription::PLAN_PRO]
         );
+    }
+
+    public function testBusinessLimitsAreCorrect(): void
+    {
+        $subscription = new Subscription();
+
+        $subscription->setPlan(Subscription::PLAN_BASIC);
+        $this->assertSame(1, $subscription->getBusinessLimit());
+
+        $subscription->setPlan(Subscription::PLAN_PREMIUM);
+        $this->assertNull($subscription->getBusinessLimit());
+
+        $subscription->setPlan(Subscription::PLAN_PRO);
+        $this->assertNull($subscription->getBusinessLimit());
     }
 
     public function testPlanPricesAreCorrect(): void

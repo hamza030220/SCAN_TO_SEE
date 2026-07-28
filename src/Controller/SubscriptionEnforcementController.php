@@ -177,28 +177,29 @@ class SubscriptionEnforcementController extends AbstractController
             return $this->redirectToRoute('app_owner_subscription_enforce_limits');
         }
 
-        // Begin atomic deletion
+        // Archive overflow atomically. Archiving preserves all menu data and
+        // removes the menu from published/draft plan-slot counts.
         $em->beginTransaction();
 
         try {
-            $deletedCount = 0;
-            $deletedMenus = [];
+            $archivedCount = 0;
+            $archivedMenus = [];
 
-            // Delete unselected published menus
             foreach ($allPublished as $menu) {
                 if (!in_array($menu->getId(), $selectedPublished, true)) {
-                    $deletedMenus[] = sprintf('%s (published)', $menu->getName());
-                    $em->remove($menu);
-                    $deletedCount++;
+                    $archivedMenus[] = sprintf('%s (published)', $menu->getName());
+                    $menu->setStatus(\App\Entity\Menu::STATUS_ARCHIVED);
+                    $menu->setUpdatedAt(new \DateTimeImmutable());
+                    $archivedCount++;
                 }
             }
 
-            // Delete unselected draft menus
             foreach ($allDraft as $menu) {
                 if (!in_array($menu->getId(), $selectedDraft, true)) {
-                    $deletedMenus[] = sprintf('%s (draft)', $menu->getName());
-                    $em->remove($menu);
-                    $deletedCount++;
+                    $archivedMenus[] = sprintf('%s (draft)', $menu->getName());
+                    $menu->setStatus(\App\Entity\Menu::STATUS_ARCHIVED);
+                    $menu->setUpdatedAt(new \DateTimeImmutable());
+                    $archivedCount++;
                 }
             }
 
@@ -214,18 +215,18 @@ class SubscriptionEnforcementController extends AbstractController
                 'user_id'         => $user->getId(),
                 'user_email'      => $user->getEmail(),
                 'plan'            => $plan,
-                'deleted_count'   => $deletedCount,
-                'deleted_menus'   => $deletedMenus,
+                'archived_count'  => $archivedCount,
+                'archived_menus'  => $archivedMenus,
                 'kept_published'  => count($selectedPublished),
                 'kept_draft'      => count($selectedDraft),
             ]);
 
             // Success message
             $this->addFlash('success', sprintf(
-                '✅ Your account is now compliant with the %s plan. %d menu%s removed.',
+                'Your account is now compliant with the %s plan. %d menu%s archived.',
                 Subscription::LABELS[$plan],
-                $deletedCount,
-                $deletedCount !== 1 ? 's were' : ' was'
+                $archivedCount,
+                $archivedCount !== 1 ? 's were' : ' was'
             ));
 
             return $this->redirectToRoute('app_owner');

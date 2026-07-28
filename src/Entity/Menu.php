@@ -10,6 +10,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: MenuRepository::class)]
 class Menu
 {
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_ARCHIVED = 'archived';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -26,7 +30,7 @@ class Menu
     private ?string $slug = null;
 
     #[ORM\Column(length: 20)]
-    private string $status = 'draft';
+    private string $status = self::STATUS_DRAFT;
 
     #[ORM\Column(length: 3)]
     private string $currency = 'TND';

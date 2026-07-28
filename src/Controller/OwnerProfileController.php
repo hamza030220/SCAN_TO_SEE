@@ -28,12 +28,17 @@ final class OwnerProfileController extends AbstractController
     }
 
     #[Route('/owner/businesses', name: 'app_owner_businesses')]
-    public function list(BusinessRepository $businessRepo): Response
+    public function list(
+        BusinessRepository $businessRepo,
+        SubscriptionService $subscriptionService,
+    ): Response
     {
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
+        $businesses = $businessRepo->findBy(['owner' => $user], ['createdAt' => 'ASC']);
         return $this->render('owner/businesses.html.twig', [
-            'businesses' => $businessRepo->findBy(['owner' => $user], ['createdAt' => 'ASC']),
+            'businesses' => $businesses,
+            'canCreateBusiness' => $subscriptionService->canCreateBusiness($user, count($businesses)),
         ]);
     }
 
@@ -44,12 +49,20 @@ final class OwnerProfileController extends AbstractController
         BusinessRepository $businessRepo,
         EntityManagerInterface $em,
         ImageUploadService $imageUpload,
+        SubscriptionService $subscriptionService,
         ?int $id = null,
     ): Response {
         /** @var \App\Entity\User $user */
         $user     = $this->getUser();
         $business = $id ? $businessRepo->findOneBy(['id' => $id, 'owner' => $user]) : null;
         if ($id && !$business) throw $this->createNotFoundException();
+        if (!$business) {
+            $businessCount = $businessRepo->count(['owner' => $user]);
+            if (!$subscriptionService->canCreateBusiness($user, $businessCount)) {
+                $this->addFlash('warning', 'Your current plan has no free business slot.');
+                return $this->redirectToRoute('app_owner_subscription');
+            }
+        }
         $error = null;
 
         if ($request->isMethod('POST')) {
@@ -175,9 +188,8 @@ final class OwnerProfileController extends AbstractController
         if ($sub && ($sub->isActive() || $sub->getStatus() === 'pending')) {
             $service->cancelStripeSubscription($sub);
             $sub->setStatus(\App\Entity\Subscription::STATUS_CANCELLED);
-            $service->expireOwnerMenus($user);
             $em->flush();
-            $this->addFlash('success', 'Subscription cancelled successfully. All your menus have been set to draft.');
+            $this->addFlash('success', 'Subscription cancelled successfully. Your menu data has been preserved.');
         } else {
             $this->addFlash('error', 'No active subscription to cancel.');
         }

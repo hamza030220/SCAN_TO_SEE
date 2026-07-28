@@ -80,8 +80,7 @@ class SubscriptionService
      * Pass the menu's CURRENT status (or null for a new menu) and the DESIRED new status.
      * Returns true if the transition is allowed by the plan limits.
      *
-     * NOTE: This method only CHECKS if the transition is possible. 
-     * Use autoSwapMenuStatus() to automatically make room when limits are reached.
+     * NOTE: This method only checks whether the transition is possible.
      *
      * Examples:
      *   canSetMenuStatus($user, null,        'draft')      → new draft
@@ -93,7 +92,11 @@ class SubscriptionService
     public function canSetMenuStatus(User $user, ?string $currentStatus, string $newStatus): bool
     {
         $sub = $this->getSubscription($user);
-        if (!$sub || (!$sub->isActive() && $sub->getStatus() !== Subscription::STATUS_PENDING)) {
+        if (!$sub?->isActive()) {
+            return false;
+        }
+
+        if (!in_array($newStatus, ['draft', 'published'], true)) {
             return false;
         }
 
@@ -129,19 +132,12 @@ class SubscriptionService
     }
 
     /**
-     * Automatically swap menu statuses to make room for a new menu or status change.
-     * 
-     * When a user wants to create/change a menu but would exceed limits, this method
-     * automatically demotes the oldest menu of the target status to make room.
-     * 
-     * Returns array with:
-     *   'allowed' => bool (whether the transition can proceed)
-     *   'swapped_menu' => Menu|null (menu that was auto-swapped, if any)
-     *   'message' => string (user-friendly message explaining what happened)
+     * Compatibility wrapper for older callers. It never mutates another menu.
+     *
+     * Returns whether the transition is allowed and an explanatory message.
      */
     public function autoSwapMenuStatus(User $user, ?int $excludeMenuId, ?string $currentStatus, string $newStatus): array
     {
-        // If already allowed, no swap needed
         if ($this->canSetMenuStatus($user, $currentStatus, $newStatus)) {
             return [
                 'allowed' => true,
@@ -151,7 +147,7 @@ class SubscriptionService
         }
 
         $sub = $this->getSubscription($user);
-        if (!$sub || (!$sub->isActive() && $sub->getStatus() !== Subscription::STATUS_PENDING)) {
+        if (!$sub?->isActive()) {
             return [
                 'allowed' => false,
                 'swapped_menu' => null,
@@ -159,96 +155,14 @@ class SubscriptionService
             ];
         }
 
-        $plan = $sub->getPlan();
-        $publishedLimit = Subscription::LIMITS[$plan]['published'] ?? null;
-        $draftLimit     = Subscription::LIMITS[$plan]['draft'] ?? null;
-
-        // Pro plan: unlimited, should never need swapping
-        if ($publishedLimit === null && $draftLimit === null) {
-            return [
-                'allowed' => true,
-                'swapped_menu' => null,
-                'message' => null,
-            ];
-        }
-
-        $swappedMenu = null;
-        $message = null;
-
-        // Scenario 1: Want to create/change to published, but published limit reached
-        if ($newStatus === 'published' && $publishedLimit !== null) {
-            $publishedCount = $this->countPublishedMenus($user);
-            if ($publishedCount >= $publishedLimit) {
-                // Find oldest published menu (excluding the one being edited)
-                $qb = $this->menuRepo->createQueryBuilder('m')
-                    ->join('m.business', 'b')
-                    ->where('b.owner = :owner')
-                    ->andWhere('m.status = :status')
-                    ->setParameter('owner', $user)
-                    ->setParameter('status', 'published')
-                    ->orderBy('m.createdAt', 'ASC')
-                    ->setMaxResults(1);
-
-                if ($excludeMenuId) {
-                    $qb->andWhere('m.id != :exclude')
-                       ->setParameter('exclude', $excludeMenuId);
-                }
-
-                $oldestPublished = $qb->getQuery()->getOneOrNullResult();
-
-                if ($oldestPublished) {
-                    $oldestPublished->setStatus('draft');
-                    $oldestPublished->setUpdatedAt(new \DateTimeImmutable());
-                    $this->em->flush();
-                    
-                    $swappedMenu = $oldestPublished;
-                    $message = sprintf(
-                        '✨ "%s" was automatically set to draft to make room for your published menu.',
-                        $oldestPublished->getName()
-                    );
-                }
-            }
-        }
-
-        // Scenario 2: Want to create/change to draft, but draft limit reached
-        if ($newStatus === 'draft' && $draftLimit !== null) {
-            $draftCount = $this->countDraftMenus($user);
-            if ($draftCount >= $draftLimit) {
-                // Find oldest draft menu (excluding the one being edited)
-                $qb = $this->menuRepo->createQueryBuilder('m')
-                    ->join('m.business', 'b')
-                    ->where('b.owner = :owner')
-                    ->andWhere('m.status = :status')
-                    ->setParameter('owner', $user)
-                    ->setParameter('status', 'draft')
-                    ->orderBy('m.createdAt', 'ASC')
-                    ->setMaxResults(1);
-
-                if ($excludeMenuId) {
-                    $qb->andWhere('m.id != :exclude')
-                       ->setParameter('exclude', $excludeMenuId);
-                }
-
-                $oldestDraft = $qb->getQuery()->getOneOrNullResult();
-
-                if ($oldestDraft) {
-                    $oldestDraft->setStatus('published');
-                    $oldestDraft->setUpdatedAt(new \DateTimeImmutable());
-                    $this->em->flush();
-                    
-                    $swappedMenu = $oldestDraft;
-                    $message = sprintf(
-                        '✨ "%s" was automatically published to make room for your draft menu.',
-                        $oldestDraft->getName()
-                    );
-                }
-            }
-        }
-
         return [
-            'allowed' => true,
-            'swapped_menu' => $swappedMenu,
-            'message' => $message,
+            'allowed' => false,
+            'swapped_menu' => null,
+            'message' => sprintf(
+                'Your %s plan has no free %s menu slot. Archive or change another menu first, or upgrade your plan.',
+                $sub->getPlanLabel(),
+                $newStatus,
+            ),
         ];
     }
 
@@ -259,7 +173,7 @@ class SubscriptionService
     public function canCreateMenu(User $user): bool
     {
         $sub = $this->getSubscription($user);
-        if (!$sub || (!$sub->isActive() && $sub->getStatus() !== Subscription::STATUS_PENDING)) {
+        if (!$sub?->isActive()) {
             return false;
         }
 
@@ -281,6 +195,17 @@ class SubscriptionService
         return $publishedFree || $draftFree;
     }
 
+    public function canCreateBusiness(User $user, int $currentBusinessCount): bool
+    {
+        $sub = $this->getSubscription($user);
+        if (!$sub?->isActive()) {
+            return false;
+        }
+
+        $limit = $sub->getBusinessLimit();
+        return $limit === null || $currentBusinessCount < $limit;
+    }
+
     /** @deprecated Use canSetMenuStatus() instead */
     public function canPublishMenu(User $user): bool
     {
@@ -297,6 +222,14 @@ class SubscriptionService
         string $cancelUrl,
     ): StripeSession {
         Stripe::setApiKey($this->stripeSecretKey);
+
+        $existing = $this->getSubscription($user);
+        if ($existing?->isActive()) {
+            throw new \LogicException('Use the plan-change flow for an active subscription.');
+        }
+        if ($existing?->getStatus() === Subscription::STATUS_PENDING && $existing->getStripeSubscriptionId()) {
+            throw new \LogicException('A subscription payment is already awaiting confirmation.');
+        }
 
         $priceId = $this->stripePriceIds[$plan][$period]
             ?? throw new \InvalidArgumentException("No Stripe price for {$plan}/{$period}");
@@ -344,7 +277,9 @@ class SubscriptionService
 
         match ($event->type) {
             'checkout.session.completed'      => $this->onCheckoutCompleted($event->data->object),
+            'checkout.session.async_payment_succeeded' => $this->onCheckoutCompleted($event->data->object),
             'invoice.paid'                    => $this->onInvoicePaid($event->data->object),
+            'customer.subscription.updated'   => $this->onSubscriptionUpdated($event->data->object),
             'customer.subscription.deleted'   => $this->onSubscriptionDeleted($event->data->object),
             'invoice.payment_failed'          => $this->onPaymentFailed($event->data->object),
             default                           => null,
@@ -355,32 +290,32 @@ class SubscriptionService
     {
         $userId = (int) $session->client_reference_id;
         $user   = $this->em->find(User::class, $userId);
-        if (!$user) return;
-
-        $plan   = $session->metadata->plan ?? Subscription::PLAN_BASIC;
-        $period = $session->metadata->period ?? Subscription::PERIOD_MONTHLY;
+        $stripeSubscriptionId = $this->extractStripeId($session->subscription);
+        if (!$user
+            || !$stripeSubscriptionId
+            || $session->status !== 'complete'
+            || !in_array($session->payment_status, ['paid', 'no_payment_required'], true)
+        ) {
+            return;
+        }
 
         $stripeClient = new StripeClient($this->stripeSecretKey);
-        $stripeSub    = $stripeClient->subscriptions->retrieve($session->subscription);
+        $stripeSub    = $stripeClient->subscriptions->retrieve($stripeSubscriptionId);
 
         $sub = $this->subscriptionRepo->findOneBy(['owner' => $user])
             ?? (new Subscription())->setOwner($user);
 
-        $oldPlan = $sub->getPlan();
+        $wasEntitled = $sub->isActive();
         $oldRank = $sub->getPlanRank();
-        $newRank = (new Subscription())->setPlan($plan)->getPlanRank();
 
-        $sub->setStripeCustomerId($session->customer);
-        $sub->setStripeSubscriptionId($session->subscription);
-        $sub->setPlan($plan);
-        $sub->setBillingPeriod($period);
-        $sub->setStatus(Subscription::STATUS_ACTIVE);
-        $sub->setCurrentPeriodEnd(\DateTimeImmutable::createFromFormat('U', (string) $stripeSub->current_period_end));
-        $sub->setExpiryReminderSent(false);
+        $sub->setStripeCustomerId($this->extractStripeId($session->customer));
+        $sub->setStripeSubscriptionId($stripeSubscriptionId);
+        $this->synchronizeFromStripe($sub, $stripeSub);
+        $newRank = $sub->getPlanRank();
 
         // Check if enforcement is needed (downgrade or new subscription with existing menus)
-        if ($newRank < $oldRank || $oldPlan === null) {
-            $this->checkAndSetEnforcement($user, $plan);
+        if (!$wasEntitled || $newRank < $oldRank) {
+            $this->checkAndSetEnforcement($user, $sub->getPlan());
         } else {
             // Upgrade: clear enforcement
             $user->setEnforcementRequired(false);
@@ -392,19 +327,17 @@ class SubscriptionService
 
     private function onInvoicePaid(\Stripe\Invoice $invoice): void
     {
-        if (!$invoice->subscription) return;
+        $stripeSubscriptionId = $this->getInvoiceSubscriptionId($invoice);
+        if (!$stripeSubscriptionId) return;
 
-        $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $invoice->subscription]);
+        $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $stripeSubscriptionId]);
         if (!$sub) return;
 
         $stripeClient = new StripeClient($this->stripeSecretKey);
-        $stripeSub    = $stripeClient->subscriptions->retrieve($invoice->subscription);
+        $stripeSub    = $stripeClient->subscriptions->retrieve($stripeSubscriptionId);
 
         $oldPlan = $sub->getPlan();
-        
-        $sub->setStatus(Subscription::STATUS_ACTIVE);
-        $sub->setCurrentPeriodEnd(\DateTimeImmutable::createFromFormat('U', (string) $stripeSub->current_period_end));
-        $sub->setExpiryReminderSent(false);
+        $this->synchronizeFromStripe($sub, $stripeSub);
         
         // Check if plan changed (renewal might include plan change)
         $newPlan = $sub->getPlan();
@@ -415,98 +348,203 @@ class SubscriptionService
         $this->em->flush();
     }
 
+    private function onSubscriptionUpdated(\Stripe\Subscription $stripeSub): void
+    {
+        $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $stripeSub->id]);
+        if (!$sub) {
+            return;
+        }
+
+        $oldRank = $sub->getPlanRank();
+        $this->synchronizeFromStripe($sub, $stripeSub);
+
+        if ($sub->getPlanRank() < $oldRank) {
+            $this->checkAndSetEnforcement($sub->getOwner(), $sub->getPlan());
+        } elseif ($sub->getPlanRank() > $oldRank) {
+            $sub->getOwner()->setEnforcementRequired(false);
+        }
+
+        $this->em->flush();
+    }
+
     private function onSubscriptionDeleted(\Stripe\Subscription $stripeSub): void
     {
         $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $stripeSub->id]);
         if (!$sub) return;
 
         $sub->setStatus(Subscription::STATUS_CANCELLED);
-        $this->expireOwnerMenus($sub->getOwner());
         $this->em->flush();
     }
 
     private function onPaymentFailed(\Stripe\Invoice $invoice): void
     {
-        // Keep subscription active for now — Stripe will retry
-        // Mark it so the UI can show a warning
-    }
-
-    // ── Downgrade ─────────────────────────────────────────────────────────────
-
-    /**
-     * Downgrade to a lower plan. $keepMenuIds = IDs of menus to keep published.
-     * DEPRECATED: This method only handles published menus. 
-     * New enforcement flow handles both published and draft limits.
-     */
-    public function applyDowngrade(User $user, string $newPlan, string $newPeriod, array $keepMenuIds = []): void
-    {
-        Stripe::setApiKey($this->stripeSecretKey);
-
-        $sub = $this->getSubscription($user)
-            ?? throw new \LogicException('No subscription found for user');
-
-        $newPriceId = $this->stripePriceIds[$newPlan][$newPeriod]
-            ?? throw new \InvalidArgumentException("No Stripe price for {$newPlan}/{$newPeriod}");
-
-        $oldRank = $sub->getPlanRank();
-        $newRank = (new Subscription())->setPlan($newPlan)->getPlanRank();
-
-        // Update Stripe subscription to new price
-        if ($sub->getStripeSubscriptionId()) {
-            $stripeClient    = new StripeClient($this->stripeSecretKey);
-            $stripeSub       = $stripeClient->subscriptions->retrieve($sub->getStripeSubscriptionId());
-            $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
-                'items'       => [['id' => $stripeSub->items->data[0]->id, 'price' => $newPriceId]],
-                'proration_behavior' => 'none',
-            ]);
+        $stripeSubscriptionId = $this->getInvoiceSubscriptionId($invoice);
+        if (!$stripeSubscriptionId) {
+            return;
         }
 
-        // Demote extra menus to draft (legacy behavior)
-        $limit = Subscription::LIMITS[$newPlan]['published'] ?? null;
-        if ($limit !== null) {
-            $menus = $this->menuRepo->createQueryBuilder('m')
-                ->join('m.business', 'b')
-                ->where('b.owner = :owner')
-                ->andWhere('m.status = :status')
-                ->setParameter('owner', $user)
-                ->setParameter('status', 'published')
-                ->getQuery()
-                ->getResult();
+        $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $stripeSubscriptionId]);
+        if (!$sub) {
+            return;
+        }
 
-            foreach ($menus as $menu) {
-                if (!in_array($menu->getId(), $keepMenuIds, true)) {
-                    $menu->setStatus('draft');
+        $sub->setStatus(Subscription::STATUS_PAST_DUE);
+        $this->em->flush();
+    }
+
+    /**
+     * Stripe API 2025-03-31 moved an invoice's subscription reference under
+     * parent.subscription_details. Keep the legacy fallback for older accounts.
+     */
+    private function getInvoiceSubscriptionId(\Stripe\Invoice $invoice): ?string
+    {
+        $data = $invoice->jsonSerialize();
+        $value = $data['parent']['subscription_details']['subscription']
+            ?? $data['subscription']
+            ?? null;
+
+        return $this->extractStripeId($value);
+    }
+
+    private function extractStripeId(mixed $value): ?string
+    {
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+        if (is_array($value) && isset($value['id']) && is_string($value['id'])) {
+            return $value['id'];
+        }
+        if (is_object($value) && isset($value->id) && is_string($value->id)) {
+            return $value->id;
+        }
+
+        return null;
+    }
+
+    /**
+     * Synchronize the local record from Stripe's subscription object.
+     * Supports old Stripe API versions and item-level billing periods.
+     */
+    public function synchronizeFromStripe(Subscription $sub, \Stripe\Subscription $stripeSub): void
+    {
+        $data = $stripeSub->jsonSerialize();
+        $stripeStatus = (string) ($data['status'] ?? '');
+
+        $sub->setStatus(match ($stripeStatus) {
+            'active' => Subscription::STATUS_ACTIVE,
+            'canceled' => Subscription::STATUS_CANCELLED,
+            'past_due', 'unpaid' => Subscription::STATUS_PAST_DUE,
+            'incomplete_expired' => Subscription::STATUS_EXPIRED,
+            default => Subscription::STATUS_PENDING,
+        });
+
+        $periodEnd = $data['items']['data'][0]['current_period_end']
+            ?? $data['current_period_end']
+            ?? null;
+        $date = is_numeric($periodEnd)
+            ? \DateTimeImmutable::createFromFormat('U', (string) $periodEnd)
+            : false;
+        $sub->setCurrentPeriodEnd($date instanceof \DateTimeImmutable ? $date : null);
+
+        $priceId = $data['items']['data'][0]['price']['id'] ?? null;
+        $planPeriod = $this->findPlanPeriodForPriceId(is_string($priceId) ? $priceId : null);
+        if ($planPeriod !== null) {
+            $sub->setPlan($planPeriod['plan']);
+            $sub->setBillingPeriod($planPeriod['period']);
+        }
+
+        $sub->setExpiryReminderSent(false);
+    }
+
+    private function findPlanPeriodForPriceId(?string $priceId): ?array
+    {
+        if ($priceId === null) {
+            return null;
+        }
+
+        foreach ($this->stripePriceIds as $plan => $periods) {
+            foreach ($periods as $period => $configuredPriceId) {
+                if (hash_equals((string) $configuredPriceId, $priceId)) {
+                    return ['plan' => $plan, 'period' => $period];
                 }
             }
         }
 
+        return null;
+    }
+
+    // ── Downgrade ─────────────────────────────────────────────────────────────
+
+    public function changeActiveSubscription(
+        User $user,
+        string $newPlan,
+        string $newPeriod,
+        string $prorationBehavior = 'create_prorations',
+    ): void {
+        if (!in_array($newPlan, Subscription::PLANS, true)) {
+            throw new \InvalidArgumentException('Invalid subscription plan.');
+        }
+        if (!in_array($newPeriod, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
+            throw new \InvalidArgumentException('Invalid billing period.');
+        }
+
+        $sub = $this->getSubscription($user)
+            ?? throw new \LogicException('No subscription found for user.');
+        if (!$sub->isActive() || !$sub->getStripeSubscriptionId()) {
+            throw new \LogicException('An active Stripe subscription is required.');
+        }
+
+        $oldRank = $sub->getPlanRank();
+        $newRank = (new Subscription())->setPlan($newPlan)->getPlanRank();
+        $newPriceId = $this->stripePriceIds[$newPlan][$newPeriod]
+            ?? throw new \InvalidArgumentException("No Stripe price for {$newPlan}/{$newPeriod}");
+
+        $stripeClient = new StripeClient($this->stripeSecretKey);
+        $stripeSub = $stripeClient->subscriptions->retrieve($sub->getStripeSubscriptionId());
+        $itemId = $stripeSub->items->data[0]->id ?? null;
+        if (!$itemId) {
+            throw new \RuntimeException('Stripe subscription has no billable item.');
+        }
+
+        $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
+            'items' => [['id' => $itemId, 'price' => $newPriceId]],
+            'proration_behavior' => $prorationBehavior,
+        ]);
+
+        $this->synchronizeFromStripe($sub, $updatedStripeSub);
+        // Keep the selected values even when an older Stripe API response does
+        // not expand the price object.
         $sub->setPlan($newPlan);
         $sub->setBillingPeriod($newPeriod);
-        
-        // Check if enforcement is needed (downgrade might create draft overflow)
+
         if ($newRank < $oldRank) {
             $this->checkAndSetEnforcement($user, $newPlan);
+        } elseif ($newRank > $oldRank) {
+            $user->setEnforcementRequired(false);
         }
-        
+
         $this->em->flush();
+    }
+
+    public function applyDowngrade(User $user, string $newPlan, string $newPeriod, array $keepMenuIds = []): void
+    {
+        $sub = $this->getSubscription($user)
+            ?? throw new \LogicException('No subscription found for user.');
+        $newRank = (new Subscription())->setPlan($newPlan)->getPlanRank();
+        if ($newRank >= $sub->getPlanRank()) {
+            throw new \LogicException('Selected plan is not a downgrade.');
+        }
+
+        $this->changeActiveSubscription($user, $newPlan, $newPeriod, 'none');
     }
 
     // ── Expire menus when subscription lapses ─────────────────────────────────
 
     public function expireOwnerMenus(User $user): void
     {
-        $menus = $this->menuRepo->createQueryBuilder('m')
-            ->join('m.business', 'b')
-            ->where('b.owner = :owner')
-            ->andWhere('m.status = :status')
-            ->setParameter('owner', $user)
-            ->setParameter('status', 'published')
-            ->getQuery()
-            ->getResult();
-
-        foreach ($menus as $menu) {
-            $menu->setStatus('draft');
-        }
+        // Menu statuses are intentionally preserved. Public access checks the
+        // owner's active subscription, so renewal restores visibility without
+        // losing which menus were published.
     }
 
     // ── Cancel Stripe subscription ────────────────────────────────────────────

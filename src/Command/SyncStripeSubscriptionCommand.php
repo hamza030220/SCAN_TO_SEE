@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Repository\SubscriptionRepository;
+use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Stripe\Stripe;
 use Stripe\StripeClient;
@@ -21,6 +22,7 @@ class SyncStripeSubscriptionCommand extends Command
     public function __construct(
         private readonly SubscriptionRepository $subscriptionRepo,
         private readonly EntityManagerInterface $em,
+        private readonly SubscriptionService $subscriptionService,
         private readonly string $stripeSecretKey,
     ) {
         parent::__construct();
@@ -45,31 +47,8 @@ class SyncStripeSubscriptionCommand extends Command
 
             try {
                 $stripeSub = $client->subscriptions->retrieve($sub->getStripeSubscriptionId());
-                $stripeData = $stripeSub->jsonSerialize();
-
-                // Extract current_period_end from items
-                $periodEnd = null;
-                if (isset($stripeData['items']['data'][0]['current_period_end'])) {
-                    $timestamp = $stripeData['items']['data'][0]['current_period_end'];
-                    $periodEnd = \DateTimeImmutable::createFromFormat('U', (string) $timestamp);
-                }
-
-                // Update status
-                $stripeStatus = $stripeData['status'] ?? 'unknown';
-                if ($stripeStatus === 'active') {
-                    $sub->setStatus('active');
-                } elseif ($stripeStatus === 'canceled') {
-                    $sub->setStatus('cancelled');
-                } else {
-                    $sub->setStatus($stripeStatus);
-                }
-
-                // Update period end
-                if ($periodEnd) {
-                    $sub->setCurrentPeriodEnd($periodEnd);
-                }
-                
-                $sub->setExpiryReminderSent(false);
+                $this->subscriptionService->synchronizeFromStripe($sub, $stripeSub);
+                $periodEnd = $sub->getCurrentPeriodEnd();
 
                 $io->success(sprintf(
                     'Synced subscription #%d (%s) - Status: %s, Expires: %s',

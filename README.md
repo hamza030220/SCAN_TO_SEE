@@ -363,6 +363,20 @@ The app will be available at **http://127.0.0.1:8000**.
 
 > **Windows note:** Use foreground mode (`symfony serve`) rather than daemon mode (`symfony server:start -d`) to avoid a known Symfony CLI lock-file bug on Windows.
 
+### Subscription scheduler
+
+Run the subscription scheduler in a separate terminal. This sends expiry
+reminders and records overdue subscriptions:
+
+```powershell
+cd C:\Users\zussl\Desktop\scantosee\scantosee_APP\my_project_directory
+php bin/console messenger:consume scheduler_subscription_reminders -vv
+```
+
+Public menu access also checks subscription validity on every request, so an
+expired subscription cannot leave a menu publicly accessible if this worker is
+temporarily unavailable.
+
 ---
 
 ### Menu Scanner OCR Service

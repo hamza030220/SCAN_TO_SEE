@@ -365,7 +365,7 @@ class SubscriptionServiceTest extends TestCase
         $this->assertNull($result['message']);
     }
 
-    public function testAutoSwapMenuStatusSwapsOldestPublishedMenuToDraft(): void
+    public function testAutoSwapMenuStatusDoesNotDemotePublishedMenuWhenLimitIsReached(): void
     {
         $user = $this->createUser();
         $subscription = $this->createSubscription($user, Subscription::PLAN_BASIC, Subscription::STATUS_ACTIVE);
@@ -375,8 +375,8 @@ class SubscriptionServiceTest extends TestCase
         // Create mock menu that will be swapped
         $oldestMenu = $this->createMock(Menu::class);
         $oldestMenu->method('getName')->willReturn('Old Menu');
-        $oldestMenu->expects($this->once())->method('setStatus')->with('draft');
-        $oldestMenu->expects($this->once())->method('setUpdatedAt')->with($this->isInstanceOf(\DateTimeImmutable::class));
+        $oldestMenu->expects($this->never())->method('setStatus');
+        $oldestMenu->expects($this->never())->method('setUpdatedAt');
 
         // First call: countPublishedMenus in canSetMenuStatus (returns 1 = at limit)
         $countQuery1 = $this->getMockBuilder(\Doctrine\ORM\Query::class)
@@ -450,17 +450,17 @@ class SubscriptionServiceTest extends TestCase
         $this->menuRepo->method('createQueryBuilder')
             ->willReturnOnConsecutiveCalls($countQueryBuilder1, $countQueryBuilder2, $countQueryBuilder3, $menuQueryBuilder);
 
-        $this->em->expects($this->once())->method('flush');
+        $this->em->expects($this->never())->method('flush');
 
         $result = $this->service->autoSwapMenuStatus($user, null, null, 'published');
 
-        $this->assertTrue($result['allowed']);
-        $this->assertSame($oldestMenu, $result['swapped_menu']);
-        $this->assertStringContainsString('Old Menu', $result['message']);
-        $this->assertStringContainsString('draft', $result['message']);
+        $this->assertFalse($result['allowed']);
+        $this->assertNull($result['swapped_menu']);
+        $this->assertStringContainsString('Basic', $result['message']);
+        $this->assertStringContainsString('published', $result['message']);
     }
 
-    public function testAutoSwapMenuStatusSwapsOldestDraftMenuToPublished(): void
+    public function testAutoSwapMenuStatusDoesNotPublishDraftMenuWhenLimitIsReached(): void
     {
         $user = $this->createUser();
         $subscription = $this->createSubscription($user, Subscription::PLAN_BASIC, Subscription::STATUS_ACTIVE);
@@ -470,8 +470,8 @@ class SubscriptionServiceTest extends TestCase
         // Create mock menu that will be swapped
         $oldestMenu = $this->createMock(Menu::class);
         $oldestMenu->method('getName')->willReturn('Old Draft');
-        $oldestMenu->expects($this->once())->method('setStatus')->with('published');
-        $oldestMenu->expects($this->once())->method('setUpdatedAt')->with($this->isInstanceOf(\DateTimeImmutable::class));
+        $oldestMenu->expects($this->never())->method('setStatus');
+        $oldestMenu->expects($this->never())->method('setUpdatedAt');
 
         // First call: countPublishedMenus in canSetMenuStatus (not relevant but called)
         $countQuery1 = $this->getMockBuilder(\Doctrine\ORM\Query::class)
@@ -545,13 +545,109 @@ class SubscriptionServiceTest extends TestCase
         $this->menuRepo->method('createQueryBuilder')
             ->willReturnOnConsecutiveCalls($countQueryBuilder1, $countQueryBuilder2, $countQueryBuilder3, $menuQueryBuilder);
 
-        $this->em->expects($this->once())->method('flush');
+        $this->em->expects($this->never())->method('flush');
 
         $result = $this->service->autoSwapMenuStatus($user, null, null, 'draft');
 
-        $this->assertTrue($result['allowed']);
-        $this->assertSame($oldestMenu, $result['swapped_menu']);
-        $this->assertStringContainsString('Old Draft', $result['message']);
-        $this->assertStringContainsString('published', $result['message']);
+        $this->assertFalse($result['allowed']);
+        $this->assertNull($result['swapped_menu']);
+        $this->assertStringContainsString('Basic', $result['message']);
+        $this->assertStringContainsString('draft', $result['message']);
+    }
+
+    public function testPendingSubscriptionCannotCreateOrPublishMenus(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription(
+            $user,
+            Subscription::PLAN_PRO,
+            Subscription::STATUS_PENDING
+        );
+
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+
+        $this->assertFalse($this->service->canCreateMenu($user));
+        $this->assertFalse($this->service->canSetMenuStatus($user, 'draft', 'published'));
+    }
+
+    public function testInvalidMenuStatusIsRejected(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription(
+            $user,
+            Subscription::PLAN_PRO,
+            Subscription::STATUS_ACTIVE
+        );
+
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+
+        $this->assertFalse($this->service->canSetMenuStatus($user, 'draft', 'unknown'));
+    }
+
+    public function testBusinessLimitUsesActivePlan(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription(
+            $user,
+            Subscription::PLAN_BASIC,
+            Subscription::STATUS_ACTIVE
+        );
+
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+
+        $this->assertTrue($this->service->canCreateBusiness($user, 0));
+        $this->assertFalse($this->service->canCreateBusiness($user, 1));
+
+        $subscription->setPlan(Subscription::PLAN_PREMIUM);
+        $this->assertTrue($this->service->canCreateBusiness($user, 10));
+    }
+
+    public function testStripeSynchronizationUsesItemPeriodAndConfiguredPrice(): void
+    {
+        $subscription = new Subscription();
+        $periodEnd = time() + 3600;
+        $stripeSubscription = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_test',
+            'status' => 'active',
+            'items' => [
+                'object' => 'list',
+                'data' => [[
+                    'id' => 'si_test',
+                    'object' => 'subscription_item',
+                    'current_period_end' => $periodEnd,
+                    'price' => [
+                        'id' => 'price_pro_yearly',
+                        'object' => 'price',
+                    ],
+                ]],
+            ],
+        ]);
+
+        $this->service->synchronizeFromStripe($subscription, $stripeSubscription);
+
+        $this->assertSame(Subscription::STATUS_ACTIVE, $subscription->getStatus());
+        $this->assertSame(Subscription::PLAN_PRO, $subscription->getPlan());
+        $this->assertSame(Subscription::PERIOD_YEARLY, $subscription->getBillingPeriod());
+        $this->assertSame($periodEnd, $subscription->getCurrentPeriodEnd()?->getTimestamp());
+    }
+
+    public function testInvoiceSubscriptionLookupSupportsCurrentAndLegacyStripeShapes(): void
+    {
+        $method = new \ReflectionMethod(SubscriptionService::class, 'getInvoiceSubscriptionId');
+
+        $currentInvoice = \Stripe\Invoice::constructFrom([
+            'id' => 'in_current',
+            'parent' => [
+                'type' => 'subscription_details',
+                'subscription_details' => ['subscription' => 'sub_current'],
+            ],
+        ]);
+        $legacyInvoice = \Stripe\Invoice::constructFrom([
+            'id' => 'in_legacy',
+            'subscription' => 'sub_legacy',
+        ]);
+
+        $this->assertSame('sub_current', $method->invoke($this->service, $currentInvoice));
+        $this->assertSame('sub_legacy', $method->invoke($this->service, $legacyInvoice));
     }
 }

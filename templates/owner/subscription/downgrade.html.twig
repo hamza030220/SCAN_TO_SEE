@@ -13,7 +13,7 @@
             Your new <strong>{{ newPlan|capitalize }}</strong> plan allows
             <strong>{{ newLimit }} published menu{{ newLimit > 1 ? 's' }}</strong>.
             You currently have <strong>{{ published|length }}</strong> published menus.
-            Select up to <strong>{{ newLimit }}</strong> to keep — the rest will become drafts.
+            Select up to <strong>{{ newLimit }}</strong> to keep. The rest will be archived, not deleted.
         </p>
 
         <form method="post" action="{{ path('app_owner_subscription_downgrade', {plan: newPlan, period: newPeriod}) }}">

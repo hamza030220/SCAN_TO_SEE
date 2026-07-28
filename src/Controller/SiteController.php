@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Subscription;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -50,16 +51,28 @@ final class SiteController extends AbstractController
         return $this->render('site/pricing.html.twig', [
             'plans' => [
                 [
-                    'name' => 'Monthly',
-                    'period' => 'Flexible billing',
-                    'description' => 'For owners who want to start small and keep the option to change period later.',
-                    'items' => ['One permanent QR menu', 'Theme presets and branding', 'Menu languages', 'Downloadable QR code'],
+                    'name' => Subscription::LABELS[Subscription::PLAN_BASIC],
+                    'period' => 'For one business',
+                    'monthly' => Subscription::PRICES[Subscription::PLAN_BASIC][Subscription::PERIOD_MONTHLY],
+                    'yearly' => Subscription::PRICES[Subscription::PLAN_BASIC][Subscription::PERIOD_YEARLY],
+                    'description' => 'The essentials for a single venue.',
+                    'items' => ['1 published menu', '1 draft menu', 'Permanent QR codes', 'Live menu updates'],
                 ],
                 [
-                    'name' => 'Yearly',
-                    'period' => 'Best value',
-                    'description' => 'For established venues that want the same product with a better long-term rate.',
-                    'items' => ['Everything in Monthly', 'Lower effective monthly cost', 'Billing history', 'Easy renewal'],
+                    'name' => Subscription::LABELS[Subscription::PLAN_PREMIUM],
+                    'period' => 'For growing businesses',
+                    'monthly' => Subscription::PRICES[Subscription::PLAN_PREMIUM][Subscription::PERIOD_MONTHLY],
+                    'yearly' => Subscription::PRICES[Subscription::PLAN_PREMIUM][Subscription::PERIOD_YEARLY],
+                    'description' => 'More menus and support for multiple businesses.',
+                    'items' => ['3 published menus', '3 draft menus', 'Multiple businesses', 'Permanent QR codes'],
+                ],
+                [
+                    'name' => Subscription::LABELS[Subscription::PLAN_PRO],
+                    'period' => 'For larger operations',
+                    'monthly' => Subscription::PRICES[Subscription::PLAN_PRO][Subscription::PERIOD_MONTHLY],
+                    'yearly' => Subscription::PRICES[Subscription::PLAN_PRO][Subscription::PERIOD_YEARLY],
+                    'description' => 'Unlimited menu capacity and priority support.',
+                    'items' => ['Unlimited published menus', 'Unlimited drafts', 'Multiple businesses', 'Priority support'],
                 ],
             ],
         ]);

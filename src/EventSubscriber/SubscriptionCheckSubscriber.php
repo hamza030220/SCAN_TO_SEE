@@ -21,6 +21,7 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
         'app_owner_subscription',
         'app_owner_subscription_checkout',
         'app_owner_subscription_success',
+        'app_owner_subscription_change',
         'app_owner_subscription_downgrade',
         'app_owner_subscription_cancel',
         'app_stripe_webhook',
@@ -76,8 +77,7 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
         // Check subscription
         $sub = $this->subRepo->findOneBy(['owner' => $user]);
 
-        // Allow both active and pending (pending = payment received, waiting for webhook confirmation)
-        if (!$sub || (!$sub->isActive() && $sub->getStatus() !== Subscription::STATUS_PENDING)) {
+        if (!$sub?->isActive()) {
             $status = $sub?->getStatus() ?? 'none';
 
             // Add context-appropriate flash message

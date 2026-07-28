@@ -7,8 +7,8 @@
     <section class="s-subhero">
         <div class="shell">
             <span class="eyebrow">Pricing</span>
-            <h1>One product, two billing periods.</h1>
-            <p>S2S is priced by billing period, not by feature tier. Monthly and yearly subscriptions access the same complete platform — the difference is the rate.</p>
+            <h1>Choose the plan that fits your operation.</h1>
+            <p>Every plan is available with monthly or discounted yearly billing. Menu and business limits are shown clearly below.</p>
         </div>
     </section>
 
@@ -23,8 +23,8 @@
                             <p>{{ plan.description }}</p>
                         </div>
                         <div class="price-tbd">
-                            <strong>Price coming soon</strong>
-                            <span>Launch pricing will be set when the commercial offer is final.</span>
+                            <strong>€{{ (plan.monthly / 100)|number_format(0) }} / month</strong>
+                            <span>or €{{ (plan.yearly / 100)|number_format(0) }} per year</span>
                         </div>
                         <ul class="pricing-features">
                             {% for item in plan.items %}
@@ -42,8 +42,8 @@
         <div class="shell billing-inner">
             <div>
                 <h2>How billing works</h2>
-                <p>S2S handles payments and recurring billing through a payment provider with built-in subscription support. Renewals, failed-payment handling, and invoicing are automated rather than custom-built.</p>
-                <p>If a subscription lapses, the public-facing menu is paused rather than deleted. Reactivating a subscription restores everything exactly as it was — no rebuild required.</p>
+                <p>S2S uses Stripe for secure recurring payments. Owners can change plan or billing period from the subscription page.</p>
+                <p>If a subscription lapses, public access is paused while menu data and publication choices remain preserved. Reactivation restores visibility without rebuilding the menu.</p>
             </div>
             <div class="billing-rules">
                 <div class="billing-rule">

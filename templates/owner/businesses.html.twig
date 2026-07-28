@@ -7,9 +7,15 @@
 <div class="owner-panel">
     <div class="owner-panel-head">
         <h2>Your businesses</h2>
-        <a href="{{ path('app_owner_business_new') }}"
-           data-modal="{{ path('app_owner_business_new') }}"
-           class="btn btn-primary btn-sm">+ Add business</a>
+        {% if canCreateBusiness %}
+            <a href="{{ path('app_owner_business_new') }}"
+               data-modal="{{ path('app_owner_business_new') }}"
+               class="btn btn-primary btn-sm">Add business</a>
+        {% else %}
+            <a href="{{ path('app_owner_subscription') }}"
+               class="btn btn-outline btn-sm"
+               title="Upgrade your plan to add another business">Business limit reached</a>
+        {% endif %}
     </div>
 
     {% if businesses is empty %}

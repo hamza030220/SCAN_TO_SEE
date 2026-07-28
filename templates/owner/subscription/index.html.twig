@@ -4,7 +4,7 @@
 
 {% block body %}
 {% set planOrder = ['basic', 'premium', 'pro'] %}
-{% set planIcons = { basic: '🍽️', premium: '⭐', pro: '🚀' } %}
+{% set planIcons = { basic: 'B', premium: 'P', pro: 'P+' } %}
 {% set planDescs = {
     basic:   'Perfect for getting started with one digital menu.',
     premium: 'Grow your venue with up to 3 full menus.',
@@ -305,6 +305,7 @@ body {
     color: rgba(245,240,232,.75);
     line-height: 1.5;
 }
+.sub-change-form { width: 100%; margin: 0; }
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 .btn {
@@ -401,7 +402,7 @@ body {
 <header class="sub-header">
     <div class="sub-header-inner">
         <a href="{{ path('app_dashboard') }}" class="sub-logo">
-            <span class="sub-logo-icon">🍽️</span>
+            <span class="sub-logo-icon">S2S</span>
             Scan to See
         </a>
         {% if app.user %}
@@ -420,7 +421,7 @@ body {
             {% set daysLeft = sub.getDaysUntilExpiry() %}
             {% if daysLeft is not null and daysLeft <= 7 %}
                 <div class="sub-banner sub-banner--warn">
-                    ⚠️ Your <strong>{{ sub.getPlanLabel() }}</strong> subscription expires in <strong>{{ daysLeft }} day{{ daysLeft != 1 ? 's' }}</strong>. Renew below to keep your menus live.
+                    Your <strong>{{ sub.getPlanLabel() }}</strong> subscription expires in <strong>{{ daysLeft }} day{{ daysLeft != 1 ? 's' }}</strong>. Renew below to keep your menus live.
                 </div>
             {% endif %}
             <div class="sub-current">
@@ -434,30 +435,34 @@ body {
                     </div>
                 </div>
                 <form method="post" action="{{ path('app_owner_subscription_cancel') }}"
-                      onsubmit="return confirm('Cancel your subscription? All your menus will be set to draft.')">
+                      onsubmit="return confirm('Cancel your subscription? Your menu data will be preserved, but public menu access will stop until you renew.')">
                     <input type="hidden" name="_token" value="{{ csrf_token('cancel-subscription') }}">
                     <button type="submit" class="btn-cancel">Cancel subscription</button>
                 </form>
             </div>
         {% elseif sub.status == 'pending' %}
             <div class="sub-banner sub-banner--info">
-                ⏳ Payment is being confirmed. Refresh in a few seconds.
+                Payment is being confirmed. Refresh in a few seconds.
+            </div>
+        {% elseif sub.status == 'past_due' %}
+            <div class="sub-banner sub-banner--err">
+                Stripe could not collect the latest payment. Update the payment method in Stripe before access can resume.
             </div>
         {% else %}
             <div class="sub-banner sub-banner--err">
-                ❌ Your subscription has <strong>expired</strong>. Choose a plan below to reactivate your menus.
+                Your subscription is not active. Choose a plan below to reactivate public access.
             </div>
         {% endif %}
     {% else %}
         <div class="sub-banner sub-banner--info">
-            👋 Welcome! Choose a plan to start publishing your menus.
+            Choose a plan to start publishing your menus.
         </div>
     {% endif %}
 
     {# ── Billing period toggle ───────────────────────────────────────────── #}
     <div class="sub-period-toggle">
-        <button class="sub-period-btn active" data-period="monthly">Monthly</button>
-        <button class="sub-period-btn" data-period="yearly">
+        <button class="sub-period-btn {{ not sub or not sub.isActive() or sub.billingPeriod == 'monthly' ? 'active' }}" data-period="monthly">Monthly</button>
+        <button class="sub-period-btn {{ sub and sub.isActive() and sub.billingPeriod == 'yearly' ? 'active' }}" data-period="yearly">
             Yearly
             <span class="sub-period-badge">Save ~17%</span>
         </button>
@@ -491,41 +496,53 @@ body {
                 <ul class="sub-plan-features">
                     <li>
                         {% if limits[plan]['published'] is null %}
-                            ✅ <strong>Unlimited</strong> published menus
+                            <strong>Unlimited</strong> published menus
                         {% else %}
-                            ✅ <strong>{{ limits[plan]['published'] }}</strong> published menu{{ limits[plan]['published'] > 1 ? 's' }}
+                            <strong>{{ limits[plan]['published'] }}</strong> published menu{{ limits[plan]['published'] > 1 ? 's' }}
                         {% endif %}
                     </li>
                     <li>
                         {% if limits[plan]['draft'] is null %}
-                            ✅ <strong>Unlimited</strong> drafts
+                            <strong>Unlimited</strong> drafts
                         {% else %}
-                            ✅ <strong>{{ limits[plan]['draft'] }}</strong> draft{{ limits[plan]['draft'] > 1 ? 's' }}
+                            <strong>{{ limits[plan]['draft'] }}</strong> draft{{ limits[plan]['draft'] > 1 ? 's' }}
                         {% endif %}
                     </li>
-                    <li>✅ Permanent QR codes</li>
-                    <li>✅ Live menu updates</li>
-                    {% if plan != 'basic' %}<li>✅ Multiple businesses</li>{% endif %}
-                    {% if plan == 'pro' %}<li>✅ Priority support</li>{% endif %}
+                    <li>Permanent QR codes</li>
+                    <li>Live menu updates</li>
+                    {% if plan != 'basic' %}<li>Multiple businesses</li>{% endif %}
+                    {% if plan == 'pro' %}<li>Priority support</li>{% endif %}
                 </ul>
 
                 <div class="sub-plan-action">
-                    {% if isCurrentPlan %}
-                        <button class="btn btn-outline btn-full" disabled>Current plan</button>
-
-                    {% elseif sub and sub.isActive() and planRank < currentRank %}
-                        {# Downgrade #}
+                    {% if sub and sub.isActive() and planRank < currentRank %}
                         <a href="{{ path('app_owner_subscription_downgrade', {plan: plan, period: sub.billingPeriod}) }}"
-                           class="btn btn-outline btn-full sub-cta" data-plan="{{ plan }}">
+                           class="btn btn-outline btn-full sub-period-link"
+                           data-monthly-url="{{ path('app_owner_subscription_downgrade', {plan: plan, period: 'monthly'}) }}"
+                           data-yearly-url="{{ path('app_owner_subscription_downgrade', {plan: plan, period: 'yearly'}) }}">
                             Downgrade to {{ labels[plan] }}
                         </a>
-
+                    {% elseif sub and sub.isActive() %}
+                        <form method="post"
+                              action="{{ path('app_owner_subscription_change', {plan: plan, period: sub.billingPeriod}) }}"
+                              class="sub-change-form"
+                              data-plan="{{ plan }}"
+                              data-plan-label="{{ labels[plan] }}"
+                              data-current-plan="{{ sub.plan }}"
+                              data-current-period="{{ sub.billingPeriod }}"
+                              data-monthly-url="{{ path('app_owner_subscription_change', {plan: plan, period: 'monthly'}) }}"
+                              data-yearly-url="{{ path('app_owner_subscription_change', {plan: plan, period: 'yearly'}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token('change-subscription') }}">
+                            <button type="submit" class="btn btn-primary btn-full sub-change-btn">
+                                {{ isCurrentPlan ? 'Current plan' : 'Upgrade to ' ~ labels[plan] }}
+                            </button>
+                        </form>
                     {% else %}
-                        {# New subscription or upgrade #}
                         <a href="{{ path('app_owner_subscription_checkout', {plan: plan, period: 'monthly'}) }}"
-                           class="btn btn-primary btn-full sub-cta {{ plan == 'premium' ? 'btn-accent' }}"
-                           data-plan="{{ plan }}">
-                            {{ sub and sub.isActive() ? 'Upgrade to ' ~ labels[plan] : 'Get ' ~ labels[plan] }}
+                           class="btn btn-primary btn-full sub-period-link {{ plan == 'premium' ? 'btn-accent' }}"
+                           data-monthly-url="{{ path('app_owner_subscription_checkout', {plan: plan, period: 'monthly'}) }}"
+                           data-yearly-url="{{ path('app_owner_subscription_checkout', {plan: plan, period: 'yearly'}) }}">
+                            Get {{ labels[plan] }}
                         </a>
                     {% endif %}
                 </div>
@@ -538,11 +555,11 @@ body {
         <h3>Common questions</h3>
         <details>
             <summary>What happens when my subscription expires?</summary>
-            <p>All your published menus will be automatically set to draft — customers scanning your QR codes will see nothing until you renew.</p>
+            <p>Your menu data and statuses are preserved, but public menu access is paused until you renew.</p>
         </details>
         <details>
             <summary>Can I downgrade my plan?</summary>
-            <p>Yes — if you have more published menus than your new plan allows, you'll be asked to choose which ones to keep published. The rest become drafts.</p>
+            <p>Yes. If you have more menus than the new plan allows, you choose which ones remain available. The rest are archived, not deleted.</p>
         </details>
         <details>
             <summary>Do prices include VAT?</summary>
@@ -553,12 +570,49 @@ body {
 
 <script>
 (function () {
-    var period = 'monthly';
+    var period = '{{ sub and sub.isActive() ? sub.billingPeriod : 'monthly' }}';
 
     var btns    = document.querySelectorAll('.sub-period-btn');
     var amounts = document.querySelectorAll('.sub-price-amount');
     var periods = document.querySelectorAll('.sub-price-period');
-    var ctas    = document.querySelectorAll('.sub-cta');
+    var links   = document.querySelectorAll('.sub-period-link');
+    var forms   = document.querySelectorAll('.sub-change-form');
+
+    function updatePricing() {
+        amounts.forEach(function (el) {
+            el.textContent = el.dataset[period];
+        });
+        periods.forEach(function (el) {
+            el.textContent = period === 'yearly' ? '/yr' : '/mo';
+        });
+    }
+
+    function updateActions() {
+        links.forEach(function (el) {
+            el.href = period === 'yearly' ? el.dataset.yearlyUrl : el.dataset.monthlyUrl;
+        });
+
+        forms.forEach(function (form) {
+            form.action = period === 'yearly' ? form.dataset.yearlyUrl : form.dataset.monthlyUrl;
+            var button = form.querySelector('.sub-change-btn');
+            var samePlan = form.dataset.plan === form.dataset.currentPlan;
+            var samePeriod = period === form.dataset.currentPeriod;
+
+            if (samePlan && samePeriod) {
+                button.disabled = true;
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-outline');
+                button.textContent = 'Current plan';
+            } else {
+                button.disabled = false;
+                button.classList.remove('btn-outline');
+                button.classList.add('btn-primary');
+                button.textContent = samePlan
+                    ? 'Switch to ' + (period === 'yearly' ? 'yearly' : 'monthly') + ' billing'
+                    : 'Upgrade to ' + form.dataset.planLabel;
+            }
+        });
+    }
 
     // Period toggle handler
     btns.forEach(function (btn) {
@@ -566,27 +620,13 @@ body {
             period = btn.dataset.period;
             btns.forEach(function (b) { b.classList.toggle('active', b === btn); });
 
-            // Update displayed prices
-            amounts.forEach(function (el) {
-                el.textContent = el.dataset[period];
-            });
-            periods.forEach(function (el) {
-                el.textContent = period === 'yearly' ? '/yr' : '/mo';
-            });
-
-            // Update button hrefs
-            ctas.forEach(function (el) {
-                var plan = el.dataset.plan;
-                el.href = '/owner/subscription/checkout/' + plan + '/' + period;
-            });
+            updatePricing();
+            updateActions();
         });
     });
 
-    // Initialize button hrefs on page load
-    ctas.forEach(function (el) {
-        var plan = el.dataset.plan;
-        el.href = '/owner/subscription/checkout/' + plan + '/monthly';
-    });
+    updatePricing();
+    updateActions();
 })();
 </script>
 

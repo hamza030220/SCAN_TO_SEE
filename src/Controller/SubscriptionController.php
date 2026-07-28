@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Subscription;
+use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -62,7 +64,15 @@ class SubscriptionController extends AbstractController
         $successUrl = $successBase . '&session_id={CHECKOUT_SESSION_ID}';
         $cancelUrl  = $this->generateUrl('app_owner_subscription', [], UrlGeneratorInterface::ABSOLUTE_URL);
 
-        $session = $service->createCheckoutSession($user, $plan, $period, $successUrl, $cancelUrl);
+        try {
+            $session = $service->createCheckoutSession($user, $plan, $period, $successUrl, $cancelUrl);
+        } catch (\LogicException $e) {
+            $this->addFlash('warning', $e->getMessage());
+            return $this->redirectToRoute('app_owner_subscription');
+        } catch (\Throwable) {
+            $this->addFlash('error', 'Stripe checkout is temporarily unavailable. Please try again.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
 
         return $this->redirect($session->url);
     }
@@ -86,59 +96,115 @@ class SubscriptionController extends AbstractController
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
 
-        // Plan/period from URL (safe: session_id is cryptographically random, only Stripe knows it)
-        $plan   = $request->query->get('plan', Subscription::PLAN_BASIC);
-        $period = $request->query->get('period', Subscription::PERIOD_MONTHLY);
-
-        if (!in_array($plan, Subscription::PLANS, true)) {
-            $plan = Subscription::PLAN_BASIC;
-        }
-        if (!in_array($period, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
-            $period = Subscription::PERIOD_MONTHLY;
-        }
-
-        // Create or update subscription as PENDING immediately
-        // Webhook will later confirm and set to ACTIVE with correct period dates
-        $sub = $subRepo->findOneBy(['owner' => $user]) ?? (new Subscription())->setOwner($user);
-        $sub->setPlan($plan);
-        $sub->setBillingPeriod($period);
-        $sub->setStatus(Subscription::STATUS_PENDING);
-
-        // Try to enrich with Stripe data (subscription ID / customer ID)
         $stripeSession = $service->retrieveStripeSession($sessionId);
-        if ($stripeSession !== null) {
-            if ($stripeSession->customer) {
-                $sub->setStripeCustomerId($stripeSession->customer);
-            }
-            if ($stripeSession->subscription) {
-                $sub->setStripeSubscriptionId($stripeSession->subscription);
-            }
+        $paymentAccepted = $stripeSession !== null
+            && (int) $stripeSession->client_reference_id === $user->getId()
+            && $stripeSession->mode === 'subscription'
+            && $stripeSession->status === 'complete'
+            && in_array($stripeSession->payment_status, ['paid', 'no_payment_required'], true)
+            && !empty($stripeSession->subscription);
+
+        if (!$paymentAccepted) {
+            $this->addFlash('error', 'Stripe could not verify this checkout session.');
+            return $this->redirectToRoute('app_owner_subscription');
         }
 
-        $em->persist($sub);
-        $em->flush();
+        $sub = $subRepo->findOneBy(['owner' => $user]);
+        if (!$sub?->isActive()) {
+            $plan = (string) ($stripeSession->metadata->plan ?? '');
+            $period = (string) ($stripeSession->metadata->period ?? '');
+            if (!in_array($plan, Subscription::PLANS, true)
+                || !in_array($period, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
+                $this->addFlash('error', 'Stripe returned invalid subscription metadata.');
+                return $this->redirectToRoute('app_owner_subscription');
+            }
 
-        $this->addFlash('success', '🎉 Payment confirmed! Your subscription is now active.');
-        return $this->redirectToRoute('app_owner');
+            $sub ??= (new Subscription())->setOwner($user);
+            $sub->setPlan($plan);
+            $sub->setBillingPeriod($period);
+            $sub->setStatus(Subscription::STATUS_PENDING);
+            $sub->setStripeCustomerId($stripeSession->customer ?: null);
+            $sub->setStripeSubscriptionId($stripeSession->subscription);
+            $em->persist($sub);
+            $em->flush();
+        }
+
+        $this->addFlash('success', 'Payment received. Stripe is confirming your subscription.');
+        return $this->redirectToRoute('app_owner_subscription');
     }
 
     // ── Stripe webhook (raw POST, no CSRF) ────────────────────────────────────
 
     #[Route('/webhook', name: 'app_stripe_webhook', methods: ['POST'])]
-    public function webhook(Request $request, SubscriptionService $service): Response
+    public function webhook(
+        Request $request,
+        SubscriptionService $service,
+        LoggerInterface $logger,
+    ): Response
     {
         $payload   = $request->getContent();
         $sigHeader = $request->headers->get('Stripe-Signature', '');
 
         try {
             $service->handleWebhookPayload($payload, $sigHeader);
+        } catch (\UnexpectedValueException $e) {
+            return new Response('Invalid payload', 400);
         } catch (\Stripe\Exception\SignatureVerificationException $e) {
             return new Response('Invalid signature', 400);
         } catch (\Throwable $e) {
-            return new Response('Webhook error: ' . $e->getMessage(), 400);
+            $logger->error('Stripe webhook processing failed', [
+                'exception' => $e,
+            ]);
+            return new Response('Webhook processing failed', 500);
         }
 
         return new Response('OK', 200);
+    }
+
+    #[Route('/change/{plan}/{period}', name: 'app_owner_subscription_change', methods: ['POST'])]
+    public function change(
+        string $plan,
+        string $period,
+        Request $request,
+        SubscriptionService $service,
+    ): Response {
+        if (!$this->isCsrfTokenValid('change-subscription', $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Invalid CSRF token.');
+        }
+        if (!in_array($plan, Subscription::PLANS, true)
+            || !in_array($period, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
+            throw $this->createNotFoundException();
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $current = $service->getSubscription($user);
+        if (!$current?->isActive()) {
+            $this->addFlash('warning', 'An active subscription is required to change plans.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
+        if ($current->getPlan() === $plan && $current->getBillingPeriod() === $period) {
+            $this->addFlash('info', 'This is already your current plan and billing period.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
+        $newRank = (new Subscription())->setPlan($plan)->getPlanRank();
+        if ($newRank < $current->getPlanRank()) {
+            return $this->redirectToRoute('app_owner_subscription_downgrade', [
+                'plan' => $plan,
+                'period' => $period,
+            ]);
+        }
+
+        try {
+            $service->changeActiveSubscription($user, $plan, $period);
+            $this->addFlash('success', 'Your subscription has been updated.');
+        } catch (\Throwable $e) {
+            $this->addFlash('error', 'Stripe could not update the subscription. No local plan change was applied.');
+        }
+
+        return $this->redirectToRoute('app_owner_subscription');
     }
 
     // ── Downgrade: plan selection ─────────────────────────────────────────────
@@ -151,6 +217,7 @@ class SubscriptionController extends AbstractController
         SubscriptionService $service,
         SubscriptionRepository $subRepo,
         MenuRepository $menuRepo,
+        BusinessRepository $businessRepo,
     ): Response {
         /** @var \App\Entity\User $user */
         $user      = $this->getUser();
@@ -164,13 +231,20 @@ class SubscriptionController extends AbstractController
         if (!in_array($plan, Subscription::PLANS, true)) {
             throw $this->createNotFoundException();
         }
+        if (!in_array($period, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
+            throw $this->createNotFoundException();
+        }
 
         // Downgrade must be to a lower plan
         $newRank = (new Subscription())->setPlan($plan)->getPlanRank();
         if ($newRank >= $currentSub->getPlanRank()) {
-            // It's actually an upgrade — go through Stripe checkout
-            return $this->redirectToRoute('app_owner_subscription_checkout', ['plan' => $plan, 'period' => $period]);
+            $this->addFlash('info', 'Select that plan from the subscription page.');
+            return $this->redirectToRoute('app_owner_subscription');
         }
+
+        $newBusinessLimit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
+        $businessCount = $businessRepo->count(['owner' => $user]);
+        $businessLimitExceeded = $newBusinessLimit !== null && $businessCount > $newBusinessLimit;
 
         // For downgrades, use the new enforcement flow
         // Apply the downgrade and let the enforcement subscriber handle menu selection
@@ -178,21 +252,34 @@ class SubscriptionController extends AbstractController
             if (!$this->isCsrfTokenValid('downgrade', $request->request->get('_token'))) {
                 throw $this->createAccessDeniedException('Invalid CSRF token.');
             }
+            if ($businessLimitExceeded) {
+                $this->addFlash('error', sprintf(
+                    'Reduce your businesses to %d before selecting the %s plan.',
+                    $newBusinessLimit,
+                    Subscription::LABELS[$plan],
+                ));
+                return $this->redirectToRoute('app_owner_businesses');
+            }
 
             // Apply downgrade - this will trigger enforcement check
-            $service->applyDowngrade($user, $plan, $period, []);
+            try {
+                $service->applyDowngrade($user, $plan, $period, []);
+            } catch (\Throwable $e) {
+                $this->addFlash('error', 'Stripe could not apply the downgrade. Your current plan is unchanged.');
+                return $this->redirectToRoute('app_owner_subscription');
+            }
             
             // Check if enforcement is now required
             if ($user->isEnforcementRequired()) {
                 $this->addFlash('info', sprintf(
-                    '✅ Plan changed to %s. Please select which menus to keep.',
+                    'Plan changed to %s. Please select which menus to keep.',
                     Subscription::LABELS[$plan]
                 ));
                 return $this->redirectToRoute('app_owner_subscription_enforce_limits');
             }
             
             $this->addFlash('success', sprintf(
-                '✅ Successfully downgraded to %s plan.',
+                'Successfully downgraded to %s plan.',
                 Subscription::LABELS[$plan]
             ));
             return $this->redirectToRoute('app_owner_subscription');
@@ -219,6 +306,9 @@ class SubscriptionController extends AbstractController
             'publishedCount'      => $publishedCount,
             'draftCount'          => $draftCount,
             'willNeedEnforcement' => $willNeedEnforcement,
+            'newBusinessLimit'    => $newBusinessLimit,
+            'businessCount'       => $businessCount,
+            'businessLimitExceeded' => $businessLimitExceeded,
         ]);
     }
 
@@ -242,9 +332,8 @@ class SubscriptionController extends AbstractController
         if ($sub && $sub->isActive()) {
             $service->cancelStripeSubscription($sub);
             $sub->setStatus(Subscription::STATUS_CANCELLED);
-            $service->expireOwnerMenus($user);
             $em->flush();
-            $this->addFlash('success', 'Subscription cancelled. Your menus have been set to draft.');
+            $this->addFlash('success', 'Subscription cancelled. Your menu data has been preserved.');
         }
 
         return $this->redirectToRoute('app_owner_subscription');

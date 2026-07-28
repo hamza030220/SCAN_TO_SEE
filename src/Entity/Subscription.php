@@ -20,6 +20,7 @@ class Subscription
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_EXPIRED   = 'expired';
     public const STATUS_PENDING   = 'pending'; // awaiting Stripe webhook confirmation
+    public const STATUS_PAST_DUE  = 'past_due';
 
     // ── Billing period constants ──────────────────────────────────────────────
     public const PERIOD_MONTHLY = 'monthly';
@@ -31,6 +32,12 @@ class Subscription
         self::PLAN_BASIC   => ['published' => 1,    'draft' => 1],
         self::PLAN_PREMIUM => ['published' => 3,    'draft' => 3],
         self::PLAN_PRO     => ['published' => null, 'draft' => null],
+    ];
+
+    public const BUSINESS_LIMITS = [
+        self::PLAN_BASIC => 1,
+        self::PLAN_PREMIUM => null,
+        self::PLAN_PRO => null,
     ];
 
     // ── Prices in EUR cents ───────────────────────────────────────────────────
@@ -94,7 +101,8 @@ class Subscription
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE
-            && ($this->currentPeriodEnd === null || $this->currentPeriodEnd > new \DateTimeImmutable());
+            && $this->currentPeriodEnd !== null
+            && $this->currentPeriodEnd > new \DateTimeImmutable();
     }
 
     public function isExpiredOrCancelled(): bool
@@ -122,6 +130,11 @@ class Subscription
     public function getDraftMenuLimit(): ?int
     {
         return self::LIMITS[$this->plan]['draft'] ?? null;
+    }
+
+    public function getBusinessLimit(): ?int
+    {
+        return self::BUSINESS_LIMITS[$this->plan] ?? null;
     }
 
     public function getPlanLabel(): string

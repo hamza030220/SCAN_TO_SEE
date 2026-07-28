@@ -176,7 +176,7 @@ body {
 <header class="down-header">
     <div class="down-header-inner">
         <a href="{{ path('app_owner_subscription') }}" class="down-logo">
-            <span>🍽️</span>
+            <span>S2S</span>
             Scan to See
         </a>
     </div>
@@ -194,8 +194,8 @@ body {
                 <div class="down-plan-label">Current Plan</div>
                 <div class="down-plan-name">{{ currentSub.planLabel }}</div>
                 <div class="down-plan-limits">
-                    📋 {{ publishedCount }} published menu{{ publishedCount != 1 ? 's' }}<br>
-                    📝 {{ draftCount }} draft{{ draftCount != 1 ? 's' }}
+                    {{ publishedCount }} published menu{{ publishedCount != 1 ? 's' }}<br>
+                    {{ draftCount }} draft{{ draftCount != 1 ? 's' }}
                 </div>
             </div>
 
@@ -206,14 +206,14 @@ body {
                 <div class="down-plan-name">{{ newPlanLabel }}</div>
                 <div class="down-plan-limits">
                     {% if newPublishedLimit is not null %}
-                        📋 Up to {{ newPublishedLimit }} published<br>
+                        Up to {{ newPublishedLimit }} published<br>
                     {% else %}
-                        📋 Unlimited published<br>
+                        Unlimited published<br>
                     {% endif %}
                     {% if newDraftLimit is not null %}
-                        📝 Up to {{ newDraftLimit }} draft{{ newDraftLimit != 1 ? 's' }}
+                        Up to {{ newDraftLimit }} draft{{ newDraftLimit != 1 ? 's' }}
                     {% else %}
-                        📝 Unlimited drafts
+                        Unlimited drafts
                     {% endif %}
                 </div>
             </div>
@@ -222,9 +222,19 @@ body {
         {% if willNeedEnforcement %}
             <div class="down-warning">
                 <p>
-                    <strong>⚠️ Action Required:</strong> You currently have more menus than the {{ newPlanLabel }} plan allows. 
+                    <strong>Action required:</strong> You currently have more menus than the {{ newPlanLabel }} plan allows.
                     After confirming, you'll be asked to select which menus to keep. 
-                    <strong>Unselected menus will be permanently deleted.</strong>
+                    Unselected menus will be archived without deleting their data.
+                </p>
+            </div>
+        {% endif %}
+
+        {% if businessLimitExceeded %}
+            <div class="down-warning">
+                <p>
+                    <strong>Business limit reached:</strong>
+                    this plan supports {{ newBusinessLimit }} business, while your account has {{ businessCount }}.
+                    Remove the extra businesses before confirming this downgrade.
                 </p>
             </div>
         {% endif %}
@@ -236,7 +246,7 @@ body {
                 <a href="{{ path('app_owner_subscription') }}" class="btn btn-secondary">
                     Cancel
                 </a>
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" {{ businessLimitExceeded ? 'disabled' }}>
                     {% if willNeedEnforcement %}
                         Continue to Menu Selection
                     {% else %}
