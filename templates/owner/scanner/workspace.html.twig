@@ -130,7 +130,8 @@
         <span class="wsCurrencyLabel">Currency</span>
         <input type="text" id="wsCurrency" class="wsCurrencyInput"
                value="{{ menu ? menu.currency : 'TND' }}" maxlength="3">
-        <button id="wsScanBtn" class="wsScanBtn">
+        <button type="button" id="wsScanBtn" class="wsScanBtn"
+                {% if not scannerAllowed %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}>
           <svg id="wsScanIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
             <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
@@ -210,6 +211,7 @@
 var SCAN_URL = '{{ path("app_owner_scanner_scan") }}';
 var SAVE_URL = '{{ path("app_owner_scanner_save") }}';
 var MENU_ID  = {{ menu ? menu.id : 'null' }};
+var SCAN_ALLOWED = {{ scannerAllowed ? 'true' : 'false' }};
 
 var files         = [];
 var results       = [];
@@ -296,14 +298,14 @@ function renderCards(){
 
 /* ── Scan ── */
 scanBtn.addEventListener('click', function(){
-  if(files.length===0||scanBtn.disabled) return;
+  if(!SCAN_ALLOWED||files.length===0||scanBtn.disabled) return;
   var cur=(currencyIn.value.trim().toUpperCase()||'TND').substr(0,3);
   if(files.length===1) scanSingle(cur);
   else scanMultiple(cur);
 });
 
 function setScanLoading(on){
-  scanBtn.disabled=on;
+  scanBtn.disabled=!SCAN_ALLOWED||on;
   scanBtn.classList.toggle('scanning',on);
   var txt=scanBtn.lastChild;
   if(txt&&txt.nodeType===3) txt.nodeValue=on?' Scanning\u2026':' Scan';
@@ -318,6 +320,7 @@ async function scanSingle(currency){
 }
 
 async function scanMultiple(currency){
+  if(!SCAN_ALLOWED) return;
   scanBtn.disabled=true; showPopup(files.length);
   for(var i=0;i<files.length;i++){
     updatePopupProgress(i,files.length,i+1);
@@ -326,10 +329,11 @@ async function scanMultiple(currency){
   }
   updatePopupProgress(files.length,files.length,files.length);
   showPopupDone();
-  scanBtn.disabled=false;
+  scanBtn.disabled=!SCAN_ALLOWED;
 }
 
 async function callScan(file,currency){
+  if(!SCAN_ALLOWED||!MENU_ID) throw new Error('Menu Scanner is only available for an empty menu.');
   var fd=new FormData(); fd.append('image',file); fd.append('currency',currency);
   if(MENU_ID) fd.append('menu_id',String(MENU_ID));
   var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});

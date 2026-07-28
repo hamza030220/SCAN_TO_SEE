@@ -16,7 +16,9 @@
            data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            class="btn btn-outline btn-sm">Edit menu</a>
         <button type="button" id="ds_openBtn" class="btn btn-outline btn-sm">🎨 Design</button>
-        <button type="button" id="scannerOnboardingBtn" class="btn btn-sm" style="background:linear-gradient(135deg,#18120a 0%,#2a1f10 100%);color:#E8A020;border:1.5px solid #E8A020;font-weight:700;letter-spacing:.02em;gap:7px;display:inline-flex;align-items:center;">
+        <button type="button" id="scannerOnboardingBtn" class="btn btn-sm"
+                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}
+                style="background:linear-gradient(135deg,#18120a 0%,#2a1f10 100%);color:#E8A020;border:1.5px solid #E8A020;font-weight:700;letter-spacing:.02em;gap:7px;display:inline-flex;align-items:center;{% if not menu.canUseScanner() %}opacity:.45;cursor:not-allowed;{% endif %}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
             Scan Menu
             <span style="font-size:.65rem;font-weight:700;background:#E8A020;color:#18120a;padding:1px 5px;border-radius:4px;letter-spacing:.05em;line-height:1.5">BETA</span>
@@ -775,7 +777,7 @@
     }
 
     // Trigger
-    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (openBtn && !openBtn.disabled) openBtn.addEventListener('click', openModal);
 
     // Navigation
     nextBtn.addEventListener('click', function() {

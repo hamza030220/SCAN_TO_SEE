@@ -140,6 +140,17 @@ class MenuTest extends TestCase
         $this->assertCount(0, $categories);
     }
 
+    public function testScannerCanOnlyBeUsedWhileMenuIsEmpty(): void
+    {
+        $menu = new Menu();
+
+        $this->assertTrue($menu->canUseScanner());
+
+        $menu->getCategories()->add(new Category());
+
+        $this->assertFalse($menu->canUseScanner());
+    }
+
     public function testDefaultThemeHasRequiredKeys(): void
     {
         $expectedKeys = [

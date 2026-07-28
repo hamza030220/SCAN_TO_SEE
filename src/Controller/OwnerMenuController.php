@@ -472,6 +472,7 @@ final class OwnerMenuController extends AbstractController
 
         return $this->render('owner/scanner/workspace.html.twig', [
             'menu' => $menu,
+            'scannerAllowed' => $menu?->canUseScanner() ?? false,
         ]);
     }
 
@@ -493,6 +494,23 @@ final class OwnerMenuController extends AbstractController
         BusinessRepository $businessRepo,
     ): JsonResponse
     {
+        $menuId = $request->request->getInt('menu_id');
+        if (!$menuId) {
+            return $this->json([
+                'error' => 'The scanner can only be used from an empty target menu.',
+            ], 409);
+        }
+
+        $menu = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
+        if (!$menu) {
+            return $this->json(['error' => 'Menu not found or access denied.'], 404);
+        }
+        if (!$menu->canUseScanner()) {
+            return $this->json([
+                'error' => 'This menu already contains data. Scanning is only available for an empty menu.',
+            ], 409);
+        }
+
         /** @var UploadedFile|null $imageFile */
         $imageFile = $request->files->get('image');
 
@@ -506,11 +524,6 @@ final class OwnerMenuController extends AbstractController
         }
 
         $currency = strtoupper(substr(trim($request->request->get('currency', 'TND')), 0, 3));
-        $menuId = $request->request->getInt('menu_id');
-        $menu = $menuId ? $this->getOwnedMenu($menuId, $menuRepo, $businessRepo) : null;
-        if ($menuId && !$menu) {
-            return $this->json(['error' => 'Menu not found or access denied.'], 404);
-        }
 
         try {
             /** @var \App\Entity\User $owner */

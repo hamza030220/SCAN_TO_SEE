@@ -88,4 +88,5 @@ class Menu
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
     public function setUpdatedAt(\DateTimeImmutable $dt): static { $this->updatedAt = $dt; return $this; }
     public function getCategories(): Collection { return $this->categories; }
+    public function canUseScanner(): bool { return $this->categories->isEmpty(); }
 }
