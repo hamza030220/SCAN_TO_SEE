@@ -40,7 +40,9 @@ class MenuScannerClient
                 [
                     'headers' => $formData->getPreparedHeaders()->toArray(),
                     'body'    => $formData->bodyToIterable(),
-                    'timeout' => 90,
+                    // First model load plus crop uploads can exceed 90 seconds
+                    // on the local CUDA/XAMPP development stack.
+                    'timeout' => 240,
                 ]
             );
             $statusCode = $response->getStatusCode();
@@ -52,11 +54,11 @@ class MenuScannerClient
         if ($statusCode === 400) {
             throw new \RuntimeException($content['message'] ?? 'Image could not be read.');
         }
-        if ($statusCode >= 422) {
-            throw new \RuntimeException($content['message'] ?? 'Image processing failed. Try a clearer photo.');
-        }
         if ($statusCode >= 500) {
             throw new \RuntimeException('Scan pipeline error. Please try again.');
+        }
+        if ($statusCode >= 422) {
+            throw new \RuntimeException($content['message'] ?? 'Image processing failed. Try a clearer photo.');
         }
 
         return $content;

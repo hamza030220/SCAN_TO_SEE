@@ -331,6 +331,7 @@ async function scanMultiple(currency){
 
 async function callScan(file,currency){
   var fd=new FormData(); fd.append('image',file); fd.append('currency',currency);
+  if(MENU_ID) fd.append('menu_id',String(MENU_ID));
   var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
   var json=await resp.json();
   if(!resp.ok) throw new Error(json.error||'Scan failed. Please retry.');
@@ -408,7 +409,7 @@ function rebindHandlers(){
   tabContent.querySelectorAll('.wsAddItemBtn').forEach(function(addBtn){
     var list=addBtn.previousElementSibling;
     if(list&&list.classList.contains('wsItemsList')){
-      addBtn.onclick=(function(l){ return function(){ l.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(l); }; })(list);
+      addBtn.onclick=(function(l){ return function(){ l.appendChild(makeItemRow('','',1,1,false,null,null)); bindRemoveIn(l); }; })(list);
     }
   });
   tabContent.querySelectorAll('.wsCatRemove').forEach(function(btn){
@@ -432,22 +433,24 @@ function renderTabContent(idx){
   var curList=null; var uncatList=null;
   (r.items||[]).forEach(function(item){
     if(item.is_category_header){
-      var block=buildCatBlock(item.name);
+      var block=buildCatBlock(item.name,item.name_box_id);
       tabContent.appendChild(block);
       curList=block.querySelector('.wsItemsList');
       var addBtn=block.querySelector('.wsAddItemBtn');
-      addBtn.addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(list); }; })(curList));
+      addBtn.addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false,null,null)); bindRemoveIn(list); }; })(curList));
     } else {
       if(!curList){
         if(!uncatList){
-          var ub=buildCatBlock('');
+          var ub=buildCatBlock('',null);
           tabContent.insertBefore(ub,tabContent.firstChild);
           uncatList=ub.querySelector('.wsItemsList');
-          ub.querySelector('.wsAddItemBtn').addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false)); bindRemoveIn(list); }; })(uncatList));
+          ub.querySelector('.wsAddItemBtn').addEventListener('click',(function(list){ return function(){ list.appendChild(makeItemRow('','',1,1,false,null,null)); bindRemoveIn(list); }; })(uncatList));
         }
         curList=uncatList;
       }
-      var row=makeItemRow(item.name, item.price_raw||(item.price_value!=null?String(item.price_value):''), item.name_confidence, item.price_confidence, item.needs_review);
+      // Keep the crop's textual price as the correction label for TrOCR.
+      // scannerSave normalizes comma decimals separately for Item.price.
+      var row=makeItemRow(item.name, item.price_raw||(item.price_value!=null?String(item.price_value):''), item.name_confidence, item.price_confidence, item.needs_review, item.name_box_id, item.price_box_id);
       curList.appendChild(row); bindRemoveIn(curList);
     }
   });
@@ -464,8 +467,9 @@ function renderTabContent(idx){
   }
 }
 
-function buildCatBlock(name){
+function buildCatBlock(name,boxId){
   var block=document.createElement('div'); block.className='wsCatBlock';
+  if(boxId!==null&&boxId!==undefined) block.dataset.boxId=String(boxId);
   var hdr=document.createElement('div'); hdr.className='wsCatHeader';
   hdr.innerHTML='<span class="wsCatTag">Category</span><input type="text" class="wsCatInput" value="'+esc(name)+'" placeholder="Category name"><button class="wsCatRemove" title="Remove category">×</button>';
   hdr.querySelector('.wsCatRemove').addEventListener('click', function(){ block.remove(); });
@@ -475,8 +479,10 @@ function buildCatBlock(name){
   return block;
 }
 
-function makeItemRow(name,price,nc,pc,needsReview){
+function makeItemRow(name,price,nc,pc,needsReview,nameBoxId,priceBoxId){
   var row=document.createElement('div'); row.className='wsItemRow';
+  if(nameBoxId!==null&&nameBoxId!==undefined) row.dataset.nameBoxId=String(nameBoxId);
+  if(priceBoxId!==null&&priceBoxId!==undefined) row.dataset.priceBoxId=String(priceBoxId);
   var ncls=needsReview?'conf-red':'conf-'+cc(nc);
   var pcls=(pc===null||pc===undefined)?'':'conf-'+cc(pc);
   var rvw=(needsReview||nc<0.25)?'<span class="wsNeedsReview">review</span>':'';
@@ -513,7 +519,7 @@ saveBtn.addEventListener('click', async function(){
       renderTabContent(imgIdx);
       cats=collectFromDOM();
     }
-    payload.images.push({categories:cats});
+    payload.images.push({scan_id:r.scan_id||null,categories:cats});
   });
 
   // Restore active tab view
@@ -547,10 +553,19 @@ function collectFromDOM(){
     block.querySelectorAll('.wsItemRow').forEach(function(row){
       var n=(row.querySelector('.wsItemName')||{}).value||'';
       var p=(row.querySelector('.wsItemPrice')||{}).value||'';
-      if(n.trim()) items.push({name:n.trim(),price:p.trim()});
+      if(n.trim()) items.push({
+        name:n.trim(),
+        price:p.trim(),
+        name_box_id:row.dataset.nameBoxId!==undefined?parseInt(row.dataset.nameBoxId,10):null,
+        price_box_id:row.dataset.priceBoxId!==undefined?parseInt(row.dataset.priceBoxId,10):null
+      });
     });
     var cname=cinp?cinp.value.trim():'';
-    if(cname||items.length) cats.push({name:cname||'Uncategorized',items:items});
+    if(cname||items.length) cats.push({
+      name:cname||'Uncategorized',
+      box_id:block.dataset.boxId!==undefined?parseInt(block.dataset.boxId,10):null,
+      items:items
+    });
   });
   return cats;
 }

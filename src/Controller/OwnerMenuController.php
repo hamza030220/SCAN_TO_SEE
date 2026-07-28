@@ -9,7 +9,7 @@ use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
-use App\Service\MenuScannerClient;
+use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -486,7 +486,12 @@ final class OwnerMenuController extends AbstractController
      * Receives one image + currency, proxies to FastAPI, returns JSON.
      */
     #[Route('/owner/scanner/scan', name: 'app_owner_scanner_scan', methods: ['POST'])]
-    public function scannerScan(Request $request, MenuScannerClient $client): JsonResponse
+    public function scannerScan(
+        Request $request,
+        ScanCaptureService $captureService,
+        MenuRepository $menuRepo,
+        BusinessRepository $businessRepo,
+    ): JsonResponse
     {
         /** @var UploadedFile|null $imageFile */
         $imageFile = $request->files->get('image');
@@ -501,10 +506,17 @@ final class OwnerMenuController extends AbstractController
         }
 
         $currency = strtoupper(substr(trim($request->request->get('currency', 'TND')), 0, 3));
+        $menuId = $request->request->getInt('menu_id');
+        $menu = $menuId ? $this->getOwnedMenu($menuId, $menuRepo, $businessRepo) : null;
+        if ($menuId && !$menu) {
+            return $this->json(['error' => 'Menu not found or access denied.'], 404);
+        }
 
         try {
-            $result = $client->scanMenu($imageFile, $currency);
-            return $this->json($result);
+            /** @var \App\Entity\User $owner */
+            $owner = $this->getUser();
+            $capture = $captureService->capture($imageFile, $owner, $menu, $currency);
+            return $this->json($capture['response']);
         } catch (\RuntimeException $e) {
             return $this->json(['error' => $e->getMessage()], 422);
         }
@@ -521,6 +533,7 @@ final class OwnerMenuController extends AbstractController
         MenuRepository     $menuRepo,
         BusinessRepository $businessRepo,
         EntityManagerInterface $em,
+        ScanCaptureService $captureService,
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -538,6 +551,20 @@ final class OwnerMenuController extends AbstractController
 
         foreach ($images as $imageData) {
             $categories = $imageData['categories'] ?? [];
+            if (!empty($imageData['scan_id'])) {
+                try {
+                    /** @var \App\Entity\User $owner */
+                    $owner = $this->getUser();
+                    $captureService->recordReview(
+                        (int) $imageData['scan_id'],
+                        $owner,
+                        $menu,
+                        $categories,
+                    );
+                } catch (\RuntimeException $e) {
+                    return $this->json(['error' => $e->getMessage()], 422);
+                }
+            }
             foreach ($categories as $catData) {
                 $catName = trim($catData['name'] ?? '');
                 if ($catName === '') continue;
@@ -554,9 +581,10 @@ final class OwnerMenuController extends AbstractController
                     $itemName = trim($itemData['name'] ?? '');
                     if ($itemName === '') continue;
 
-                    $priceRaw = $itemData['price'] ?? '';
-                    $price    = is_numeric($priceRaw)
-                        ? number_format((float) $priceRaw, 2, '.', '')
+                    $priceRaw = trim((string) ($itemData['price'] ?? ''));
+                    $normalizedPrice = str_replace(',', '.', $priceRaw);
+                    $price    = is_numeric($normalizedPrice)
+                        ? number_format((float) $normalizedPrice, 2, '.', '')
                         : '0.00';
 
                     $item = new Item();
