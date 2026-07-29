@@ -349,6 +349,66 @@ Copy `.env` to `.env.local` and configure the following (`.env.local` is **never
 
 ## Running the App
 
+### Start the complete development stack on Windows
+
+The recommended command opens three visible PowerShell terminals so Symfony,
+FastAPI, and ngrok each keep their own live logs:
+
+```powershell
+.\dev.cmd up
+```
+
+When the ngrok link will be shared with other testers, use public sharing mode.
+It disables the Symfony browser profiler while keeping all three terminal logs
+visible:
+
+```powershell
+.\dev.cmd up -Public
+```
+
+`-Public` prepares the production cache and mapped assets, then sets
+`APP_ENV=prod` and `APP_DEBUG=0` only inside the launcher process. It does not
+permanently modify `.env` or the calling PowerShell session.
+
+The launcher uses these fixed local ports:
+
+| Service | Address |
+|---|---|
+| Symfony | `http://127.0.0.1:8000` |
+| FastAPI | `http://127.0.0.1:8001` |
+| ngrok inspector | `http://127.0.0.1:4040` |
+
+It uses the `training` Conda environment directly and tunnels ngrok to Symfony
+on port 8000. A service that is already listening is kept instead of duplicated.
+
+```powershell
+# Show local status and the current public ngrok URL
+.\dev.cmd status
+
+# Stop the three services and close terminals opened by the launcher
+.\dev.cmd down
+
+# Validate what would start without opening terminals
+.\dev.cmd up -DryRun
+```
+
+`dev.cmd` uses `ExecutionPolicy Bypass` only for this project launcher. It does
+not change the Windows execution policy for the user or the computer.
+
+Plain `symfony serve` also starts FastAPI and ngrok automatically through
+`.symfony.local.yaml`. Those processes are Symfony-managed workers, so their
+logs are accessed through Symfony rather than separate terminal windows:
+
+```powershell
+symfony serve
+symfony server:status
+symfony server:log
+symfony server:stop
+```
+
+Use `symfony serve --no-workers` only when FastAPI and ngrok are already being
+managed separately.
+
 ### Symfony App
 
 ```bash

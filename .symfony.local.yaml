@@ -1,0 +1,10 @@
+http:
+    port: 8000
+    allow_http: true
+    no_tls: true
+
+workers:
+    fastapi:
+        cmd: ['powershell.exe', '-ExecutionPolicy', 'Bypass', '-File', 'tools/dev/Run-FastApi.ps1']
+    ngrok:
+        cmd: ['powershell.exe', '-ExecutionPolicy', 'Bypass', '-File', 'tools/dev/Run-Ngrok.ps1']
