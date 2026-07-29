@@ -9,6 +9,7 @@ use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
+use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -471,6 +472,7 @@ final class OwnerMenuController extends AbstractController
         Request           $request,
         MenuRepository    $menuRepo,
         BusinessRepository $businessRepo,
+        EntitlementService $entitlements,
     ): Response {
         $menuId = $request->query->getInt('menu');
         $menu   = $menuId ? $this->getOwnedMenu($menuId, $menuRepo, $businessRepo) : null;
@@ -478,6 +480,7 @@ final class OwnerMenuController extends AbstractController
         return $this->render('owner/scanner/workspace.html.twig', [
             'menu' => $menu,
             'scannerAllowed' => $menu?->canUseScanner() ?? false,
+            'trialAiRemaining' => $entitlements->remainingTrialAiUses($this->getUser()),
         ]);
     }
 
@@ -497,8 +500,16 @@ final class OwnerMenuController extends AbstractController
         ScanCaptureService $captureService,
         MenuRepository $menuRepo,
         BusinessRepository $businessRepo,
+        EntitlementService $entitlements,
     ): JsonResponse
     {
+        if (!$this->isCsrfTokenValid('scanner-scan', $request->request->get('_token'))) {
+            return $this->json(['error' => 'Invalid security token. Refresh the page and try again.'], 403);
+        }
+        if ($request->request->get('data_terms_accepted') !== '1') {
+            return $this->json(['error' => 'Accept the AI Scanner data terms before scanning.'], 422);
+        }
+
         $menuId = $request->request->getInt('menu_id');
         if (!$menuId) {
             return $this->json([
@@ -530,12 +541,20 @@ final class OwnerMenuController extends AbstractController
 
         $currency = strtoupper(substr(trim($request->request->get('currency', 'TND')), 0, 3));
 
+        /** @var \App\Entity\User $owner */
+        $owner = $this->getUser();
+        $trialUseReserved = $entitlements->isTrialAccess($owner);
+        if (!$entitlements->reserveTrialAiUse($owner)) {
+            return $this->json(['error' => 'You have used all 3 AI scans included in your free trial. Choose a plan to continue scanning.'], 429);
+        }
+
         try {
-            /** @var \App\Entity\User $owner */
-            $owner = $this->getUser();
             $capture = $captureService->capture($imageFile, $owner, $menu, $currency);
             return $this->json($capture['response']);
         } catch (\RuntimeException $e) {
+            if ($trialUseReserved) {
+                $entitlements->releaseTrialAiUse($owner);
+            }
             return $this->json(['error' => $e->getMessage()], 422);
         }
     }
@@ -557,6 +576,9 @@ final class OwnerMenuController extends AbstractController
 
         if (!is_array($data) || empty($data['menu_id'])) {
             return $this->json(['error' => 'Invalid payload.'], 400);
+        }
+        if (!$this->isCsrfTokenValid('scanner-save', $data['_token'] ?? null)) {
+            return $this->json(['error' => 'Invalid security token. Refresh the page and try again.'], 403);
         }
 
         $menu = $this->getOwnedMenu((int) $data['menu_id'], $menuRepo, $businessRepo);

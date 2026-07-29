@@ -20,7 +20,7 @@ class ScanCapture
     private string $scanUuid;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $owner = null;
 
     #[ORM\ManyToOne]
@@ -75,7 +75,7 @@ class ScanCapture
     public function getScanUuid(): string { return $this->scanUuid; }
     public function setScanUuid(string $value): static { $this->scanUuid = $value; return $this; }
     public function getOwner(): ?User { return $this->owner; }
-    public function setOwner(User $value): static { $this->owner = $value; return $this; }
+    public function setOwner(?User $value): static { $this->owner = $value; return $this; }
     public function getBusiness(): ?Business { return $this->business; }
     public function setBusiness(?Business $value): static { $this->business = $value; return $this; }
     public function getMenu(): ?Menu { return $this->menu; }

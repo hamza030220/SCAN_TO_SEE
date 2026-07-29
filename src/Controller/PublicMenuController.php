@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
+use App\Service\EntitlementService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,15 +36,14 @@ class PublicMenuController extends AbstractController
         string $slug,
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
-        SubscriptionRepository $subscriptionRepo,
+        EntitlementService $entitlements,
     ): Response {
         $business = $businessRepo->findOneBy(['slug' => $slug]);
         if (!$business) {
             throw $this->createNotFoundException('Business not found.');
         }
 
-        $subscription = $subscriptionRepo->findOneBy(['owner' => $business->getOwner()]);
-        if (!$subscription?->isActive()) {
+        if (!$entitlements->hasAccess($business->getOwner())) {
             return $this->withNoCache($this->render('public/no_menu.html.twig', [
                 'business' => $business,
             ]));
@@ -84,7 +84,7 @@ class PublicMenuController extends AbstractController
         Request $request,
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
-        SubscriptionRepository $subscriptionRepo,
+        EntitlementService $entitlements,
     ): Response {
         $business = $businessRepo->findOneBy(['slug' => $slug]);
         if (!$business) {
@@ -95,8 +95,7 @@ class PublicMenuController extends AbstractController
         $isOwnerPreview = $request->query->getBoolean('preview')
             && $viewer instanceof \App\Entity\User
             && ($viewer->getRole() === 'admin' || $viewer->getId() === $business->getOwner()?->getId());
-        $subscription = $subscriptionRepo->findOneBy(['owner' => $business->getOwner()]);
-        if (!$subscription?->isActive() && !$isOwnerPreview) {
+        if (!$entitlements->hasAccess($business->getOwner())) {
             return $this->withNoCache($this->render('public/no_menu.html.twig', [
                 'business' => $business,
             ]));

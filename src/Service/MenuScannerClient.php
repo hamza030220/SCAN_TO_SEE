@@ -15,6 +15,7 @@ class MenuScannerClient
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly string $ocrPipelineUrl,
+        private readonly string $cleanupToken,
     ) {}
 
     /**
@@ -62,5 +63,31 @@ class MenuScannerClient
         }
 
         return $content;
+    }
+
+    /**
+     * Best-effort removal of training assets for an unreviewed scan.
+     */
+    public function deleteTrainingAssets(string $scanUuid): bool
+    {
+        try {
+            $response = $this->httpClient->request(
+                'DELETE',
+                sprintf(
+                    '%s/training-assets/%s',
+                    rtrim($this->ocrPipelineUrl, '/'),
+                    rawurlencode($scanUuid),
+                ),
+                [
+                    'headers' => ['X-Cleanup-Token' => $this->cleanupToken],
+                    'timeout' => 15,
+                ],
+            );
+
+            return $response->getStatusCode() === 200
+                && (bool) ($response->toArray(false)['deleted'] ?? false);
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

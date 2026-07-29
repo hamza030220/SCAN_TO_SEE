@@ -6,12 +6,15 @@ use App\Entity\Business;
 use App\Repository\BusinessRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\ImageUploadService;
+use App\Service\AccountDeletionService;
+use App\Service\EntitlementService;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Provider\Totp\TotpAuthenticatorInterface;
@@ -195,6 +198,57 @@ final class OwnerProfileController extends AbstractController
         }
 
         return $this->redirectToRoute('app_owner_account');
+    }
+
+    #[Route('/owner/account/delete', name: 'app_owner_account_delete', methods: ['POST'])]
+    public function deleteAccount(
+        Request $request,
+        UserPasswordHasherInterface $passwordHasher,
+        TotpAuthenticatorInterface $totpAuth,
+        AccountDeletionService $deletion,
+        EntitlementService $entitlements,
+        TokenStorageInterface $tokenStorage,
+    ): Response {
+        if (!$this->isCsrfTokenValid('delete-account', $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Invalid security token.');
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $failureRoute = $entitlements->hasAccess($user)
+            ? 'app_owner_account'
+            : 'app_trial_expired';
+        if ($request->request->get('confirmation') !== 'YES') {
+            $this->addFlash('error', 'Type YES exactly to confirm account deletion.');
+            return $this->redirectToRoute($failureRoute);
+        }
+        if (!$passwordHasher->isPasswordValid($user, (string) $request->request->get('password'))) {
+            $this->addFlash('error', 'Incorrect password. Your account was not deleted.');
+            return $this->redirectToRoute($failureRoute);
+        }
+        if ($user->isTotpAuthenticationEnabled()
+            && !$totpAuth->checkCode($user, (string) $request->request->get('auth_code'))) {
+            $this->addFlash('error', 'Invalid 2FA code. Your account was not deleted.');
+            return $this->redirectToRoute($failureRoute);
+        }
+
+        try {
+            $blockedUntil = $deletion->delete($user);
+        } catch (\Throwable) {
+            $this->addFlash('error', 'Account deletion could not be completed. Your account remains available; please try again or contact support.');
+            return $this->redirectToRoute($failureRoute);
+        }
+
+        $tokenStorage->setToken(null);
+        $session = $request->getSession();
+        $session->invalidate();
+        $session->getFlashBag()->add(
+            'success',
+            sprintf('Your account was deleted. This email can be used again after %s.', $blockedUntil->format('F j, Y')),
+        );
+        $response = $this->redirectToRoute('app_home');
+        $response->headers->clearCookie('REMEMBERME');
+        return $response;
     }
 
     // ── Slug helpers ───────────────────────────────────────────────────────

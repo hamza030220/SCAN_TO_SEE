@@ -118,6 +118,16 @@ switch ($Action) {
             }
         }
 
+        # FastAPI accepts destructive training-asset cleanup only from this
+        # Symfony application. Child terminals inherit this process variable.
+        $appSecretLine = Get-Content -LiteralPath (Join-Path $ProjectRoot '.env') |
+            Where-Object { $_ -match '^APP_SECRET=' } |
+            Select-Object -First 1
+        if (!$appSecretLine) {
+            throw 'APP_SECRET is missing; secure OCR asset cleanup cannot be configured.'
+        }
+        $env:OCR_CLEANUP_TOKEN = ($appSecretLine -split '=', 2)[1].Trim()
+
         if ($Public) {
             Write-Host 'Public sharing mode: Symfony browser debug is disabled; terminal logs remain visible.' -ForegroundColor Cyan
             if (!$DryRun) {

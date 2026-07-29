@@ -13,16 +13,16 @@
                 <h1>Start your menu.</h1>
                 <p>Set up a business profile, build the first menu with your categories and items, then publish and download the QR code for print.</p>
                 <div class="auth-pills">
-                    <span class="auth-pill">Permanent QR slug</span>
-                    <span class="auth-pill">Draft &amp; publish</span>
-                    <span class="auth-pill">Monthly or yearly</span>
-                    <span class="auth-pill">Multi-language</span>
+                    <span class="auth-pill">5-day free trial</span>
+                    <span class="auth-pill">1 draft + 1 published menu</span>
+                    <span class="auth-pill">3 AI scans total</span>
+                    <span class="auth-pill">No payment required to start</span>
                 </div>
             </div>
             <div class="auth-right">
                 <h2>Create an account</h2>
                 <p>Owner accounts only. Customer access needs no account — just a phone camera.</p>
-                {% if error %}
+                {% if error and errorField != 'email' %}
                     <div class="auth-alert auth-alert--err">{{ error }}</div>
                 {% endif %}
                 <form class="auth-form" method="post" action="{{ path('app_register') }}">
@@ -32,11 +32,19 @@
                     </div>
                     <div class="form-field">
                         <label for="business_name">Business name</label>
-                        <input id="business_name" name="business_name" type="text" placeholder="Blue Bean Café" required>
+                        <input id="business_name" name="business_name" type="text" placeholder="Blue Bean Café" value="{{ formData.business_name ?? '' }}" required>
                     </div>
                     <div class="form-field">
                         <label for="reg_email">Email address</label>
-                        <input id="reg_email" name="email" type="email" autocomplete="email" placeholder="owner@example.com" value="{{ formData.email ?? '' }}" required>
+                        <input id="reg_email" name="email" type="email" autocomplete="email" placeholder="owner@example.com"
+                               value="{{ formData.email ?? '' }}" required
+                               {% if errorField == 'email' %}aria-invalid="true" aria-describedby="reg_email_error" autofocus{% endif %}>
+                        {% if errorField == 'email' %}
+                            <div id="reg_email_error" class="field-error" role="alert">
+                                <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                                <span>{{ error }}</span>
+                            </div>
+                        {% endif %}
                     </div>
                     <div data-controller="password" style="display:contents">
                         <div class="form-field">
@@ -81,6 +89,11 @@
                             <p class="pw-match" data-password-target="matchMsg"></p>
                         </div>
                     </div>
+                    <label class="auth-legal-check">
+                        <input type="checkbox" name="terms_accepted" value="1" required
+                               {% if formData.terms_accepted ?? false %}checked{% endif %}>
+                        <span>I agree to the <a href="{{ path('app_terms') }}" target="_blank" rel="noopener">Terms of Service</a> and <a href="{{ path('app_privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    </label>
                     <button class="btn btn-primary btn-full" type="submit">Create account</button>
                     <input type="hidden" name="_token" value="{{ csrf_token('register') }}">
                     <p class="form-switch">Already have an account? <a href="{{ path('app_login') }}">Log in</a></p>

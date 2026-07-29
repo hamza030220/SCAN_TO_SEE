@@ -123,6 +123,21 @@
     {% endif %}
 </div>
 
+<div class="owner-panel account-danger-zone" style="max-width: 800px; margin-top: 24px;">
+    <div class="owner-panel-head">
+        <h2>Delete account</h2>
+    </div>
+    <div style="padding:24px;">
+        <p style="margin:0 0 8px; color:var(--adm-ink); font-weight:600;">Permanently remove your Scan to See account</p>
+        <p style="margin:0 0 20px; color:var(--adm-muted); line-height:1.65; font-size:.9rem;">
+            Your email will be blocked for 30 days. Account, business, and menu data will be removed. Reviewed AI training records may remain after their account links are removed.
+        </p>
+        <button type="button" class="btn btn-danger-outline" data-account-delete-open>Review account deletion</button>
+    </div>
+</div>
+
+{% include 'owner/_account_delete_modal.html.twig' %}
+
 {% if sub and (sub.isActive() or sub.status == 'pending') %}
 {# ── Cancel Subscription Modal ─────────────────────────────────────────── #}
 <div class="cancel-modal" id="cancelModal">

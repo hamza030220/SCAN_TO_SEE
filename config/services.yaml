@@ -50,3 +50,12 @@ services:
     App\Service\MenuScannerClient:
         arguments:
             $ocrPipelineUrl: '%env(OCR_PIPELINE_URL)%'
+            $cleanupToken: '%kernel.secret%'
+
+    App\Service\EmailBlockService:
+        arguments:
+            $hashSecret: '%kernel.secret%'
+
+    App\Service\EmailVerificationService:
+        arguments:
+            $mailerFrom: '%env(MAILER_FROM)%'

@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\SubscriptionService;
+use App\Service\EntitlementService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -18,6 +19,7 @@ class SubscriptionServiceTest extends TestCase
     private SubscriptionRepository $subscriptionRepo;
     private MenuRepository $menuRepo;
     private EntityManagerInterface $em;
+    private EntitlementService $entitlements;
 
     protected function setUp(): void
     {
@@ -25,12 +27,30 @@ class SubscriptionServiceTest extends TestCase
         $this->subscriptionRepo = $this->createMock(SubscriptionRepository::class);
         $this->menuRepo = $this->createMock(MenuRepository::class);
         $this->em = $this->createMock(EntityManagerInterface::class);
+        $this->entitlements = $this->createMock(EntitlementService::class);
+        $this->entitlements->method('hasPaidAccess')->willReturnCallback(
+            function (User $user): bool {
+                return $this->subscriptionRepo->findOneBy(['owner' => $user])?->isActive() ?? false;
+            }
+        );
+        $this->entitlements->method('hasAccess')->willReturnCallback(
+            function (User $user): bool {
+                return $this->subscriptionRepo->findOneBy(['owner' => $user])?->isActive() ?? false;
+            }
+        );
+        $this->entitlements->method('accessPlan')->willReturnCallback(
+            function (User $user): ?string {
+                $subscription = $this->subscriptionRepo->findOneBy(['owner' => $user]);
+                return $subscription?->isActive() ? $subscription->getPlan() : null;
+            }
+        );
 
         // Initialize service with mocked dependencies
         $this->service = new SubscriptionService(
             $this->subscriptionRepo,
             $this->menuRepo,
             $this->em,
+            $this->entitlements,
             'sk_test_fake', // Stripe secret key
             'whsec_fake',   // Webhook secret
             [               // Price IDs

@@ -26,6 +26,16 @@ framework:
     php_errors:
         log: true
 
+    rate_limiter:
+        registration:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '15 minutes'
+        verification_resend:
+            policy: 'fixed_window'
+            limit: 3
+            interval: '15 minutes'
+
 when@test:
     framework:
         test: true

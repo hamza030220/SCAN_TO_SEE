@@ -53,6 +53,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
     #[ORM\Column(type: 'boolean', options: ['default' => false])]
     private bool $enforcementRequired = false;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $emailVerifiedAt = null;
+
+    #[ORM\Column(length: 64, nullable: true, unique: true)]
+    private ?string $emailVerificationTokenHash = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $emailVerificationExpiresAt = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $trialEndsAt = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    private int $trialAiUses = 0;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -61,7 +76,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
     public function getId(): ?int { return $this->id; }
 
     public function getEmail(): ?string { return $this->email; }
-    public function setEmail(string $email): static { $this->email = $email; return $this; }
+    public function setEmail(string $email): static { $this->email = mb_strtolower(trim($email)); return $this; }
 
     public function getUserIdentifier(): string { return (string) $this->email; }
 
@@ -145,4 +160,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
 
     public function isEnforcementRequired(): bool { return $this->enforcementRequired; }
     public function setEnforcementRequired(bool $required): static { $this->enforcementRequired = $required; return $this; }
+
+    public function getEmailVerifiedAt(): ?\DateTimeImmutable { return $this->emailVerifiedAt; }
+    public function setEmailVerifiedAt(?\DateTimeImmutable $value): static { $this->emailVerifiedAt = $value; return $this; }
+    public function isEmailVerified(): bool { return $this->emailVerifiedAt !== null; }
+
+    public function getEmailVerificationTokenHash(): ?string { return $this->emailVerificationTokenHash; }
+    public function setEmailVerificationTokenHash(?string $value): static { $this->emailVerificationTokenHash = $value; return $this; }
+    public function getEmailVerificationExpiresAt(): ?\DateTimeImmutable { return $this->emailVerificationExpiresAt; }
+    public function setEmailVerificationExpiresAt(?\DateTimeImmutable $value): static { $this->emailVerificationExpiresAt = $value; return $this; }
+
+    public function getTrialEndsAt(): ?\DateTimeImmutable { return $this->trialEndsAt; }
+    public function setTrialEndsAt(?\DateTimeImmutable $value): static { $this->trialEndsAt = $value; return $this; }
+    public function isTrialActive(?\DateTimeImmutable $now = null): bool
+    {
+        return $this->trialEndsAt !== null && $this->trialEndsAt > ($now ?? new \DateTimeImmutable());
+    }
+    public function getTrialAiUses(): int { return $this->trialAiUses; }
+    public function setTrialAiUses(int $value): static { $this->trialAiUses = max(0, $value); return $this; }
 }
