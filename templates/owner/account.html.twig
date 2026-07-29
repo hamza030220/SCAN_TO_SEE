@@ -5,9 +5,10 @@
 
 {% block content %}
 
-<div class="owner-panel" style="max-width: 800px;">
+<div class="account-grid">
+<section class="owner-panel account-card">
     <div class="owner-panel-head">
-        <h2>👤 Account Details</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">person</span> Account details</h2>
     </div>
     
     <table class="owner-table owner-table--borderless">
@@ -28,8 +29,8 @@
                 <td style="font-weight:600">2FA Status</td>
                 <td>
                     {% if app.user.isTotpAuthenticationEnabled() %}
-                        <span style="display:inline-block; padding:3px 10px; background:#f0fdf4; color:#166534; border-radius:6px; font-size:.8rem; font-weight:600;">
-                            ✅ Enabled
+                        <span class="account-status account-status--success">
+                            Enabled
                         </span>
                     {% else %}
                         <span style="color:var(--adm-muted); font-size:.9rem">Not enabled</span>
@@ -42,11 +43,45 @@
             </tr>
         </tbody>
     </table>
-</div>
+</section>
 
-<div class="owner-panel" style="max-width: 800px; margin-top: 24px;">
+<section class="owner-panel account-card account-security-card">
     <div class="owner-panel-head">
-        <h2>💳 Subscription</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">shield_lock</span> Security &amp; recovery</h2>
+    </div>
+    <div class="account-security-body">
+        <div class="account-security-row">
+            <span class="material-symbols-outlined account-security-icon" aria-hidden="true">mark_email_read</span>
+            <div>
+                <strong>Email ownership</strong>
+                <p>Your recovery and verification messages are sent to {{ app.user.email }}.</p>
+            </div>
+            <span class="account-status {{ app.user.isEmailVerified() ? 'account-status--success' : 'account-status--warning' }}">
+                {{ app.user.isEmailVerified() ? 'Verified' : 'Pending' }}
+            </span>
+        </div>
+        <div class="account-security-row">
+            <span class="material-symbols-outlined account-security-icon" aria-hidden="true">phonelink_lock</span>
+            <div>
+                <strong>Two-factor authentication</strong>
+                <p>{{ app.user.isTotpAuthenticationEnabled() ? 'Your password is backed by an authenticator code.' : 'Add an authenticator code to protect sign-in and sensitive account actions.' }}</p>
+            </div>
+            <span class="account-status {{ app.user.isTotpAuthenticationEnabled() ? 'account-status--success' : 'account-status--neutral' }}">
+                {{ app.user.isTotpAuthenticationEnabled() ? 'Protected' : 'Not enabled' }}
+            </span>
+        </div>
+        <div class="account-card-actions">
+            <a href="{{ path('app_forgot_password') }}" class="btn btn-outline btn-sm">Reset password</a>
+            {% if not app.user.isTotpAuthenticationEnabled() %}
+                <a href="{{ path('app_2fa_setup') }}" class="btn btn-primary btn-sm">Enable 2FA</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="owner-panel account-card">
+    <div class="owner-panel-head">
+        <h2><span class="material-symbols-outlined" aria-hidden="true">credit_card</span> Subscription</h2>
         <a href="{{ path('app_owner_subscription') }}" class="btn btn-outline btn-sm">Manage</a>
     </div>
     
@@ -67,11 +102,11 @@
                     <td>
                         {% if sub.status == 'pending' %}
                             <span style="display:inline-block; padding:3px 10px; background:#fffbeb; color:#92400e; border-radius:6px; font-size:.8rem; font-weight:600;">
-                                ⏳ Confirming Payment
+                                Confirming payment
                             </span>
                         {% else %}
                             <span style="display:inline-block; padding:3px 10px; background:#f0fdf4; color:#166534; border-radius:6px; font-size:.8rem; font-weight:600;">
-                                ✅ Active
+                                Active
                             </span>
                         {% endif %}
                     </td>
@@ -84,7 +119,7 @@
                     {% set daysLeft = sub.getDaysUntilExpiry() %}
                     {% if daysLeft is not null and daysLeft <= 7 %}
                         <tr>
-                            <td style="font-weight:600; color:var(--adm-accent)">⚠️ Expiring Soon</td>
+                            <td style="font-weight:600; color:var(--adm-accent)">Expiring soon</td>
                             <td style="color:var(--adm-accent); font-weight:600">
                                 {{ daysLeft }} day{{ daysLeft != 1 ? 's' }} remaining
                             </td>
@@ -96,7 +131,7 @@
                     <td style="color:var(--adm-muted)">
                         {% set limit = sub.getPublishedMenuLimit() %}
                         {% if limit is null %}
-                            Unlimited ✨
+                            Unlimited
                         {% else %}
                             Up to {{ limit }} menu{{ limit != 1 ? 's' }}
                         {% endif %}
@@ -121,19 +156,20 @@
             </a>
         </div>
     {% endif %}
-</div>
+</section>
 
-<div class="owner-panel account-danger-zone" style="max-width: 800px; margin-top: 24px;">
+<section class="owner-panel account-card account-danger-zone">
     <div class="owner-panel-head">
-        <h2>Delete account</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">delete_forever</span> Delete account</h2>
     </div>
-    <div style="padding:24px;">
+    <div class="account-danger-body">
         <p style="margin:0 0 8px; color:var(--adm-ink); font-weight:600;">Permanently remove your Scan to See account</p>
         <p style="margin:0 0 20px; color:var(--adm-muted); line-height:1.65; font-size:.9rem;">
             Your email will be blocked for 30 days. Account, business, and menu data will be removed. Reviewed AI training records may remain after their account links are removed.
         </p>
         <button type="button" class="btn btn-danger-outline" data-account-delete-open>Review account deletion</button>
     </div>
+</section>
 </div>
 
 {% include 'owner/_account_delete_modal.html.twig' %}
@@ -143,7 +179,7 @@
 <div class="cancel-modal" id="cancelModal">
     <div class="cancel-modal-inner">
         <div class="cancel-modal-header">
-            <h3>⚠️ Cancel Subscription</h3>
+            <h3><span class="material-symbols-outlined" aria-hidden="true">warning</span> Cancel subscription</h3>
             <button class="cancel-modal-close" onclick="hideCancelModal()">&times;</button>
         </div>
         <div class="cancel-modal-body">
@@ -209,6 +245,123 @@
     --adm-accent: #E84040;
 }
 
+.account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 1120px;
+    margin-inline: auto;
+    align-items: stretch;
+}
+
+.account-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.account-card .owner-panel-head h2,
+.cancel-modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.account-card .owner-panel-head .material-symbols-outlined {
+    color: var(--adm-amber);
+    font-size: 21px;
+}
+
+.account-card .owner-table {
+    min-width: 0;
+}
+
+.account-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.account-status--success { background: #ecfdf3; color: #166534; }
+.account-status--warning { background: #fff7ed; color: #9a3412; }
+.account-status--neutral { background: #f4f1ed; color: #685b4d; }
+
+.account-security-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 8px 24px 22px;
+}
+
+.account-security-row {
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--adm-border);
+}
+
+.account-security-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(232,160,32,.11);
+    color: #a96805;
+    font-size: 20px;
+}
+
+.account-security-row strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--adm-ink);
+    font-size: .88rem;
+}
+
+.account-security-row p {
+    margin: 0;
+    color: var(--adm-muted);
+    font-size: .78rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.account-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 18px;
+}
+
+.account-danger-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px;
+}
+
+.account-danger-body .btn {
+    margin-top: auto;
+}
+
 .owner-table--borderless tr {
     border-bottom: 1px solid var(--adm-border);
 }
@@ -218,6 +371,7 @@
 }
 
 .owner-panel-footer {
+    margin-top: auto;
     padding: 16px 24px;
     border-top: 1px solid var(--adm-border);
     text-align: right;
@@ -283,6 +437,11 @@
     margin: 0;
 }
 
+.cancel-modal-header h3 .material-symbols-outlined {
+    color: var(--adm-accent);
+    font-size: 21px;
+}
+
 .cancel-modal-close {
     background: none;
     border: none;
@@ -319,6 +478,53 @@
     font-weight: 600;
     color: var(--adm-ink);
     margin-bottom: 6px;
+}
+
+@media (max-width: 900px) {
+    .account-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+}
+
+@media (max-width: 560px) {
+    .account-card .owner-panel-head {
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .account-card .owner-table td {
+        padding-left: 16px;
+        padding-right: 16px;
+        overflow-wrap: anywhere;
+    }
+
+    .account-card .owner-table td:first-child {
+        width: 42% !important;
+    }
+
+    .account-security-body {
+        padding: 6px 16px 18px;
+    }
+
+    .account-security-row {
+        grid-template-columns: 36px minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    .account-security-row .account-status {
+        grid-column: 2;
+        justify-self: start;
+    }
+
+    .account-card-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .account-card-actions .btn {
+        width: 100%;
+    }
 }
 </style>
 
