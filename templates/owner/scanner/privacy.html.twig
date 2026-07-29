@@ -144,25 +144,25 @@
         </div>
     </div>
 
-    {# ── Work in progress notice ── #}
+    {# Data terms notice #}
     <div class="scanner-privacy-notice">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8A020" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>This privacy policy page is a work in progress. The sections below outline the intended data practices for the Menu Scanner beta. The full legal text will be completed before public launch.</span>
+        <span>The scanner is optional. You must accept these data terms before every scanning session, and you can build the same menu manually without uploading an image.</span>
     </div>
 
     {# ── Sections ── #}
     <div class="scanner-privacy-section">
-        <h2><span>📷</span> What data we collect</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">photo_camera</span> What data we collect</h2>
         <p>When you use the Menu Scanner, we may collect the following types of data:</p>
         <ul>
             <li>The menu image you upload (the photograph of your physical menu).</li>
             <li>The extracted items, categories, prices, and quality metrics produced by the AI pipeline.</li>
-            <li>Metadata such as the date and time of the scan, your account identifier, and the currency setting.</li>
+            <li>Metadata such as scan time, the associated account, business and menu while the account exists, model information, and the currency setting.</li>
         </ul>
     </div>
 
     <div class="scanner-privacy-section">
-        <h2><span>🎯</span> How we use this data</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">target</span> How we use this data</h2>
         <ul>
             <li>To process your scan and return structured menu results to you.</li>
             <li>To improve the accuracy and performance of the AI recognition model.</li>
@@ -172,32 +172,33 @@
     </div>
 
     <div class="scanner-privacy-section">
-        <h2><span>🔒</span> How we protect your data</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">lock</span> Storage and safeguards</h2>
         <ul>
-            <li>Scan images and results are stored securely and are only accessible to authorised Scan to See team members.</li>
-            <li>Images are not shared publicly or with any external AI provider — processing happens within our own infrastructure.</li>
-            <li>You can request deletion of your scan history at any time by contacting our support team.</li>
+            <li>Scan images are stored in configured Cloudinary object storage and scan records are stored in the application database.</li>
+            <li>Images are not made public as menu pages merely because they were scanned. Access is limited to operational and dataset-development purposes.</li>
+            <li>Failed scans and scans with no useful detected regions are removed from training storage.</li>
         </ul>
     </div>
 
     <div class="scanner-privacy-section">
-        <h2><span>⏱️</span> Data retention</h2>
-        <p>Scan data is retained for as long as necessary to improve the AI model and diagnose issues. Specific retention periods will be defined in the final policy prior to public launch.</p>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">schedule</span> Data retention</h2>
+        <p>When you delete the account, failed, incomplete, and unreviewed scan records and their stored training images are removed. A scan that you reviewed and corrected may remain for model evaluation and training after its links to your account, email, business, and menu records are removed.</p>
+        <p>Because source-menu content may identify a business, retained records are treated as de-linked or pseudonymized data and are not promised to be anonymous. They are retained only while useful for the beta dataset and should be periodically reviewed.</p>
     </div>
 
     <div class="scanner-privacy-section">
-        <h2><span>✋</span> Your rights</h2>
+        <h2><span class="material-symbols-outlined" aria-hidden="true">front_hand</span> Your choices and rights</h2>
         <ul>
             <li>You have the right to access the data we hold about your scans.</li>
             <li>You have the right to request correction or deletion of your scan data.</li>
-            <li>You may withdraw consent to data collection at any time by stopping use of the Menu Scanner feature.</li>
+            <li>You can stop creating new scanner data at any time by using the manual menu editor.</li>
+            <li>Depending on applicable law, additional access, objection, restriction, portability, or deletion rights may apply.</li>
         </ul>
     </div>
 
-    {# ── Empty / placeholder banner ── #}
     <div class="scanner-privacy-empty-banner">
-        <strong>🚧 Full policy coming soon</strong>
-        <p>This document is a placeholder for the beta period. A complete, legally reviewed privacy policy will be published before the Menu Scanner exits beta and becomes available to all users.</p>
+        <strong>Read the complete policy</strong>
+        <p>These scanner-specific terms supplement the <a href="{{ path('app_privacy') }}" target="_blank" rel="noopener">S2S Privacy Policy</a> and <a href="{{ path('app_terms') }}" target="_blank" rel="noopener">Terms of Service</a>. The beta documents require qualified legal review before commercial production.</p>
     </div>
 
 </div>

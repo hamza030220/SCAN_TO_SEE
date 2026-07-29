@@ -1,0 +1,154 @@
+<div class="delete-wizard" id="deleteWizard" hidden aria-hidden="true">
+    <div class="delete-wizard-backdrop"></div>
+    <div class="delete-wizard-card" role="dialog" aria-modal="true" aria-labelledby="deleteWizardTitle">
+        <div class="delete-wizard-progress" aria-label="Deletion confirmation progress">
+            {% for step in 1..5 %}<span data-delete-dot="{{ step }}"></span>{% endfor %}
+        </div>
+
+        <form method="post" action="{{ path('app_owner_account_delete') }}" id="deleteAccountForm">
+            <input type="hidden" name="_token" value="{{ csrf_token('delete-account') }}">
+
+            <section class="delete-wizard-step is-active" data-delete-step="1">
+                <span class="material-symbols-outlined delete-wizard-icon" aria-hidden="true">heart_check</span>
+                <p class="delete-wizard-kicker">Step 1 of 5</p>
+                <h2 id="deleteWizardTitle">Before you leave</h2>
+                <p>Your menu content is safe. If cost or timing is the problem, you can keep your account and return later without rebuilding your menus.</p>
+                <a class="delete-retention-link" href="{{ path('app_owner_subscription') }}">Review plans before deciding</a>
+            </section>
+
+            <section class="delete-wizard-step" data-delete-step="2">
+                <span class="material-symbols-outlined delete-wizard-icon" aria-hidden="true">delete_sweep</span>
+                <p class="delete-wizard-kicker">Step 2 of 5</p>
+                <h2>What will be permanently deleted</h2>
+                <ul>
+                    <li>Your account, password, profile, and two-factor settings</li>
+                    <li>Your businesses, menus, QR access, categories, items, and local images</li>
+                    <li>Your subscription record after any active Stripe subscription is cancelled</li>
+                    <li>Failed, incomplete, and unreviewed AI scan records linked to the account</li>
+                </ul>
+            </section>
+
+            <section class="delete-wizard-step" data-delete-step="3">
+                <span class="material-symbols-outlined delete-wizard-icon" aria-hidden="true">model_training</span>
+                <p class="delete-wizard-kicker">Step 3 of 5</p>
+                <h2>Reviewed AI training records</h2>
+                <p>If you used the AI Scanner and reviewed its output, the scan, corrections, and quality information may remain for model evaluation and training.</p>
+                <p>Those retained records are disconnected from your account, email, business, and menu identifiers. This retention is described in the Privacy Policy and Terms.</p>
+            </section>
+
+            <section class="delete-wizard-step" data-delete-step="4">
+                <span class="material-symbols-outlined delete-wizard-icon" aria-hidden="true">lock_clock</span>
+                <p class="delete-wizard-kicker">Step 4 of 5</p>
+                <h2>Your email will be blocked for 30 days</h2>
+                <p>The address itself will not remain in the deleted account data. A secure keyed hash is retained temporarily to stop immediate trial recreation.</p>
+                <p>After 30 days, the block expires and you may create a new account with the same email.</p>
+            </section>
+
+            <section class="delete-wizard-step" data-delete-step="5">
+                <span class="material-symbols-outlined delete-wizard-icon delete-wizard-icon--danger" aria-hidden="true">warning</span>
+                <p class="delete-wizard-kicker">Step 5 of 5</p>
+                <h2>Final confirmation</h2>
+                <p>This action cannot be undone. Confirm your identity and type <strong>YES</strong> in uppercase.</p>
+                <div class="delete-confirm-fields">
+                    <label for="deletePassword">Current password</label>
+                    <input id="deletePassword" type="password" name="password" autocomplete="current-password" required>
+                    {% if app.user.isTotpAuthenticationEnabled() %}
+                        <label for="deleteAuthCode">Two-factor authentication code</label>
+                        <input id="deleteAuthCode" type="text" name="auth_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+                    {% endif %}
+                    <label for="deleteConfirmation">Type YES to permanently delete the account</label>
+                    <input id="deleteConfirmation" type="text" name="confirmation" autocomplete="off" pattern="YES" required>
+                </div>
+            </section>
+
+            <div class="delete-wizard-actions">
+                <button class="btn btn-outline" type="button" data-delete-cancel>Keep my account</button>
+                <button class="btn btn-outline" type="button" data-delete-back hidden>Back</button>
+                <button class="btn btn-primary" type="button" data-delete-next>Next</button>
+                <button class="btn btn-danger" type="submit" data-delete-submit hidden disabled>Permanently delete account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.delete-wizard[hidden] { display: none; }
+.delete-wizard { position: fixed; inset: 0; z-index: 10050; display: grid; place-items: center; padding: 20px; }
+.delete-wizard-backdrop { position: absolute; inset: 0; background: rgba(14, 9, 4, .78); backdrop-filter: blur(7px); }
+.delete-wizard-card { position: relative; width: min(580px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(232,160,32,.28); border-radius: 16px; background: #fff; box-shadow: 0 30px 90px rgba(0,0,0,.38); }
+.delete-wizard-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 22px 28px 0; }
+.delete-wizard-progress span { height: 4px; border-radius: 99px; background: #eadfce; }
+.delete-wizard-progress span.is-active { background: #E8A020; }
+.delete-wizard-step { display: none; min-height: 360px; padding: 34px 38px 24px; }
+.delete-wizard-step.is-active { display: block; }
+.delete-wizard-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 20px; border-radius: 14px; background: #fff4d8; color: #9a5e00; font-size: 28px; }
+.delete-wizard-icon--danger { background: #fef2f2; color: #b91c1c; }
+.delete-wizard-kicker { margin: 0 0 8px; color: #9a5e00; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.delete-wizard-step h2 { margin: 0 0 14px; color: #18120a; font-size: clamp(1.55rem, 5vw, 2rem); }
+.delete-wizard-step p, .delete-wizard-step li { color: #6f6253; font-size: .94rem; line-height: 1.7; }
+.delete-wizard-step ul { display: grid; gap: 10px; padding-left: 20px; }
+.delete-retention-link { display: inline-flex; margin-top: 14px; color: #8a5300; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.delete-confirm-fields { display: grid; gap: 7px; margin-top: 20px; }
+.delete-confirm-fields label { margin-top: 7px; color: #392d20; font-size: .82rem; font-weight: 700; }
+.delete-confirm-fields input { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1.5px solid #d9cdbd; border-radius: 8px; background: #fcfaf7; }
+.delete-confirm-fields input:focus { outline: none; border-color: #E8A020; box-shadow: 0 0 0 3px rgba(232,160,32,.15); }
+.delete-wizard-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 20px 28px; border-top: 1px solid #eee5d9; background: #fcfaf7; }
+.delete-wizard-actions [data-delete-cancel] { margin-right: auto; }
+.delete-wizard-actions .btn-danger { border-color: #b91c1c; background: #b91c1c; color: #fff; }
+.delete-wizard-actions .btn-danger:hover:not(:disabled) { border-color: #991b1b; background: #991b1b; }
+.delete-wizard-actions .btn-danger:disabled { cursor: not-allowed; opacity: .48; }
+@media (max-width: 620px) {
+    .delete-wizard { padding: 10px; }
+    .delete-wizard-card { max-height: calc(100vh - 20px); }
+    .delete-wizard-step { min-height: 390px; padding: 28px 22px 20px; }
+    .delete-wizard-actions { display: grid; grid-template-columns: 1fr 1fr; padding: 16px; }
+    .delete-wizard-actions [data-delete-cancel] { grid-column: 1 / -1; margin: 0; }
+    .delete-wizard-actions [data-delete-submit] { grid-column: 1 / -1; }
+}
+</style>
+
+<script>
+(() => {
+    const wizard = document.getElementById('deleteWizard');
+    if (!wizard) return;
+    const steps = [...wizard.querySelectorAll('[data-delete-step]')];
+    const dots = [...wizard.querySelectorAll('[data-delete-dot]')];
+    const back = wizard.querySelector('[data-delete-back]');
+    const next = wizard.querySelector('[data-delete-next]');
+    const submit = wizard.querySelector('[data-delete-submit]');
+    const confirmation = wizard.querySelector('#deleteConfirmation');
+    let current = 0;
+
+    const render = () => {
+        steps.forEach((step, index) => step.classList.toggle('is-active', index === current));
+        dots.forEach((dot, index) => dot.classList.toggle('is-active', index <= current));
+        back.hidden = current === 0;
+        next.hidden = current === steps.length - 1;
+        submit.hidden = current !== steps.length - 1;
+        if (current === steps.length - 1) confirmation?.focus();
+    };
+    const close = () => {
+        wizard.hidden = true;
+        wizard.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        current = 0;
+        render();
+    };
+    document.querySelectorAll('[data-account-delete-open]').forEach(button => {
+        button.addEventListener('click', () => {
+            wizard.hidden = false;
+            wizard.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            render();
+        });
+    });
+    wizard.querySelectorAll('[data-delete-cancel]').forEach(button => button.addEventListener('click', close));
+    next.addEventListener('click', () => { current = Math.min(steps.length - 1, current + 1); render(); });
+    back.addEventListener('click', () => { current = Math.max(0, current - 1); render(); });
+    confirmation?.addEventListener('input', () => { submit.disabled = confirmation.value !== 'YES'; });
+    wizard.querySelector('form').addEventListener('submit', () => {
+        submit.disabled = true;
+        submit.textContent = 'Deleting account…';
+    });
+})();
+</script>

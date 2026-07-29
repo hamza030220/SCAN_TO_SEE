@@ -2,8 +2,7 @@
 
 namespace App\EventSubscriber;
 
-use App\Entity\Subscription;
-use App\Repository\SubscriptionRepository;
+use App\Service\EntitlementService;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -24,14 +23,16 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
         'app_owner_subscription_change',
         'app_owner_subscription_downgrade',
         'app_owner_subscription_cancel',
+        'app_owner_account_delete',
         'app_stripe_webhook',
+        'app_trial_expired',
         'app_logout',
     ];
 
     public function __construct(
         private readonly TokenStorageInterface  $tokenStorage,
         private readonly RouterInterface        $router,
-        private readonly SubscriptionRepository $subRepo,
+        private readonly EntitlementService      $entitlements,
     ) {}
 
     public static function getSubscribedEvents(): array
@@ -48,13 +49,7 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
         $request = $event->getRequest();
         $route   = $request->attributes->get('_route', '');
 
-        // Only enforce on /owner/* routes
-        if (!str_starts_with($route, 'app_owner')) {
-            return;
-        }
-
-        // Skip the subscription management routes themselves
-        if (in_array($route, self::ALLOWED_ROUTES, true)) {
+        if (!str_starts_with($route, 'app_owner') && $route !== 'app_dashboard') {
             return;
         }
 
@@ -74,27 +69,23 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Check subscription
-        $sub = $this->subRepo->findOneBy(['owner' => $user]);
-
-        if (!$sub?->isActive()) {
-            $status = $sub?->getStatus() ?? 'none';
-
-            // Add context-appropriate flash message
-            if ($status === Subscription::STATUS_EXPIRED || $status === Subscription::STATUS_CANCELLED) {
-                $request->getSession()->getFlashBag()->add(
-                    'error',
-                    'Your subscription has expired. Please renew to access your dashboard.'
-                );
-            } else {
-                $request->getSession()->getFlashBag()->add(
-                    'warning',
-                    'Please choose a subscription plan to access your dashboard.'
-                );
-            }
-
+        if (!$user->isEmailVerified()
+            && !in_array($route, ['app_owner_account_delete', 'app_logout'], true)) {
             $event->setResponse(new RedirectResponse(
-                $this->router->generate('app_owner_subscription')
+                $this->router->generate('app_verify_email_pending')
+            ));
+            return;
+        }
+
+        // Verified owners without access must still reach payment, deletion,
+        // logout, and the expiry gateway.
+        if (in_array($route, self::ALLOWED_ROUTES, true)) {
+            return;
+        }
+
+        if (!$this->entitlements->hasAccess($user)) {
+            $event->setResponse(new RedirectResponse(
+                $this->router->generate('app_trial_expired')
             ));
         }
     }

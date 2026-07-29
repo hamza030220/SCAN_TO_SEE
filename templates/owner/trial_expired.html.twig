@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Your trial has ended — S2S{% endblock %}
+
+{% block body %}
+<section class="trial-gate">
+    <div class="trial-gate-card" role="dialog" aria-modal="true" aria-labelledby="trial-gate-title">
+        <span class="material-symbols-outlined trial-gate-icon" aria-hidden="true">workspace_premium</span>
+        <span class="eyebrow">Five-day trial complete</span>
+        <h1 id="trial-gate-title">Your work is safe and ready when you are.</h1>
+        <p>Your dashboard, editor, AI Scanner, and public menus are paused. Choose a plan to restore access without rebuilding anything.</p>
+        <div class="trial-gate-actions">
+            <a class="btn btn-primary btn-full" href="{{ path('app_owner_subscription') }}">Choose a plan and continue</a>
+            <a class="btn btn-outline btn-full" href="{{ path('app_home') }}">Return to the home page</a>
+        </div>
+        <button class="trial-delete-link" type="button" data-account-delete-open>Delete my account</button>
+    </div>
+</section>
+{% include 'owner/_account_delete_modal.html.twig' %}
+{% endblock %}

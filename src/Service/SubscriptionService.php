@@ -17,6 +17,7 @@ class SubscriptionService
         private readonly SubscriptionRepository $subscriptionRepo,
         private readonly MenuRepository         $menuRepo,
         private readonly EntityManagerInterface $em,
+        private readonly EntitlementService     $entitlements,
         private readonly string                 $stripeSecretKey,
         private readonly string                 $stripeWebhookSecret,
         private readonly array                  $stripePriceIds, // map plan+period → price ID
@@ -31,8 +32,12 @@ class SubscriptionService
 
     public function hasActiveSubscription(User $user): bool
     {
-        $sub = $this->getSubscription($user);
-        return $sub !== null && $sub->isActive();
+        return $this->entitlements->hasPaidAccess($user);
+    }
+
+    public function hasAccess(User $user): bool
+    {
+        return $this->entitlements->hasAccess($user);
     }
 
     // ── Published menu count for this owner ───────────────────────────────────
@@ -91,8 +96,8 @@ class SubscriptionService
      */
     public function canSetMenuStatus(User $user, ?string $currentStatus, string $newStatus): bool
     {
-        $sub = $this->getSubscription($user);
-        if (!$sub?->isActive()) {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
             return false;
         }
 
@@ -100,7 +105,6 @@ class SubscriptionService
             return false;
         }
 
-        $plan           = $sub->getPlan();
         $publishedLimit = Subscription::LIMITS[$plan]['published'] ?? null;
         $draftLimit     = Subscription::LIMITS[$plan]['draft'] ?? null;
 
@@ -146,8 +150,8 @@ class SubscriptionService
             ];
         }
 
-        $sub = $this->getSubscription($user);
-        if (!$sub?->isActive()) {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
             return [
                 'allowed' => false,
                 'swapped_menu' => null,
@@ -160,7 +164,7 @@ class SubscriptionService
             'swapped_menu' => null,
             'message' => sprintf(
                 'Your %s plan has no free %s menu slot. Archive or change another menu first, or upgrade your plan.',
-                $sub->getPlanLabel(),
+                Subscription::LABELS[$plan] ?? ucfirst($plan),
                 $newStatus,
             ),
         ];
@@ -172,12 +176,11 @@ class SubscriptionService
      */
     public function canCreateMenu(User $user): bool
     {
-        $sub = $this->getSubscription($user);
-        if (!$sub?->isActive()) {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
             return false;
         }
 
-        $plan           = $sub->getPlan();
         $publishedLimit = Subscription::LIMITS[$plan]['published'] ?? null;
         $draftLimit     = Subscription::LIMITS[$plan]['draft'] ?? null;
 
@@ -197,12 +200,12 @@ class SubscriptionService
 
     public function canCreateBusiness(User $user, int $currentBusinessCount): bool
     {
-        $sub = $this->getSubscription($user);
-        if (!$sub?->isActive()) {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
             return false;
         }
 
-        $limit = $sub->getBusinessLimit();
+        $limit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
         return $limit === null || $currentBusinessCount < $limit;
     }
 

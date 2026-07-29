@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Email temporarily blocked — S2S{% endblock %}
+
+{% block body %}
+<section class="auth-page">
+    <div class="auth-box auth-box--single">
+        <div class="auth-right">
+            <span class="material-symbols-outlined auth-status-icon" aria-hidden="true">event_busy</span>
+            <h1>This email is temporarily blocked</h1>
+            <p>An account using this email was deleted recently. To prevent repeated free-trial creation, it cannot be used again until <strong>{{ blockedUntil|date('F j, Y \\a\\t H:i') }}</strong>.</p>
+            <p>Please use a different email or return after that date.</p>
+            <a class="btn btn-primary btn-full" href="{{ path('app_register') }}">Use a different email</a>
+            <a class="btn btn-outline btn-full" href="{{ path('app_home') }}">Return to home</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

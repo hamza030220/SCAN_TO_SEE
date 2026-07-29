@@ -20,9 +20,24 @@ class UserTest extends TestCase
     public function testSetAndGetEmail(): void
     {
         $user = new User();
-        $user->setEmail('test@example.com');
+        $user->setEmail('  Test@Example.COM ');
 
         $this->assertSame('test@example.com', $user->getEmail());
+    }
+
+    public function testEmailVerificationAndTrialState(): void
+    {
+        $user = new User();
+        $this->assertFalse($user->isEmailVerified());
+        $this->assertFalse($user->isTrialActive());
+
+        $user->setEmailVerifiedAt(new \DateTimeImmutable());
+        $user->setTrialEndsAt(new \DateTimeImmutable('+5 days'));
+        $this->assertTrue($user->isEmailVerified());
+        $this->assertTrue($user->isTrialActive());
+
+        $user->setTrialEndsAt(new \DateTimeImmutable('-1 second'));
+        $this->assertFalse($user->isTrialActive());
     }
 
     public function testGetUserIdentifierReturnsEmail(): void

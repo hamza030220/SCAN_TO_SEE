@@ -23,6 +23,9 @@ security:
                 username_parameter: email
                 password_parameter: password
                 enable_csrf: true
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
             two_factor:
                 auth_form_path: 2fa_login
                 check_path: 2fa_login_check

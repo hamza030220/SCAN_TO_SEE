@@ -16,7 +16,11 @@
         <div class="shell">
             <div class="pricing-cards">
                 {% for plan in plans %}
-                    <div class="pricing-card {{ loop.last ? 'is-featured' : '' }}">
+                    {% set isFeatured = plan.featured|default(false) %}
+                    <article class="pricing-card {{ isFeatured ? 'is-featured' : '' }}">
+                        {% if isFeatured %}
+                            <span class="pricing-badge">The best offer</span>
+                        {% endif %}
                         <div>
                             <p class="pricing-period">{{ plan.period }}</p>
                             <h2>{{ plan.name }}</h2>
@@ -31,8 +35,8 @@
                                 <li>{{ item }}</li>
                             {% endfor %}
                         </ul>
-                        <a class="btn {{ loop.last ? 'btn-primary' : 'btn-outline' }} btn-full" href="{{ path('app_register') }}">Choose {{ plan.name }}</a>
-                    </div>
+                        <a class="btn {{ isFeatured ? 'btn-primary' : 'btn-outline' }} btn-full" href="{{ path('app_register') }}">Choose {{ plan.name }}</a>
+                    </article>
                 {% endfor %}
             </div>
         </div>

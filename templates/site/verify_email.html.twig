@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Verify your email — S2S{% endblock %}
+
+{% block body %}
+<section class="auth-page">
+    <div class="auth-box auth-box--single">
+        <div class="auth-right">
+            <span class="material-symbols-outlined auth-status-icon" aria-hidden="true">mark_email_unread</span>
+            <h1>Verify your email</h1>
+            <p>Before you can use your five-day trial, confirm the link sent to <strong>{{ app.user.email }}</strong>.</p>
+            {% for type in ['success', 'error'] %}
+                {% for message in app.flashes(type) %}
+                    <div class="auth-alert {{ type == 'success' ? 'auth-alert--ok' : 'auth-alert--err' }}">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+            <form method="post" action="{{ path('app_verify_email_resend') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('resend-verification') }}">
+                <button class="btn btn-primary btn-full" type="submit">Send a new verification link</button>
+            </form>
+            <a class="btn btn-outline btn-full" href="{{ path('app_logout') }}">Log out</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

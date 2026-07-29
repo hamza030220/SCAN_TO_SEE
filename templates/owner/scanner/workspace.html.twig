@@ -42,6 +42,10 @@
 .wsScanBtn{margin-left:auto;display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:#18120a;color:#E8A020;border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.02em}
 .wsScanBtn:hover{background:#2a1f10}.wsScanBtn:disabled{opacity:.5;cursor:not-allowed}
 .wsScanBtn.scanning svg{animation:spinIcon .8s linear infinite}
+.wsDataTerms{display:flex;align-items:flex-start;gap:7px;max-width:310px;font-family:'DM Sans',sans-serif;font-size:.7rem;line-height:1.35;color:#806f5d}
+.wsDataTerms input{margin:2px 0 0;accent-color:#E8A020;flex-shrink:0}
+.wsDataTerms a{color:#805000;text-decoration:underline;text-underline-offset:2px}
+.wsTrialUses{padding:6px 9px;border-radius:7px;background:#fff4d8;color:#805000;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:700;white-space:nowrap}
 @keyframes spinIcon{to{transform:rotate(360deg)}}
 .wsSideHead{padding:16px 18px;border-bottom:1px solid #f0e9de;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .wsSideHeadTitle{font-family:'Space Grotesk',sans-serif;font-size:.9rem;font-weight:700;color:#18120a}
@@ -130,8 +134,16 @@
         <span class="wsCurrencyLabel">Currency</span>
         <input type="text" id="wsCurrency" class="wsCurrencyInput"
                value="{{ menu ? menu.currency : 'TND' }}" maxlength="3">
+        {% if trialAiRemaining is not null %}
+          <span class="wsTrialUses">{{ trialAiRemaining }} of 3 trial scans left</span>
+        {% endif %}
+        <label class="wsDataTerms">
+          <input type="checkbox" id="wsDataTerms">
+          <span>I accept the <a href="{{ path('app_owner_scanner_privacy') }}" target="_blank" rel="noopener">AI Scanner data terms</a>.</span>
+        </label>
         <button type="button" id="wsScanBtn" class="wsScanBtn"
-                {% if not scannerAllowed %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}>
+                disabled aria-disabled="true"
+                {% if not scannerAllowed %}title="Menu Scanner is only available for an empty menu."{% else %}title="Accept the AI Scanner data terms to continue."{% endif %}>
           <svg id="wsScanIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
             <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
@@ -212,6 +224,8 @@ var SCAN_URL = '{{ path("app_owner_scanner_scan") }}';
 var SAVE_URL = '{{ path("app_owner_scanner_save") }}';
 var MENU_ID  = {{ menu ? menu.id : 'null' }};
 var SCAN_ALLOWED = {{ scannerAllowed ? 'true' : 'false' }};
+var SCAN_CSRF = '{{ csrf_token("scanner-scan") }}';
+var SAVE_CSRF = '{{ csrf_token("scanner-save") }}';
 
 var files         = [];
 var results       = [];
@@ -224,6 +238,7 @@ var fileInput   = document.getElementById('wsFileInput');
 var imageArea   = document.getElementById('wsImageArea');
 var imageCards  = document.getElementById('wsImageCards');
 var scanBtn     = document.getElementById('wsScanBtn');
+var dataTerms   = document.getElementById('wsDataTerms');
 var currencyIn  = document.getElementById('wsCurrency');
 var sideEmpty   = document.getElementById('wsSideEmpty');
 var sideResults = document.getElementById('wsSideResults');
@@ -238,6 +253,15 @@ var progressFill= document.getElementById('wsProgressFill');
 var progressTxt = document.getElementById('wsProgressText');
 var seeBtnWrap  = document.getElementById('wsPopupSeeBtnWrap');
 var seeBtn      = document.getElementById('wsPopupSeeBtn');
+
+function syncScanButton(){
+  var enabled=SCAN_ALLOWED&&dataTerms.checked;
+  scanBtn.disabled=!enabled;
+  scanBtn.setAttribute('aria-disabled',enabled?'false':'true');
+  scanBtn.title=SCAN_ALLOWED?(enabled?'Scan this empty menu':'Accept the AI Scanner data terms to continue.'):'Menu Scanner is only available for an empty menu.';
+}
+dataTerms.addEventListener('change',syncScanButton);
+syncScanButton();
 
 /* ── Drop zone ── */
 document.getElementById('wsBrowseLink').addEventListener('click', function(e){ e.stopPropagation(); fileInput.click(); });
@@ -329,12 +353,13 @@ async function scanMultiple(currency){
   }
   updatePopupProgress(files.length,files.length,files.length);
   showPopupDone();
-  scanBtn.disabled=!SCAN_ALLOWED;
+  syncScanButton();
 }
 
 async function callScan(file,currency){
   if(!SCAN_ALLOWED||!MENU_ID) throw new Error('Menu Scanner is only available for an empty menu.');
   var fd=new FormData(); fd.append('image',file); fd.append('currency',currency);
+  fd.append('_token',SCAN_CSRF); fd.append('data_terms_accepted',dataTerms.checked?'1':'0');
   if(MENU_ID) fd.append('menu_id',String(MENU_ID));
   var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
   var json=await resp.json();
@@ -358,7 +383,7 @@ function updatePopupProgress(done,total,current){
   progressTxt.textContent=done<total?'Processing image '+current+' of '+total+'\u2026':'All done!';
 }
 function showPopupDone(){
-  popupTitle.textContent='\u2705 Processing complete!';
+  popupTitle.textContent='Processing complete';
   popupSub.textContent='Your results are ready for review.';
   progressFill.style.width='100%'; progressTxt.textContent='';
   seeBtnWrap.style.display='block';
@@ -508,7 +533,7 @@ saveBtn.addEventListener('click', async function(){
   // Snapshot current tab (syncs typed values to attributes first)
   if(tabContent.innerHTML!=='') snapshotCurrentTab();
 
-  var payload={menu_id:MENU_ID, images:[]};
+  var payload={menu_id:MENU_ID, _token:SAVE_CSRF, images:[]};
 
   results.forEach(function(r,imgIdx){
     if(!r||r.error) return;
@@ -545,7 +570,7 @@ saveBtn.addEventListener('click', async function(){
     saveBtn.disabled=false;
     var last=saveBtn.childNodes[saveBtn.childNodes.length-1];
     if(last&&last.nodeType===3) last.nodeValue=' Save to Menu';
-    alert('\u26a0\ufe0f '+e.message);
+    alert(e.message);
   }
 });
 
