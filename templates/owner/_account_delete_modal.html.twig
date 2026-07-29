@@ -92,8 +92,10 @@
 .delete-confirm-fields label { margin-top: 7px; color: #392d20; font-size: .82rem; font-weight: 700; }
 .delete-confirm-fields input { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1.5px solid #d9cdbd; border-radius: 8px; background: #fcfaf7; }
 .delete-confirm-fields input:focus { outline: none; border-color: #E8A020; box-shadow: 0 0 0 3px rgba(232,160,32,.15); }
-.delete-wizard-actions { display: flex; gap: 10px; justify-content: flex-end; padding: 20px 28px; border-top: 1px solid #eee5d9; background: #fcfaf7; }
+.delete-wizard-actions { position: sticky; bottom: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; padding: 20px 28px; border-top: 1px solid #eee5d9; background: #fcfaf7; }
 .delete-wizard-actions [data-delete-cancel] { margin-right: auto; }
+.delete-wizard-actions [hidden] { display: none !important; }
+.delete-wizard-actions .btn { min-width: 0; min-height: 44px; height: auto; padding-top: 10px; padding-bottom: 10px; justify-content: center; line-height: 1.25; text-align: center; white-space: normal; }
 .delete-wizard-actions .btn-danger { border-color: #b91c1c; background: #b91c1c; color: #fff; }
 .delete-wizard-actions .btn-danger:hover:not(:disabled) { border-color: #991b1b; background: #991b1b; }
 .delete-wizard-actions .btn-danger:disabled { cursor: not-allowed; opacity: .48; }
@@ -102,6 +104,7 @@
     .delete-wizard-card { max-height: calc(100vh - 20px); }
     .delete-wizard-step { min-height: 390px; padding: 28px 22px 20px; }
     .delete-wizard-actions { display: grid; grid-template-columns: 1fr 1fr; padding: 16px; }
+    .delete-wizard-actions .btn { width: 100%; }
     .delete-wizard-actions [data-delete-cancel] { grid-column: 1 / -1; margin: 0; }
     .delete-wizard-actions [data-delete-submit] { grid-column: 1 / -1; }
 }
