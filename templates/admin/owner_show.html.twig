@@ -9,20 +9,16 @@
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
     <a href="{{ path('app_admin_owners') }}" style="font-size:.82rem;color:var(--adm-muted);text-decoration:none">← All owners</a>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <form method="post"
-              action="{{ path('app_admin_owner_toggle', {id: owner.id}) }}"
-              onsubmit="return confirm('{{ owner.isActive ? 'Deactivate' : 'Activate' }} this account?')">
-            <input type="hidden" name="_token" value="{{ csrf_token('toggle-owner-' ~ owner.id) }}">
-            <button type="submit" class="btn btn-outline-adm btn-sm">
-                {{ owner.isActive ? 'Deactivate account' : 'Activate account' }}
-            </button>
-        </form>
-        <form method="post"
-              action="{{ path('app_admin_owner_delete', {id: owner.id}) }}"
-              onsubmit="return confirm('Permanently delete «{{ owner.email }}» and ALL their data? This cannot be undone.')">
-            <input type="hidden" name="_token" value="{{ csrf_token('delete-owner-' ~ owner.id) }}">
-            <button type="submit" class="btn btn-danger btn-sm">Delete account</button>
-        </form>
+        <a href="{{ path('app_admin_owner_confirm', {
+            id: owner.id,
+            action: owner.isActive ? 'deactivate' : 'activate'
+        }) }}" class="btn btn-outline-adm btn-sm">
+            {{ owner.isActive ? 'Deactivate account' : 'Activate account' }}
+        </a>
+        <a href="{{ path('app_admin_owner_confirm', {
+            id: owner.id,
+            action: 'delete'
+        }) }}" class="btn btn-danger btn-sm">Delete account</a>
     </div>
 </div>
 
