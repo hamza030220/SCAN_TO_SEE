@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
 use App\Repository\UserRepository;
+use App\Service\AccountDeletionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -98,7 +99,11 @@ final class AdminController extends AbstractController
     /* ── Delete owner ─────────────────────────────────────────────── */
 
     #[Route('/owners/{id}/delete', name: 'app_admin_owner_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function ownerDelete(User $owner, Request $request, EntityManagerInterface $em): Response
+    public function ownerDelete(
+        User $owner,
+        Request $request,
+        AccountDeletionService $accountDeletion,
+    ): Response
     {
         if (!$this->isCsrfTokenValid('delete-owner-' . $owner->getId(), $request->request->get('_token'))) {
             $this->addFlash('error', 'Invalid CSRF token.');
@@ -109,11 +114,26 @@ final class AdminController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $email = $owner->getEmail();
-        $em->remove($owner);
-        $em->flush();
+        $email = (string) $owner->getEmail();
+        try {
+            $blockedUntil = $accountDeletion->delete($owner);
+        } catch (\Throwable) {
+            $this->addFlash(
+                'error',
+                'The account could not be deleted safely. No local deletion was completed; check Stripe and application logs before retrying.',
+            );
 
-        $this->addFlash('success', "Owner account deleted: {$email}");
+            return $this->redirectToRoute('app_admin_owner_show', ['id' => $owner->getId()]);
+        }
+
+        $this->addFlash(
+            'success',
+            sprintf(
+                'Owner account deleted: %s. The email remains blocked until %s.',
+                $email,
+                $blockedUntil->format('F j, Y'),
+            ),
+        );
 
         return $this->redirectToRoute('app_admin_owners');
     }
