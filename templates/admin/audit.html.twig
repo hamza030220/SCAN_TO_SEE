@@ -1,0 +1,87 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% block title %}Audit log — S2S Admin{% endblock %}
+{% block page_title %}Audit log{% endblock %}
+
+{% block content %}
+<div class="admin-panel">
+    <div class="admin-panel-head">
+        <div>
+            <h2>Administrator activity</h2>
+            <p class="audit-subtitle">{{ total }} recorded action{{ total == 1 ? '' : 's' }}</p>
+        </div>
+        <span class="audit-retention">Security history</span>
+    </div>
+
+    {% if logs is empty %}
+        <div class="admin-empty">No administrator action has been recorded yet.</div>
+    {% else %}
+        <div class="admin-table-scroll">
+            <table class="admin-table audit-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Administrator</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>Reason</th>
+                        <th>Outcome</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td class="audit-date">{{ log.createdAt|date('M d, Y H:i') }}</td>
+                            <td>
+                                <strong>{{ log.actorEmail }}</strong>
+                                {% if log.ipAddress %}<small>{{ log.ipAddress }}</small>{% endif %}
+                            </td>
+                            <td><code>{{ log.action }}</code></td>
+                            <td>
+                                <strong>{{ log.targetLabel }}</strong>
+                                {% if log.targetId %}<small>{{ log.targetType }} #{{ log.targetId }}</small>{% endif %}
+                            </td>
+                            <td class="audit-reason">{{ log.reason ?? 'No reason supplied' }}</td>
+                            <td>
+                                <span class="audit-outcome audit-outcome--{{ log.outcome }}">{{ log.outcome }}</span>
+                                {% if log.errorMessage %}<small class="audit-error">{{ log.errorMessage }}</small>{% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+
+{% if pageCount > 1 %}
+    <nav class="audit-pagination" aria-label="Audit pages">
+        {% if page > 1 %}
+            <a class="btn btn-outline-adm btn-sm" href="{{ path('app_admin_audit', {page: page - 1}) }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page }} of {{ pageCount }}</span>
+        {% if page < pageCount %}
+            <a class="btn btn-outline-adm btn-sm" href="{{ path('app_admin_audit', {page: page + 1}) }}">Next</a>
+        {% endif %}
+    </nav>
+{% endif %}
+
+<style>
+.audit-subtitle { margin-top:4px; color:var(--adm-muted); font-size:.76rem; }
+.audit-retention { padding:4px 9px; border-radius:99px; background:#f3eee7; color:var(--adm-muted); font-size:.7rem; font-weight:700; }
+.audit-table { min-width:980px; }
+.audit-table td { vertical-align:top; }
+.audit-table td strong { display:block; font-size:.82rem; overflow-wrap:anywhere; }
+.audit-table td small { display:block; margin-top:3px; color:var(--adm-muted); font-size:.7rem; }
+.audit-date { white-space:nowrap; color:var(--adm-muted); font-size:.76rem; }
+.audit-table code { color:#7c2d12; font-size:.74rem; }
+.audit-reason { max-width:260px; line-height:1.45; overflow-wrap:anywhere; }
+.audit-outcome { display:inline-flex; padding:3px 8px; border-radius:99px; font-size:.68rem; font-weight:800; text-transform:uppercase; }
+.audit-outcome--success { background:#ecfdf5; color:#065f46; }
+.audit-outcome--denied { background:#fff7ed; color:#9a3412; }
+.audit-outcome--failed { background:#fff1f2; color:#9f1239; }
+.audit-outcome--started { background:#eff6ff; color:#1d4ed8; }
+.audit-error { max-width:230px; color:#9f1239 !important; overflow-wrap:anywhere; }
+.audit-pagination { display:flex; align-items:center; justify-content:center; gap:14px; color:var(--adm-muted); font-size:.8rem; }
+</style>
+{% endblock %}

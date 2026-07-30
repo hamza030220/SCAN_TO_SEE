@@ -1,0 +1,139 @@
+{% extends 'admin/layout.html.twig' %}
+
+{% set isDelete = action == 'delete' %}
+{% set actionLabel = action == 'activate' ? 'Activate account' : (action == 'deactivate' ? 'Deactivate account' : 'Delete account') %}
+
+{% block title %}Confirm {{ actionLabel|lower }} — S2S Admin{% endblock %}
+{% block page_title %}Confirm sensitive action{% endblock %}
+
+{% block content %}
+<div class="admin-confirm-shell">
+    <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="admin-confirm-back">← Return to owner</a>
+
+    <section class="admin-panel admin-confirm-card {{ isDelete ? 'admin-confirm-card--danger' : '' }}">
+        <div class="admin-panel-head">
+            <div>
+                <span class="admin-confirm-kicker">{{ isDelete ? 'Permanent action' : 'Account access' }}</span>
+                <h2>{{ actionLabel }}</h2>
+            </div>
+            <span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">
+                {{ owner.isActive ? 'Active' : 'Inactive' }}
+            </span>
+        </div>
+
+        <div class="admin-confirm-body">
+            <div class="admin-confirm-target">
+                <span>Target account</span>
+                <strong>{{ owner.email }}</strong>
+            </div>
+
+            {% if isDelete %}
+                <div class="admin-confirm-warning">
+                    This permanently removes account, business, and menu data. The Stripe subscription is cancelled first,
+                    unreviewed training assets are removed, and the email is blocked for 30 days.
+                </div>
+            {% else %}
+                <p class="admin-confirm-copy">
+                    {{ action == 'deactivate'
+                        ? 'The owner will be signed out and prevented from signing in until the account is activated again.'
+                        : 'The owner will regain access subject to email verification, trial, and subscription rules.' }}
+                </p>
+            {% endif %}
+
+            <form method="post"
+                  action="{{ path(isDelete ? 'app_admin_owner_delete' : 'app_admin_owner_toggle', {id: owner.id}) }}"
+                  class="admin-confirm-form">
+                <input type="hidden"
+                       name="_token"
+                       value="{{ csrf_token((isDelete ? 'delete-owner-' : 'toggle-owner-') ~ owner.id) }}">
+
+                {% if not isDelete %}
+                    <input type="hidden" name="desired_state" value="{{ action == 'activate' ? '1' : '0' }}">
+                {% endif %}
+
+                <label for="admin-action-reason">Reason for this action</label>
+                <textarea id="admin-action-reason"
+                          name="reason"
+                          rows="4"
+                          maxlength="1000"
+                          required
+                          placeholder="Explain why this administrative action is necessary."></textarea>
+
+                {% if isDelete %}
+                    <label for="admin-target-email">Type the owner email</label>
+                    <input id="admin-target-email"
+                           name="target_email"
+                           type="email"
+                           required
+                           autocomplete="off"
+                           placeholder="{{ owner.email }}">
+
+                    <label for="admin-delete-confirmation">Type DELETE</label>
+                    <input id="admin-delete-confirmation"
+                           name="confirmation"
+                           type="text"
+                           required
+                           autocomplete="off">
+
+                    <label for="admin-password">Your administrator password</label>
+                    <input id="admin-password"
+                           name="admin_password"
+                           type="password"
+                           required
+                           autocomplete="current-password">
+
+                    <label for="admin-auth-code">Your current 2FA code</label>
+                    <input id="admin-auth-code"
+                           name="auth_code"
+                           type="text"
+                           inputmode="numeric"
+                           pattern="[0-9]{6}"
+                           maxlength="6"
+                           required
+                           autocomplete="one-time-code">
+                {% else %}
+                    <label for="admin-toggle-confirmation">Type CONFIRM</label>
+                    <input id="admin-toggle-confirmation"
+                           name="confirmation"
+                           type="text"
+                           required
+                           autocomplete="off">
+                {% endif %}
+
+                <div class="admin-confirm-actions">
+                    <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="btn btn-outline-adm">Cancel</a>
+                    <button type="submit" class="btn {{ isDelete ? 'btn-danger' : 'btn-outline-adm' }}">
+                        {{ actionLabel }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+<style>
+.admin-confirm-shell { max-width: 720px; margin: 0 auto; }
+.admin-confirm-back { display:inline-flex; margin-bottom:16px; color:var(--adm-muted); font-size:.82rem; font-weight:600; text-decoration:none; }
+.admin-confirm-card { border-top:3px solid var(--adm-amber); }
+.admin-confirm-card--danger { border-top-color:var(--adm-accent); }
+.admin-confirm-kicker { display:block; margin-bottom:4px; color:var(--adm-muted); font-size:.68rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; }
+.admin-confirm-body { padding:24px; }
+.admin-confirm-target { display:flex; flex-direction:column; gap:4px; margin-bottom:20px; padding:14px 16px; border:1px solid var(--adm-border); border-radius:8px; background:#faf7f2; }
+.admin-confirm-target span { color:var(--adm-muted); font-size:.72rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+.admin-confirm-target strong { overflow-wrap:anywhere; }
+.admin-confirm-warning { margin-bottom:22px; padding:14px 16px; border:1px solid #fecaca; border-radius:8px; background:#fff1f2; color:#991b1b; font-size:.86rem; line-height:1.6; }
+.admin-confirm-copy { margin:0 0 22px; color:var(--adm-muted); font-size:.9rem; line-height:1.65; }
+.admin-confirm-form { display:grid; gap:9px; }
+.admin-confirm-form label { margin-top:8px; color:var(--adm-ink); font-size:.78rem; font-weight:700; }
+.admin-confirm-form input,
+.admin-confirm-form textarea { width:100%; padding:11px 13px; border:1.5px solid var(--adm-border); border-radius:7px; background:#fff; color:var(--adm-ink); font:inherit; }
+.admin-confirm-form input:focus,
+.admin-confirm-form textarea:focus { outline:none; border-color:var(--adm-amber); box-shadow:0 0 0 3px rgba(232,160,32,.13); }
+.admin-confirm-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; padding-top:18px; border-top:1px solid var(--adm-border); }
+@media (max-width:560px) {
+    .admin-confirm-body { padding:18px; }
+    .admin-confirm-actions { display:grid; grid-template-columns:1fr; }
+    .admin-confirm-actions .btn { width:100%; text-align:center; }
+}
+</style>
+{% endblock %}

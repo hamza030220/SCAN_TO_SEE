@@ -258,6 +258,7 @@
         }
         .admin-table tbody tr:last-child td { border-bottom: none; }
         .admin-table tbody tr:hover td { background: #fdfaf6; }
+        .admin-table-scroll { width: 100%; overflow-x: auto; }
 
         /* ── Action links ────────────────────────────────────────────── */
         .admin-action {
@@ -337,6 +338,12 @@
             <a href="{{ path('app_admin_owners') }}"
                {% if route starts with 'app_admin_owner' %}class="active"{% endif %}>
                 <span class="nav-icon">👤</span> Owners
+            </a>
+
+            <div class="nav-sep">Security</div>
+            <a href="{{ path('app_admin_audit') }}"
+               {% if route == 'app_admin_audit' %}class="active"{% endif %}>
+                <span class="nav-icon">AL</span> Audit log
             </a>
         </nav>
         <div class="admin-sidebar-foot">

@@ -38,25 +38,17 @@
                         <td style="text-align:right;white-space:nowrap">
                             <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="admin-action">View</a>
 
-                            {# Toggle active/inactive #}
-                            <form method="post"
-                                  action="{{ path('app_admin_owner_toggle', {id: owner.id}) }}"
-                                  style="display:inline"
-                                  onsubmit="return confirm('{{ owner.isActive ? 'Deactivate' : 'Activate' }} this account?')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-owner-' ~ owner.id) }}">
-                                <button type="submit" class="admin-action">
-                                    {{ owner.isActive ? 'Deactivate' : 'Activate' }}
-                                </button>
-                            </form>
+                            <a href="{{ path('app_admin_owner_confirm', {
+                                id: owner.id,
+                                action: owner.isActive ? 'deactivate' : 'activate'
+                            }) }}" class="admin-action">
+                                {{ owner.isActive ? 'Deactivate' : 'Activate' }}
+                            </a>
 
-                            {# Delete #}
-                            <form method="post"
-                                  action="{{ path('app_admin_owner_delete', {id: owner.id}) }}"
-                                  style="display:inline"
-                                  onsubmit="return confirm('Permanently delete «{{ owner.email }}» and ALL their data?')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('delete-owner-' ~ owner.id) }}">
-                                <button type="submit" class="admin-action admin-action--danger">Delete</button>
-                            </form>
+                            <a href="{{ path('app_admin_owner_confirm', {
+                                id: owner.id,
+                                action: 'delete'
+                            }) }}" class="admin-action admin-action--danger">Delete</a>
                         </td>
                     </tr>
                 {% endfor %}
