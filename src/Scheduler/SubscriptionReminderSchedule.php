@@ -14,7 +14,11 @@ class SubscriptionReminderSchedule implements ScheduleProviderInterface
     public function getSchedule(): Schedule
     {
         return (new Schedule())->add(
-            RecurringMessage::cron('0 8 * * *', new SubscriptionDailyCheck())
+            RecurringMessage::every(
+                '1 day',
+                new SubscriptionDailyCheck(),
+                from: 'today 08:00',
+            )
         );
     }
 }

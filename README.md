@@ -425,8 +425,9 @@ The app will be available at **http://127.0.0.1:8000**.
 
 ### Subscription scheduler
 
-Run the subscription scheduler in a separate terminal. This sends expiry
-reminders and records overdue subscriptions:
+`.\dev.cmd up` starts the subscription scheduler in its own visible terminal.
+This sends expiry reminders and records overdue subscriptions every day at
+08:00. To run only the scheduler manually:
 
 ```powershell
 cd C:\Users\zussl\Desktop\scantosee\scantosee_APP\my_project_directory

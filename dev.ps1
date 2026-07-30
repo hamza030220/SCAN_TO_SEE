@@ -38,6 +38,20 @@ function Write-ServiceStatus {
         Write-Host ('{0,-16} {1,-8} {2}' -f $service.Name, $label, $service.Url) -ForegroundColor $color
     }
 
+    $schedulerRunning = $false
+    if (Test-Path -LiteralPath $StateFile) {
+        try {
+            $state = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
+            $schedulerRunning = $null -ne $state.schedulerTerminalPid -and
+                $null -ne (Get-Process -Id $state.schedulerTerminalPid -ErrorAction SilentlyContinue)
+        } catch {
+            $schedulerRunning = $false
+        }
+    }
+    $schedulerLabel = if ($schedulerRunning) { 'RUNNING' } else { 'STOPPED' }
+    $schedulerColor = if ($schedulerRunning) { 'Green' } else { 'DarkGray' }
+    Write-Host ('{0,-16} {1,-8} {2}' -f 'Scheduler', $schedulerLabel, 'daily at 08:00') -ForegroundColor $schedulerColor
+
     if (Test-TcpPort -Port 4040) {
         try {
             $response = Invoke-RestMethod 'http://127.0.0.1:4040/api/tunnels' -TimeoutSec 2
@@ -73,6 +87,40 @@ function Start-VisibleService {
     }
 
     $arguments = "-NoExit -ExecutionPolicy Bypass -File `"$scriptPath`""
+    $process = Start-Process `
+        -FilePath 'powershell.exe' `
+        -ArgumentList $arguments `
+        -WorkingDirectory $ProjectRoot `
+        -PassThru
+
+    Write-Host "Opened $Name terminal (PID $($process.Id))." -ForegroundColor Green
+    return $process.Id
+}
+
+function Start-VisibleWorker {
+    param(
+        [string] $Name,
+        [string] $Script,
+        [AllowNull()]
+        [int] $ExistingPid
+    )
+
+    if ($ExistingPid -and (Get-Process -Id $ExistingPid -ErrorAction SilentlyContinue)) {
+        Write-Host "$Name worker is already running; keeping PID $ExistingPid." -ForegroundColor Yellow
+        return $ExistingPid
+    }
+
+    $scriptPath = Join-Path $ProjectRoot $Script
+    if (!(Test-Path -LiteralPath $scriptPath)) {
+        throw "Missing launcher: $scriptPath"
+    }
+
+    if ($DryRun) {
+        Write-Host "[dry-run] Would open $Name using $scriptPath" -ForegroundColor Cyan
+        return $null
+    }
+
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
     $process = Start-Process `
         -FilePath 'powershell.exe' `
         -ArgumentList $arguments `
@@ -145,24 +193,36 @@ switch ($Action) {
             }
         }
 
+        $existingPids = @()
+        $existingSchedulerPid = $null
+        if (Test-Path -LiteralPath $StateFile) {
+            try {
+                $existingState = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
+                $existingPids = @($existingState.terminalPids | Where-Object {
+                    Get-Process -Id $_ -ErrorAction SilentlyContinue
+                })
+                if ($existingState.schedulerTerminalPid -and
+                    (Get-Process -Id $existingState.schedulerTerminalPid -ErrorAction SilentlyContinue)) {
+                    $existingSchedulerPid = [int] $existingState.schedulerTerminalPid
+                }
+            } catch {
+                $existingPids = @()
+                $existingSchedulerPid = $null
+            }
+        }
+
         $terminalPids = @()
         $terminalPids += Start-VisibleService -Name 'Symfony' -Port 8000 -Script 'tools\dev\Run-Symfony.ps1'
         $terminalPids += Start-VisibleService -Name 'FastAPI' -Port 8001 -Script 'tools\dev\Run-FastApi.ps1'
         $terminalPids += Start-VisibleService -Name 'ngrok' -Port 4040 -Script 'tools\dev\Run-Ngrok.ps1'
+        $schedulerTerminalPid = Start-VisibleWorker `
+            -Name 'Scheduler' `
+            -Script 'tools\dev\Run-Scheduler.ps1' `
+            -ExistingPid $existingSchedulerPid
+        $terminalPids += $schedulerTerminalPid
         $terminalPids = @($terminalPids | Where-Object { $_ })
 
         if (!$DryRun) {
-            $existingPids = @()
-            if (Test-Path -LiteralPath $StateFile) {
-                try {
-                    $existingState = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
-                    $existingPids = @($existingState.terminalPids | Where-Object {
-                        Get-Process -Id $_ -ErrorAction SilentlyContinue
-                    })
-                } catch {
-                    $existingPids = @()
-                }
-            }
             $terminalPids = @($existingPids + $terminalPids | Select-Object -Unique)
 
             $stateDirectory = Split-Path -Parent $StateFile
@@ -172,11 +232,16 @@ switch ($Action) {
             @{
                 startedAt = (Get-Date).ToString('o')
                 terminalPids = $terminalPids
+                schedulerTerminalPid = $schedulerTerminalPid
             } | ConvertTo-Json | Set-Content -LiteralPath $StateFile -Encoding UTF8
         }
 
         Write-Host ''
-        Write-Host 'The services are starting in separate terminals.' -ForegroundColor Cyan
+        if ($DryRun) {
+            Write-Host 'Dry run complete; no service was started.' -ForegroundColor Cyan
+        } else {
+            Write-Host 'The services are starting in separate terminals.' -ForegroundColor Cyan
+        }
         Write-Host 'Run ".\dev.cmd status" after a few seconds to see URLs.'
         Write-Host 'Run ".\dev.cmd down" to stop the complete stack.'
         break
@@ -184,7 +249,7 @@ switch ($Action) {
 
     'down' {
         if ($DryRun) {
-            Write-Host '[dry-run] Would stop this project Symfony server, FastAPI on 8001, and ngrok on 4040.'
+            Write-Host '[dry-run] Would stop this project Symfony server, FastAPI on 8001, ngrok on 4040, and the Scheduler worker.'
             break
         }
 
