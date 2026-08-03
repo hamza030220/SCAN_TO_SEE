@@ -8,6 +8,7 @@ use App\Entity\Menu;
 use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
+use App\Repository\ItemRepository;
 use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
 use App\Service\MenuContentService;
@@ -500,6 +501,7 @@ final class OwnerMenuController extends AbstractController
         EntityManagerInterface $em,
         ImageUploadService $imageUpload,
         ItemCustomizationService $customization,
+        ItemRepository $itemRepo,
         ?int $itemId = null,
     ): Response {
         $menu     = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
@@ -588,7 +590,10 @@ final class OwnerMenuController extends AbstractController
                             $imageUpload->delete($newImagePath ?? null);
                             throw $e;
                         }
-                        if (($newImagePath ?? null) && ($previousImagePath ?? null)) {
+                        if (($newImagePath ?? null)
+                            && ($previousImagePath ?? null)
+                            && $itemRepo->count(['imagePath' => $previousImagePath]) === 0
+                        ) {
                             $imageUpload->delete($previousImagePath);
                         }
                         $this->addFlash('success', $isNew ? 'Item added.' : 'Item updated.');
