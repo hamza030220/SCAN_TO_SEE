@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
+#[ORM\Index(name: 'IDX_CATEGORY_PUBLIC_ORDER', columns: ['menu_id', 'is_visible', 'sort_order'])]
 class Category
 {
     #[ORM\Id]

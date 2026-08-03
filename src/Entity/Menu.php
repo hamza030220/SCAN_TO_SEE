@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MenuRepository::class)]
+#[ORM\Index(name: 'IDX_MENU_BUSINESS_STATUS', columns: ['business_id', 'status'])]
 class Menu
 {
     public const STATUS_DRAFT = 'draft';

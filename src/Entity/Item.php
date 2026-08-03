@@ -6,6 +6,7 @@ use App\Repository\ItemRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ItemRepository::class)]
+#[ORM\Index(name: 'IDX_ITEM_PUBLIC_ORDER', columns: ['category_id', 'is_available', 'sort_order'])]
 class Item
 {
     #[ORM\Id]

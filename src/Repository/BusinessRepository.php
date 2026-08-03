@@ -12,4 +12,15 @@ class BusinessRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Business::class);
     }
+
+    public function findOneBySlugWithOwner(string $slug): ?Business
+    {
+        return $this->createQueryBuilder('business')
+            ->addSelect('owner')
+            ->innerJoin('business.owner', 'owner')
+            ->andWhere('business.slug = :slug')
+            ->setParameter('slug', $slug)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
 }

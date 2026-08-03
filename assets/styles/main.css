@@ -1037,6 +1037,7 @@ body.owner-body {
   background: var(--pub-bg);
   min-height: 100vh;
   color: var(--pub-ink);
+  background-attachment: scroll;
 }
 
 /* ── Header ────────────────────────────────────────────── */
@@ -1202,7 +1203,7 @@ body.owner-body {
 .pub-main { padding: 16px 14px 80px; max-width: 640px; margin: 0 auto; }
 
 /* ── Category ──────────────────────────────────────────── */
-.pub-category { margin-bottom: 32px; scroll-margin-top: 72px; }
+.pub-category { margin-bottom: 32px; scroll-margin-top: 72px; content-visibility: auto; contain-intrinsic-size: 1px 320px; }
 
 @media (prefers-reduced-motion: reduce) {
   .pub-cat-nav,
