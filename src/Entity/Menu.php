@@ -8,6 +8,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: MenuRepository::class)]
+#[ORM\Index(name: 'IDX_MENU_BUSINESS_STATUS', columns: ['business_id', 'status'])]
 class Menu
 {
     public const STATUS_DRAFT = 'draft';
@@ -41,7 +42,9 @@ class Menu
     public const DEFAULT_THEME = [
         'theme'           => 'light',
         'font'            => 'DM Sans',
+        'fontScale'       => 1.0,
         'layout'          => 'list',
+        'density'         => 'comfortable',
         'bgType'          => 'solid',
         'bgColor'         => '#f7f4ef',
         'bgGradientStart' => '#f7f4ef',
@@ -52,6 +55,9 @@ class Menu
         'accent'          => '#E8A020',
         'cardStyle'       => 'flat',
         'cardBg'          => '#ffffff',
+        'cardRadius'      => 12,
+        'imageShape'      => 'rounded',
+        'priceStyle'      => 'accent',
         'glassBlur'       => 8,
         'glassOpacity'    => 0.15,
         'pillStyle'       => 'pill',

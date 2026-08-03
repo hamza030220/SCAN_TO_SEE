@@ -105,7 +105,8 @@
             display: block;
         }
         .s2s-modal-inner .owner-form .form-field input,
-        .s2s-modal-inner .owner-form .form-field select {
+        .s2s-modal-inner .owner-form .form-field select,
+        .s2s-modal-inner .owner-form .form-field textarea {
             width: 100%;
             padding: 10px 14px;
             border: 1.5px solid #e3d9cc;
@@ -119,7 +120,8 @@
             box-sizing: border-box;
         }
         .s2s-modal-inner .owner-form .form-field input:focus,
-        .s2s-modal-inner .owner-form .form-field select:focus {
+        .s2s-modal-inner .owner-form .form-field select:focus,
+        .s2s-modal-inner .owner-form .form-field textarea:focus {
             border-color: #E8A020;
             box-shadow: 0 0 0 3px rgba(232,160,32,.14);
             background: #fff;
@@ -173,19 +175,23 @@
         <nav class="owner-nav">
             {% set route = app.request.attributes.get('_route') %}
             <a href="{{ path('app_owner') }}"{% if route == 'app_owner' %} class="active"{% endif %}>
-                Dashboard
+                <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
+                <span>Dashboard</span>
             </a>
             <a href="{{ path('app_owner_businesses') }}"
                {% if route starts with 'app_owner_business' %} class="active"{% endif %}>
-                My Businesses
+                <span class="material-symbols-outlined" aria-hidden="true">storefront</span>
+                <span>My Businesses</span>
             </a>
             <a href="{{ path('app_owner_menus') }}"
                {% if route starts with 'app_owner_menu' or route starts with 'app_owner_category' or route starts with 'app_owner_item' %} class="active"{% endif %}>
-                Menus
+                <span class="material-symbols-outlined" aria-hidden="true">restaurant_menu</span>
+                <span>Menus</span>
             </a>
             <a href="{{ path('app_owner_account') }}"
                {% if route == 'app_owner_account' %} class="active"{% endif %}>
-                Account
+                <span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>
+                <span>Account</span>
             </a>
         </nav>
         <div class="owner-sidebar-foot">
@@ -388,20 +394,27 @@
                 fetch(url, {
                     method: (form.getAttribute('method') || 'POST').toUpperCase(),
                     body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    redirect: 'manual'
-                }).then(function (response) {
-                    if (response.status >= 300 && response.status < 400) {
-                        var location = response.headers.get('Location');
-                        if (location) {
-                            window.location.assign(location);
-                            return null;
-                        }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json, text/html'
                     }
+                }).then(function (response) {
                     if (response.redirected) {
                         window.location.assign(response.url);
                         return null;
                     }
+
+                    var contentType = response.headers.get('Content-Type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return response.json().then(function (payload) {
+                            if (!payload.redirect) {
+                                throw new Error('The server did not provide a redirect destination.');
+                            }
+                            window.location.assign(payload.redirect);
+                            return null;
+                        });
+                    }
+
                     return response.text().then(function (html) {
                         return { response: response, html: html };
                     });
@@ -421,6 +434,24 @@
                         submit.textContent = originalText;
                     }
                 });
+            });
+
+            modal.addEventListener('click', function (e) {
+                var add = e.target.closest('[data-add-variant]');
+                if (add) {
+                    var container = add.closest('.item-advanced__body').querySelector('[data-variant-rows]');
+                    if (!container || container.children.length >= 12) return;
+                    var row = document.createElement('div');
+                    row.className = 'variant-row';
+                    row.innerHTML = '<input name="variant_name[]" type="text" maxlength="60" placeholder="Large" aria-label="Variant name">' +
+                        '<input name="variant_price[]" type="number" min="0" step="0.01" placeholder="0.00" aria-label="Variant price">' +
+                        '<button type="button" data-remove-variant aria-label="Remove variant"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>';
+                    container.appendChild(row);
+                    row.querySelector('input').focus();
+                    return;
+                }
+                var remove = e.target.closest('[data-remove-variant]');
+                if (remove) remove.closest('.variant-row').remove();
             });
 
             /* Start background pre-fetch after page is interactive */

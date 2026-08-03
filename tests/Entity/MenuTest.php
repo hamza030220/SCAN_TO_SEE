@@ -154,10 +154,10 @@ class MenuTest extends TestCase
     public function testDefaultThemeHasRequiredKeys(): void
     {
         $expectedKeys = [
-            'theme', 'font', 'layout', 'bgType', 'bgColor',
+            'theme', 'font', 'fontScale', 'layout', 'density', 'bgType', 'bgColor',
             'bgGradientStart', 'bgGradientEnd', 'bgGradientDir',
             'bgImagePath', 'headerBg', 'accent', 'cardStyle',
-            'cardBg', 'glassBlur', 'glassOpacity', 'pillStyle', 'logoAlign'
+            'cardBg', 'cardRadius', 'imageShape', 'priceStyle', 'glassBlur', 'glassOpacity', 'pillStyle', 'logoAlign'
         ];
 
         $this->assertEquals($expectedKeys, array_keys(Menu::DEFAULT_THEME));
@@ -167,13 +167,18 @@ class MenuTest extends TestCase
     {
         $this->assertSame('light', Menu::DEFAULT_THEME['theme']);
         $this->assertSame('DM Sans', Menu::DEFAULT_THEME['font']);
+        $this->assertSame(1.0, Menu::DEFAULT_THEME['fontScale']);
         $this->assertSame('list', Menu::DEFAULT_THEME['layout']);
+        $this->assertSame('comfortable', Menu::DEFAULT_THEME['density']);
         $this->assertSame('solid', Menu::DEFAULT_THEME['bgType']);
         $this->assertSame('#f7f4ef', Menu::DEFAULT_THEME['bgColor']);
         $this->assertSame('#18120a', Menu::DEFAULT_THEME['headerBg']);
         $this->assertSame('#E8A020', Menu::DEFAULT_THEME['accent']);
         $this->assertSame('flat', Menu::DEFAULT_THEME['cardStyle']);
         $this->assertSame('#ffffff', Menu::DEFAULT_THEME['cardBg']);
+        $this->assertSame(12, Menu::DEFAULT_THEME['cardRadius']);
+        $this->assertSame('rounded', Menu::DEFAULT_THEME['imageShape']);
+        $this->assertSame('accent', Menu::DEFAULT_THEME['priceStyle']);
         $this->assertSame(8, Menu::DEFAULT_THEME['glassBlur']);
         $this->assertSame(0.15, Menu::DEFAULT_THEME['glassOpacity']);
         $this->assertSame('pill', Menu::DEFAULT_THEME['pillStyle']);

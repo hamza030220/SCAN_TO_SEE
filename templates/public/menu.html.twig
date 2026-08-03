@@ -3,10 +3,15 @@
 
 {% block title %}{{ menu.name }} — {{ business.name }}{% endblock %}
 
+{% block font_styles %}
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700{% if tc.font == 'DM Sans' %}&family=DM+Sans:opsz,wght@9..40,300..700{% elseif tc.font == 'Playfair Display' %}&family=Playfair+Display:ital,wght@0,400;0,700;1,400{% elseif tc.font == 'Poppins' %}&family=Poppins:wght@400;600;700{% elseif tc.font == 'Montserrat' %}&family=Montserrat:wght@400;600;700{% elseif tc.font == 'Inter' %}&family=Inter:wght@400;600;700{% endif %}&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block theme_vars %}
 <style>
 :root {
   --pub-font: '{{ tc.font }}', sans-serif;
+  font-size: {{ tc.fontScale * 16 }}px;
   {% if tc.bgType == 'gradient' %}
   --pub-bg: linear-gradient({{ tc.bgGradientDir }}, {{ tc.bgGradientStart }}, {{ tc.bgGradientEnd }});
   {% elseif tc.bgType == 'image' and tc.bgImagePath %}
@@ -22,6 +27,7 @@
   --pub-header-bg:  {{ tc.headerBg }};
   --pub-accent:     {{ tc.accent }};
   --pub-card-bg:    {{ tc.cardBg }};
+  --pub-card-radius: {{ tc.cardRadius }}px;
   --pub-glass-blur: {{ tc.glassBlur }}px;
   --pub-glass-opacity: {{ tc.glassOpacity }};
   --pub-logo-align: {{ tc.logoAlign }};
@@ -65,42 +71,10 @@
     cursor: default;
 }
 
-/* ── Header scroll-shrink ─────────────────────────────────────────── */
-.pub-header,
-.pub-header-inner,
-.pub-header-logo,
-.pub-header-initials,
-.pub-header-name {
-    transition: all .28s ease;
-}
-.pub-header--minimal {
-    padding-top: 8px !important;
-}
-.pub-header--minimal .pub-header-inner {
-    padding-bottom: 8px;
-    gap: 10px;
-}
-.pub-header--minimal .pub-header-logo,
-.pub-header--minimal .pub-header-initials {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 6px;
-    font-size: .7rem;
-}
-.pub-header--minimal .pub-header-name {
-    font-size: .82rem;
-}
-.pub-header--minimal .pub-header-menu,
-.pub-header--minimal .pub-other-menus-link {
-    display: none;
-}
-.pub-header--minimal .pub-curr-bar {
-    padding: 4px 16px 4px;
-}
 </style>
 {% endblock %}
 
-{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout ?? 'list' }}"{% endblock %}
+{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout }}" data-density="{{ tc.density }}" data-image-shape="{{ tc.imageShape }}" data-price-style="{{ tc.priceStyle }}"{% endblock %}
 
 {% block body %}
 
@@ -110,6 +84,7 @@
         {% if business.logoPath %}
             <img src="{{ asset(business.logoPath) }}"
                  alt="{{ business.name }}"
+                 width="48" height="48" decoding="async"
                  class="pub-header-logo">
         {% else %}
             <div class="pub-header-initials">{{ business.name|slice(0,2)|upper }}</div>
@@ -119,7 +94,7 @@
             <p class="pub-header-menu">{{ menu.name }}</p>
         </div>
     </div>
-    {% if otherMenus|length > 0 %}
+    {% if hasOtherMenus %}
         <a href="{{ path('app_public_menu', {slug: business.slug}) }}"
            class="pub-other-menus-link">
             See all menus
@@ -162,6 +137,12 @@
                                 data-item-id="{{ item.id }}"
                                 data-item-name="{{ item.name|e('html_attr') }}"
                                 data-item-desc="{{ item.shortDescription ?? ''|e('html_attr') }}"
+                                data-item-details="{{ item.details ?? ''|e('html_attr') }}"
+                                data-item-badge="{{ item.badge ?? ''|e('html_attr') }}"
+                                data-item-tags="{{ item.dietaryTags|json_encode|e('html_attr') }}"
+                                data-item-allergens="{{ item.allergens|json_encode|e('html_attr') }}"
+                                data-item-variants="{{ item.variants|json_encode|e('html_attr') }}"
+                                data-item-availability="{{ item.availabilityNote ?? ''|e('html_attr') }}"
                                 data-item-price="{{ item.price }}"
                                 data-item-currency="{{ menu.currency }}"
                                 data-item-image="{{ item.imagePath ? asset(item.imagePath) : '' }}"
@@ -173,7 +154,7 @@
                                     <img src="{{ asset(item.imagePath) }}"
                                          alt="{{ item.name }}"
                                          class="pub-item-img"
-                                         loading="lazy">
+                                         width="68" height="68" loading="lazy" decoding="async">
                                 {% else %}
                                     <div class="pub-item-img-placeholder">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -182,9 +163,13 @@
                             </div>
 
                             <div class="pub-item-body">
+                                {% if item.badge %}<span class="pub-item-badge">{{ item.badge }}</span>{% endif %}
                                 <span class="pub-item-name">{{ item.name }}</span>
                                 {% if item.shortDescription %}
                                     <span class="pub-item-desc">{{ item.shortDescription }}</span>
+                                {% endif %}
+                                {% if item.dietaryTags|length > 0 %}
+                                    <span class="pub-item-tags">{{ item.dietaryTags|slice(0, 2)|join(' · ') }}</span>
                                 {% endif %}
                                 <span class="pub-item-price">{{ item.price }} {{ menu.currency }}</span>
                             </div>
@@ -211,10 +196,14 @@
     <div class="pub-sheet-img-wrap" id="sheetImgWrap"></div>
     <div class="pub-sheet-body">
         <div class="pub-sheet-top">
-            <h2 class="pub-sheet-name" id="sheetName"></h2>
+            <div><span class="pub-sheet-badge" id="sheetBadge" hidden></span><h2 class="pub-sheet-name" id="sheetName"></h2></div>
             <span class="pub-sheet-price" id="sheetPrice"></span>
         </div>
         <p class="pub-sheet-desc" id="sheetDesc"></p>
+        <div class="pub-sheet-tags" id="sheetTags"></div>
+        <p class="pub-sheet-availability" id="sheetAvailability" hidden></p>
+        <div class="pub-sheet-variants" id="sheetVariants" hidden></div>
+        <p class="pub-sheet-allergens" id="sheetAllergens" hidden></p>
     </div>
 </div>
 
@@ -230,10 +219,28 @@
     var nameEl   = document.getElementById('sheetName');
     var priceEl  = document.getElementById('sheetPrice');
     var descEl   = document.getElementById('sheetDesc');
+    var badgeEl  = document.getElementById('sheetBadge');
+    var tagsEl   = document.getElementById('sheetTags');
+    var availabilityEl = document.getElementById('sheetAvailability');
+    var variantsEl = document.getElementById('sheetVariants');
+    var allergensEl = document.getElementById('sheetAllergens');
+
+    function jsonData(value) {
+        try { return JSON.parse(value || '[]'); } catch (error) { return []; }
+    }
+
+    function fillLabels(container, labels) {
+        container.innerHTML = '';
+        labels.forEach(function (label) {
+            var tag = document.createElement('span');
+            tag.textContent = label;
+            container.appendChild(tag);
+        });
+    }
 
     function openSheet(card) {
         var name     = card.dataset.itemName;
-        var desc     = card.dataset.itemDesc;
+        var desc     = card.dataset.itemDetails || card.dataset.itemDesc;
         var price    = card.dataset.itemPrice;
         var currency = card.dataset.itemCurrency;
         var image    = card.dataset.itemImage;
@@ -242,6 +249,31 @@
         priceEl.textContent = window.s2sFmtPrice ? window.s2sFmtPrice(price, currency) : (price + ' ' + currency);
         descEl.textContent  = desc || '';
         descEl.style.display = desc ? 'block' : 'none';
+
+        badgeEl.textContent = card.dataset.itemBadge || '';
+        badgeEl.hidden = !card.dataset.itemBadge;
+        fillLabels(tagsEl, jsonData(card.dataset.itemTags));
+
+        availabilityEl.textContent = card.dataset.itemAvailability || '';
+        availabilityEl.hidden = !card.dataset.itemAvailability;
+
+        var variants = jsonData(card.dataset.itemVariants);
+        variantsEl.innerHTML = '';
+        variantsEl.hidden = variants.length === 0;
+        variants.forEach(function (variant) {
+            var row = document.createElement('div');
+            var label = document.createElement('span');
+            var value = document.createElement('strong');
+            label.textContent = variant.name;
+            value.textContent = window.s2sFmtPrice ? window.s2sFmtPrice(variant.price, currency) : (variant.price + ' ' + currency);
+            row.appendChild(label);
+            row.appendChild(value);
+            variantsEl.appendChild(row);
+        });
+
+        var allergens = jsonData(card.dataset.itemAllergens);
+        allergensEl.textContent = allergens.length ? 'Allergens: ' + allergens.join(', ') : '';
+        allergensEl.hidden = allergens.length === 0;
 
         imgWrap.innerHTML = '';
         if (image) {
@@ -286,27 +318,8 @@
         if (dy > 60) closeSheet();
     }, { passive: true });
 
-    /* ── Sticky category nav (below sticky header) ───────────────────── */
-    var header = document.querySelector('.pub-header');
+    /* The header scrolls naturally; only the category rail is sticky. */
     var catNav = document.getElementById('catNav');
-
-    function stickyNav() {
-        if (!catNav || !header) return;
-        catNav.style.position = 'sticky';
-        catNav.style.top      = header.offsetHeight + 'px';
-        catNav.style.zIndex   = '49';
-    }
-    stickyNav();
-    window.addEventListener('resize', stickyNav, { passive: true });
-
-    /* ── Header shrinks on scroll, full only at the very top ─────────── */
-    function updateHeaderSize() {
-        var atTop = (window.scrollY || window.pageYOffset) <= 10;
-        header.classList.toggle('pub-header--minimal', !atTop);
-        stickyNav(); /* recalc catNav position after header height changes */
-    }
-    window.addEventListener('scroll', updateHeaderSize, { passive: true });
-    updateHeaderSize();
 
     /* ── Category pill scroll tracking ───────────────────────────────── */
     var pills    = Array.from(document.querySelectorAll('[data-cat-pill]'));
@@ -317,19 +330,22 @@
     if (pills.length < 2 || sections.length === 0) return;
 
     function getOffset() {
-        return (header ? header.offsetHeight : 0) +
-               (catNav  ? catNav.offsetHeight  : 0) +
+        return (catNav ? catNav.offsetHeight : 0) +
                16; /* 16 px breathing room */
     }
 
-    function setActive(id) {
+    var activeId = null;
+    function setActive(id, smooth) {
         var sid = String(id);
+        if (sid === activeId) return;
+        activeId = sid;
         pills.forEach(function (p) {
             p.classList.toggle('active', p.dataset.catPill === sid);
         });
         var active = document.querySelector('[data-cat-pill="' + sid + '"]');
-        if (active) {
-            active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+        if (active && catNav) {
+            var target = active.offsetLeft - ((catNav.clientWidth - active.offsetWidth) / 2);
+            catNav.scrollTo({ left: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' });
         }
     }
 
@@ -341,7 +357,7 @@
             if (!section) return;
             var top = section.getBoundingClientRect().top + window.scrollY - getOffset();
             window.scrollTo({ top: top, behavior: 'smooth' });
-            setActive(pill.dataset.catPill);
+            setActive(pill.dataset.catPill, true);
         });
     });
 
@@ -360,7 +376,7 @@
                     current = s.id.replace('cat-', '');
                 }
             });
-            setActive(current);
+            setActive(current, false);
         });
     }
 
@@ -434,6 +450,23 @@
 
     if (OPTS.length === 0) return; /* only base currency, nothing to fetch */
 
+    var cacheKey = 's2s-rates-' + BASE;
+    try {
+        var cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+        if (cached && Date.now() - cached.savedAt < 21600000 && cached.rates) {
+            OPTS.forEach(function (c) {
+                if (cached.rates[c]) {
+                    rates[c] = cached.rates[c];
+                    btnMap[c].disabled = false;
+                }
+            });
+            if (selected !== BASE && rates[selected]) selectCurrency(selected);
+            return;
+        }
+    } catch (error) {
+        sessionStorage.removeItem(cacheKey);
+    }
+
     /* open.er-api.com — free, no API key, supports 160+ currencies incl. TND */
     fetch('https://open.er-api.com/v6/latest/' + BASE)
         .then(function (r) {
@@ -448,6 +481,7 @@
                     btnMap[c].disabled = false;
                 }
             });
+            sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), rates: rates }));
             /* Restore saved preference now that rates are ready */
             if (selected !== BASE && rates[selected]) {
                 selectCurrency(selected);

@@ -6,26 +6,77 @@
 {% block content %}
 
 {# ── Menu header row ─────────────────────────────────────────────────── #}
-<div class="owner-menu-header">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
-        <span style="color:var(--muted);font-size:.82rem">{{ menu.currency }}</span>
+<div class="menu-studio-heading">
+    <div class="menu-studio-heading__identity">
+        <a class="menu-studio-back" href="{{ path('app_owner_menus') }}">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Menus
+        </a>
+        <div>
+            <div class="menu-studio-title-row">
+                <h1>{{ menu.name }}</h1>
+                <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
+            </div>
+            <p>{{ menu.business.name }} <span aria-hidden="true">·</span> {{ menu.currency }} <span aria-hidden="true">·</span> Updated {{ menu.updatedAt|date('M j, Y H:i') }}</p>
+        </div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="menu-studio-heading__actions">
         <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
-           class="btn btn-outline btn-sm">Edit menu</a>
-        <button type="button" id="ds_openBtn" class="btn btn-outline btn-sm"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:1rem">palette</span> Design</button>
-        <button type="button" id="scannerOnboardingBtn" class="btn btn-sm"
-                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}
-                style="background:linear-gradient(135deg,#18120a 0%,#2a1f10 100%);color:#E8A020;border:1.5px solid #E8A020;font-weight:700;letter-spacing:.02em;gap:7px;display:inline-flex;align-items:center;{% if not menu.canUseScanner() %}opacity:.45;cursor:not-allowed;{% endif %}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-            Scan Menu
-            <span style="font-size:.65rem;font-weight:700;background:#E8A020;color:#18120a;padding:1px 5px;border-radius:4px;letter-spacing:.05em;line-height:1.5">BETA</span>
-        </button>
-        <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← Menus</a>
+           class="btn btn-outline btn-sm"><span class="material-symbols-outlined" aria-hidden="true">settings</span> Settings</a>
+        <form method="post" action="{{ path('app_owner_menu_status', {id: menu.id}) }}"
+              onsubmit="return confirm('{{ menu.status == 'published' ? 'Move this menu to draft? Customers will no longer be able to open it.' : 'Publish this menu for customers now?' }}')">
+            <input type="hidden" name="_token" value="{{ csrf_token('menu-status-' ~ menu.id) }}">
+            <input type="hidden" name="status" value="{{ menu.status == 'published' ? 'draft' : 'published' }}">
+            <button type="submit" class="btn {{ menu.status == 'published' ? 'btn-outline' : 'btn-primary' }} btn-sm">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ menu.status == 'published' ? 'visibility_off' : 'publish' }}</span>
+                {{ menu.status == 'published' ? 'Unpublish' : 'Publish' }}
+            </button>
+        </form>
+        <a href="{{ path('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug, preview: 1}) }}"
+           target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+            <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span> Preview
+        </a>
     </div>
 </div>
+
+<div class="menu-studio-layout">
+    <nav class="menu-studio-tools" aria-label="Menu workspace">
+        <a href="#menu-content" class="active" aria-current="page">
+            <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
+            <span><strong>Content</strong><small>Categories and items</small></span>
+        </a>
+        <button type="button" id="ds_openBtn">
+            <span class="material-symbols-outlined" aria-hidden="true">palette</span>
+            <span><strong>Appearance</strong><small>Brand and layout</small></span>
+        </button>
+        <a href="{{ path('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug, preview: 1}) }}" target="_blank" rel="noopener">
+            <span class="material-symbols-outlined" aria-hidden="true">devices</span>
+            <span><strong>Live preview</strong><small>Customer experience</small></span>
+        </a>
+        <a href="{{ path('app_owner_business_qr', {id: menu.business.id}) }}">
+            <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+            <span><strong>QR &amp; share</strong><small>Print and distribute</small></span>
+        </a>
+        <button type="button" id="scannerOnboardingBtn"
+                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}>
+            <span class="material-symbols-outlined" aria-hidden="true">document_scanner</span>
+            <span><strong>AI scanner <em>Beta</em></strong><small>{{ menu.canUseScanner() ? 'Import an empty menu' : 'Available on empty menus' }}</small></span>
+        </button>
+    </nav>
+
+    <section class="menu-studio-canvas" id="menu-content">
+        {% if menu.status == 'published' %}
+            <div class="studio-live-notice" role="status">
+                <span class="material-symbols-outlined" aria-hidden="true">public</span>
+                <div><strong>This menu is live.</strong><span>Content and design changes are visible to customers as soon as you save them.</span></div>
+            </div>
+        {% endif %}
+        <div class="menu-studio-summary" aria-label="Menu summary">
+            <div><span class="material-symbols-outlined" aria-hidden="true">category</span><strong>{{ menu.categories|length }}</strong><small>Categories</small></div>
+            <div><span class="material-symbols-outlined" aria-hidden="true">room_service</span><strong>{% set itemTotal = 0 %}{% for category in menu.categories %}{% set itemTotal = itemTotal + category.items|length %}{% endfor %}{{ itemTotal }}</strong><small>Items</small></div>
+            <div><span class="material-symbols-outlined" aria-hidden="true">visibility</span><strong>{{ menu.status == 'published' ? 'Live' : 'Private' }}</strong><small>Visibility</small></div>
+        </div>
 
 {# ── Categories header ───────────────────────────────────────────────── #}
 {% if not menu.canUseScanner() %}
@@ -34,13 +85,15 @@
     </div>
 {% endif %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700">
-        Categories &amp; Items
-    </h2>
+<div class="menu-studio-section-head">
+    <div>
+        <span>Menu structure</span>
+        <h2>Categories &amp; Items</h2>
+        <p>Organize what customers see in your digital menu.</p>
+    </div>
     <a href="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
        data-modal="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
-       class="btn btn-primary btn-sm">+ Add Category</a>
+       class="btn btn-primary btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span> Add Category</a>
 </div>
 
 {# ── Empty state ─────────────────────────────────────────────────────── #}
@@ -54,10 +107,14 @@
 {% else %}
 
 {# ── Category cards ──────────────────────────────────────────────────── #}
+<div id="studioCategories"
+     data-reorder-url="{{ path('app_owner_menu_reorder', {id: menu.id}) }}"
+     data-reorder-token="{{ csrf_token('reorder-menu-' ~ menu.id) }}">
 {% for category in menu.categories %}
-    <div class="owner-panel" style="margin-bottom:20px">
+    <div class="owner-panel studio-category" data-category-id="{{ category.id }}" draggable="true">
         <div class="owner-panel-head">
             <div>
+                <span class="studio-category-grip material-symbols-outlined" aria-hidden="true">drag_indicator</span>
                 <strong>{{ category.name }}</strong>
                 {% if category.parent %}
                     <span style="color:var(--muted);font-size:.78rem;margin-left:8px">under {{ category.parent.name }}</span>
@@ -67,12 +124,24 @@
                 {% endif %}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <button type="button" class="owner-table-action studio-move" data-move-category="up" title="Move category up" aria-label="Move {{ category.name }} up"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span></button>
+                <button type="button" class="owner-table-action studio-move" data-move-category="down" title="Move category down" aria-label="Move {{ category.name }} down"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span></button>
                 <a href="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
-                   class="btn btn-primary btn-sm">+ Item</a>
+                   class="btn btn-primary btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span> Item</a>
                 <a href="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    class="owner-table-action">Edit</a>
+                <form method="post" action="{{ path('app_owner_category_visibility', {menuId: menu.id, catId: category.id}) }}" style="display:inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('category-visibility-' ~ category.id) }}">
+                    <button type="submit" class="owner-table-action">{{ category.isVisible ? 'Hide' : 'Show' }}</button>
+                </form>
+                <form method="post"
+                      action="{{ path('app_owner_category_duplicate', {menuId: menu.id, catId: category.id}) }}"
+                      style="display:inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate-category-' ~ category.id) }}">
+                    <button type="submit" class="owner-table-action">Duplicate</button>
+                </form>
                 <form method="post"
                       action="{{ path('app_owner_category_delete', {menuId: menu.id, catId: category.id}) }}"
                       style="display:inline"
@@ -95,10 +164,11 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-sortable-items data-category-id="{{ category.id }}">
                     {% for item in category.items %}
-                        <tr>
-                            <td>
+                        <tr data-item-id="{{ item.id }}" draggable="true">
+                            <td data-label="Image">
+                                <span class="studio-item-grip material-symbols-outlined" aria-hidden="true">drag_indicator</span>
                                 {% if item.imagePath %}
                                     <img src="{{ asset(item.imagePath) }}"
                                          alt="{{ item.name }}"
@@ -107,18 +177,29 @@
                                     <div class="img-placeholder-sm"></div>
                                 {% endif %}
                             </td>
-                            <td style="font-weight:600">{{ item.name }}</td>
-                            <td style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
-                            <td>{{ item.price }} {{ menu.currency }}</td>
-                            <td>
-                                <span class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }}">
-                                    {{ item.isAvailable ? 'Yes' : 'No' }}
-                                </span>
+                            <td data-label="Item" style="font-weight:600">{{ item.name }}</td>
+                            <td data-label="Description" style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
+                            <td data-label="Price">{{ item.price }} {{ menu.currency }}</td>
+                            <td data-label="Available">
+                                <form method="post" action="{{ path('app_owner_item_availability', {menuId: menu.id, catId: category.id, itemId: item.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('item-availability-' ~ item.id) }}">
+                                    <button type="submit" class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }} studio-status-toggle" title="Change availability">
+                                        {{ item.isAvailable ? 'Yes' : 'No' }}
+                                    </button>
+                                </form>
                             </td>
-                            <td style="text-align:right;white-space:nowrap">
+                            <td data-label="Actions" style="text-align:right;white-space:nowrap">
+                                <button type="button" class="owner-table-action studio-move" data-move-item="up" title="Move item up" aria-label="Move {{ item.name }} up"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span></button>
+                                <button type="button" class="owner-table-action studio-move" data-move-item="down" title="Move item down" aria-label="Move {{ item.name }} down"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span></button>
                                 <a href="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    data-modal="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    class="owner-table-action">Edit</a>
+                                <form method="post"
+                                      action="{{ path('app_owner_item_duplicate', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
+                                      style="display:inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate-item-' ~ item.id) }}">
+                                    <button type="submit" class="owner-table-action">Duplicate</button>
+                                </form>
                                 <form method="post"
                                       action="{{ path('app_owner_item_delete', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                       style="display:inline"
@@ -141,7 +222,125 @@
         {% endif %}
     </div>
 {% endfor %}
+</div>
 {% endif %}
+
+    </section>
+</div>
+
+<div class="studio-toast" id="studioToast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+    var categoryContainer = document.getElementById('studioCategories');
+    if (!categoryContainer) return;
+
+    var endpoint = categoryContainer.dataset.reorderUrl;
+    var token = categoryContainer.dataset.reorderToken;
+    var toast = document.getElementById('studioToast');
+
+    function directChildren(container, selector) {
+        return Array.from(container.children).filter(function (entry) { return entry.matches(selector); });
+    }
+
+    function notify(message, isError) {
+        toast.textContent = message;
+        toast.classList.toggle('studio-toast--error', !!isError);
+        toast.hidden = false;
+        window.clearTimeout(notify.timer);
+        notify.timer = window.setTimeout(function () { toast.hidden = true; }, 2600);
+    }
+
+    function restore(container, selector, attribute, originalIds) {
+        var entries = {};
+        directChildren(container, selector).forEach(function (entry) { entries[entry.dataset[attribute]] = entry; });
+        originalIds.forEach(function (id) { if (entries[id]) container.appendChild(entries[id]); });
+    }
+
+    function persist(container, selector, attribute, type, categoryId, originalIds) {
+        var ids = directChildren(container, selector).map(function (entry) { return Number(entry.dataset[attribute]); });
+        fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _token: token, type: type, categoryId: categoryId || null, ids: ids })
+        }).then(function (response) {
+            return response.json().catch(function () { return {}; }).then(function (payload) {
+                if (!response.ok || !payload.ok) throw new Error(payload.error || 'The new order could not be saved.');
+            });
+        }).then(function () {
+            notify('Order saved.', false);
+        }).catch(function (error) {
+            restore(container, selector, attribute, originalIds);
+            notify(error.message || 'The new order could not be saved.', true);
+        });
+    }
+
+    function makeSortable(container, selector, attribute, type, categoryId) {
+        var dragged = null;
+        var originalIds = [];
+
+        directChildren(container, selector).forEach(function (entry) {
+            entry.addEventListener('dragstart', function (event) {
+                if (event.target !== entry) return;
+                dragged = entry;
+                originalIds = directChildren(container, selector).map(function (item) { return item.dataset[attribute]; });
+                entry.classList.add('is-dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', entry.dataset[attribute]);
+                event.stopPropagation();
+            });
+            entry.addEventListener('dragend', function (event) {
+                if (event.target !== entry || !dragged) return;
+                entry.classList.remove('is-dragging');
+                persist(container, selector, attribute, type, categoryId, originalIds);
+                dragged = null;
+                event.stopPropagation();
+            });
+        });
+
+        container.addEventListener('dragover', function (event) {
+            if (!dragged) return;
+            event.preventDefault();
+            var candidates = directChildren(container, selector).filter(function (entry) { return entry !== dragged; });
+            var after = candidates.reduce(function (closest, entry) {
+                var box = entry.getBoundingClientRect();
+                var offset = event.clientY - box.top - (box.height / 2);
+                return offset < 0 && offset > closest.offset ? { offset: offset, entry: entry } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY, entry: null }).entry;
+            if (after) container.insertBefore(dragged, after);
+            else container.appendChild(dragged);
+        });
+    }
+
+    makeSortable(categoryContainer, '.studio-category', 'categoryId', 'categories', null);
+    document.querySelectorAll('[data-sortable-items]').forEach(function (tbody) {
+        makeSortable(tbody, '[data-item-id]', 'itemId', 'items', Number(tbody.dataset.categoryId));
+    });
+
+    categoryContainer.addEventListener('click', function (event) {
+        var categoryButton = event.target.closest('[data-move-category]');
+        var itemButton = event.target.closest('[data-move-item]');
+        if (!categoryButton && !itemButton) return;
+
+        var isCategory = !!categoryButton;
+        var button = categoryButton || itemButton;
+        var entry = isCategory ? button.closest('.studio-category') : button.closest('[data-item-id]');
+        var container = isCategory ? categoryContainer : entry.parentElement;
+        var selector = isCategory ? '.studio-category' : '[data-item-id]';
+        var attribute = isCategory ? 'categoryId' : 'itemId';
+        var entries = directChildren(container, selector);
+        var originalIds = entries.map(function (candidate) { return candidate.dataset[attribute]; });
+        var position = entries.indexOf(entry);
+        var direction = button.dataset[isCategory ? 'moveCategory' : 'moveItem'];
+
+        if (direction === 'up' && position > 0) container.insertBefore(entry, entries[position - 1]);
+        else if (direction === 'down' && position < entries.length - 1) container.insertBefore(entries[position + 1], entry);
+        else return;
+
+        persist(container, selector, attribute, isCategory ? 'categories' : 'items', isCategory ? null : Number(container.dataset.categoryId), originalIds);
+    });
+})();
+</script>
 
 {% endblock %}
 
@@ -149,8 +348,10 @@
 {% block after_content %}
 {% set tc = menu.themeConfig %}
 <style>
-.ds-panel{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:#fff;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,.68,0,1.1);}
+.ds-panel{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;height:100dvh;background:#fff;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,.68,0,1.1);}
 .ds-panel.open{transform:translateX(0);}
+html.ds-page-locked{overflow:hidden;scrollbar-gutter:stable;}
+body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-head{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;background:#18120a;color:#fff;flex-shrink:0;}
 .ds-head h2{flex:1;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ds-save-btn{padding:7px 18px;border-radius:8px;border:none;cursor:pointer;background:#E8A020;color:#18120a;font-family:'Space Grotesk',sans-serif;font-size:.82rem;font-weight:700;white-space:nowrap;transition:opacity .15s;}
@@ -158,18 +359,47 @@
 .ds-close-btn{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .ds-close-btn:hover{background:rgba(255,255,255,.22);}
 .ds-body{flex:1;display:flex;overflow:hidden;min-height:0;}
-.ds-preview-wrap{flex:1;overflow:hidden;display:none;background:#e8e3dc;}
-@media(min-width:860px){.ds-preview-wrap{display:block;}}
-.ds-preview-wrap iframe{width:100%;height:100%;border:none;}
-.ds-controls{width:340px;flex-shrink:0;overflow-y:auto;background:#faf9f7;border-left:1px solid #e8e3dc;}
-@media(max-width:860px){.ds-controls{width:100%;border-left:none;}}
-.ds-section{padding:16px 18px;border-bottom:1px solid #e8e3dc;}
-.ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9c8874;margin:0 0 12px;}
-.ds-row{margin-bottom:10px;display:flex;flex-direction:column;gap:5px;}.ds-row:last-child{margin-bottom:0;}
+.ds-preview-wrap{flex:1;overflow:hidden;display:none;flex-direction:column;background:#e8e3dc;}
+@media(min-width:860px){.ds-preview-wrap{display:flex;}}
+.ds-preview-toolbar{display:flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:6px;background:#f7f3ec;border-bottom:1px solid #d8cfc2;}
+.ds-device-btn,.ds-mobile-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:#756858;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-device-btn.active,.ds-mobile-btn.active{border-color:#d2c5b4;background:#fff;color:#18120a;box-shadow:0 2px 8px rgba(35,24,10,.08);}
+.ds-device-btn .material-symbols-outlined,.ds-mobile-btn .material-symbols-outlined{font-size:17px;}
+.ds-preview-stage{display:flex;justify-content:center;flex:1;min-height:0;padding:14px;overflow:hidden;overscroll-behavior:contain;}
+.ds-preview-stage iframe{width:100%;height:100%;border:0;background:#fff;box-shadow:0 12px 40px rgba(36,25,10,.16);transition:width .2s ease;}
+.ds-mobile-bar{display:none;background:#f7f3ec;border-bottom:1px solid #ddd3c6;padding:7px 10px;gap:7px;}
+.ds-mobile-note{display:none;padding:11px 16px;background:#fff7e7;border-bottom:1px solid #f0d59f;color:#73511d;font-size:.76rem;line-height:1.45;}
+.ds-controls{width:min(390px,36vw);min-width:350px;flex-shrink:0;overflow-y:auto;background:#f5f2ed;border-left:1px solid #ded7cd;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#c8b9a6 transparent;}
+.ds-controls::-webkit-scrollbar{width:8px;}.ds-controls::-webkit-scrollbar-thumb{background:#c8b9a6;border:2px solid #faf9f7;border-radius:999px;}
+@media(max-width:860px){
+  .ds-controls{width:100%;min-width:0;border-left:none;}
+  .ds-mobile-bar{display:flex;}
+  .ds-mobile-note{display:block;}
+  .ds-mobile-btn{flex:1;justify-content:center;}
+  .ds-panel.mobile-preview .ds-controls{display:none;}
+  .ds-panel.mobile-preview .ds-preview-wrap{display:flex;width:100%;}
+  .ds-preview-toolbar{display:none;}
+  .ds-preview-stage{padding:0;}
+  .ds-preview-stage iframe{width:100%!important;box-shadow:none;}
+}
+.ds-inspector-top{position:sticky;top:0;z-index:4;background:rgba(245,242,237,.96);backdrop-filter:blur(12px);border-bottom:1px solid #ded7cd;}
+.ds-inspector-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px 10px;}
+.ds-inspector-kicker{display:block;color:#9c8874;font-size:.62rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;}
+.ds-inspector-head strong{display:block;margin-top:2px;color:#251d14;font:700 .98rem 'Space Grotesk',sans-serif;}
+.ds-dirty-state{padding:4px 8px;border-radius:99px;background:#e9e4dd;color:#74695d;font-size:.64rem;font-weight:800;white-space:nowrap;}
+.ds-dirty-state.unsaved{background:#fff0cf;color:#895708;}.ds-dirty-state.error{background:#fee2e2;color:#991b1b;}
+.ds-tabs{display:grid;grid-template-columns:repeat(4,1fr);padding:0 10px 10px;gap:5px;}
+.ds-tab{display:flex;min-width:0;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;border:1px solid transparent;border-radius:10px;background:transparent;color:#786c5e;font:700 .62rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-tab .material-symbols-outlined{font-size:18px;}.ds-tab.active{background:#fff;border-color:#ded7cd;color:#18120a;box-shadow:0 3px 10px rgba(36,25,10,.06);}
+.ds-section{display:none;margin:12px;padding:16px 16px 17px;border:1px solid #e2dbd1;border-radius:14px;background:#fff;box-shadow:0 5px 20px rgba(43,31,17,.035);}
+.ds-section.active{display:block;}
+.ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.71rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#806d59;margin:0 0 4px;}
+.ds-section-copy{margin:0 0 14px;color:#8b7e70;font-size:.7rem;line-height:1.45;}
+.ds-row{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}.ds-row:last-child{margin-bottom:0;}
 .ds-label{font-size:.78rem;font-weight:600;color:#3d3328;display:flex;align-items:center;gap:6px;}
-.ds-seg{display:flex;border:1px solid #d5cec5;border-radius:8px;overflow:hidden;background:#fff;}
+.ds-seg{display:flex;border:1px solid #d5cec5;border-radius:10px;overflow:hidden;background:#faf8f5;}
 .ds-seg input[type=radio]{display:none;}
-.ds-seg-btn{flex:1;padding:7px 4px;font-size:.76rem;font-weight:600;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
+.ds-seg-btn{flex:1;padding:8px 4px;font-size:.73rem;font-weight:700;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
 .ds-seg-btn:last-of-type{border-right:none;}
 .ds-seg input[type=radio]:checked+.ds-seg-btn{background:#18120a;color:#fff;}
 .ds-color-row{display:flex;align-items:center;gap:8px;}
@@ -180,29 +410,74 @@
 .ds-img-preview{width:100%;height:80px;object-fit:cover;border-radius:6px;display:none;border:1px solid #d5cec5;margin-bottom:6px;}
 .ds-file-label{display:block;padding:8px 14px;font-size:.78rem;font-weight:600;border:1px dashed #d5cec5;border-radius:8px;color:#7a6f60;cursor:pointer;text-align:center;transition:border-color .15s,color .15s;}
 .ds-file-label:hover{border-color:#18120a;color:#18120a;}.ds-file-input{display:none;}
+.ds-presets{display:grid;grid-template-columns:1fr;gap:7px;}
+.ds-presets button{display:grid;grid-template-columns:56px 1fr;grid-template-rows:auto auto;column-gap:10px;padding:8px;border:1px solid #d8cec0;border-radius:11px;background:#fff;color:#514537;text-align:left;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-presets button:hover{border-color:#E8A020;}
+.ds-presets button span{grid-row:1/3;display:block;height:42px;border-radius:7px;background:linear-gradient(135deg,var(--preset-a) 0 65%,var(--preset-b) 65%);}
+.ds-presets button strong{align-self:end;color:#30261b;font-size:.77rem;}.ds-presets button small{color:#938475;font-size:.64rem;}
+.ds-reset-btn{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:8px;padding:7px;border:0;background:transparent;color:#7a6f60;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-reset-btn .material-symbols-outlined{font-size:16px;}
+.ds-contrast{margin-top:8px;padding:8px 10px;border-radius:6px;background:#edf8f1;color:#166534;font-size:.7rem;line-height:1.4;}
+.ds-contrast.warning{background:#fff6e5;color:#8a5300;}
 </style>
 <div class="ds-panel" id="dsPanel">
     <div class="ds-head">
         <h2>Design — {{ menu.name }}</h2>
-        <button type="button" class="ds-save-btn" id="ds_saveBtn">Save</button>
-        <button type="button" class="ds-close-btn" id="ds_closeBtn" title="Close">✕</button>
+        <button type="button" class="ds-save-btn" id="ds_saveBtn" aria-live="polite">Save</button>
+        <button type="button" class="ds-close-btn" id="ds_closeBtn" title="Close" aria-label="Close design studio"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+    </div>
+    <div class="ds-mobile-bar" role="tablist" aria-label="Design studio view">
+        <button type="button" class="ds-mobile-btn active" data-ds-mobile-view="controls"><span class="material-symbols-outlined" aria-hidden="true">tune</span> Controls</button>
+        <button type="button" class="ds-mobile-btn" data-ds-mobile-view="preview"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span> Preview</button>
     </div>
     <div class="ds-body">
         {# iframe preview #}
         <div class="ds-preview-wrap">
-            <iframe id="dsPreview"
-                    data-src="{{ url('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug}) }}?preview=1"
-                    src="about:blank"
-                    title="Menu preview"></iframe>
+            <div class="ds-preview-toolbar" aria-label="Preview size">
+                <button type="button" class="ds-device-btn active" data-ds-width="100%"><span class="material-symbols-outlined" aria-hidden="true">desktop_windows</span> Desktop</button>
+                <button type="button" class="ds-device-btn" data-ds-width="768px"><span class="material-symbols-outlined" aria-hidden="true">tablet</span> Tablet</button>
+                <button type="button" class="ds-device-btn" data-ds-width="390px"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span> Phone</button>
+            </div>
+            <div class="ds-preview-stage">
+                <iframe id="dsPreview"
+                        data-src="{{ url('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug}) }}?preview=1"
+                        src="about:blank"
+                        title="Menu preview"></iframe>
+            </div>
         </div>
         {# Controls #}
         <div class="ds-controls">
+            <div class="ds-mobile-note">Quick styling works on phones. Rotate the device for more room, or use a larger screen when you want controls and preview visible together.</div>
+            <div class="ds-inspector-top">
+                <div class="ds-inspector-head">
+                    <div><span class="ds-inspector-kicker">Live editor</span><strong>Customize your menu</strong></div>
+                    <span class="ds-dirty-state" id="ds_dirtyState" aria-live="polite">Saved</span>
+                </div>
+                <nav class="ds-tabs" role="tablist" aria-label="Design controls">
+                    <button type="button" class="ds-tab active" data-ds-tab="presets" role="tab" aria-selected="true"><span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Presets</button>
+                    <button type="button" class="ds-tab" data-ds-tab="canvas" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">wallpaper</span>Canvas</button>
+                    <button type="button" class="ds-tab" data-ds-tab="brand" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">palette</span>Brand</button>
+                    <button type="button" class="ds-tab" data-ds-tab="components" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span>Cards</button>
+                </nav>
+            </div>
             <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
 
+                <div class="ds-section active" data-ds-panel="presets">
+                    <p class="ds-section-title">Quick presets</p>
+                    <p class="ds-section-copy">Start with a complete look, then refine every detail.</p>
+                    <div class="ds-presets">
+                        <button type="button" data-theme-preset="classic"><span style="--preset-a:#18120a;--preset-b:#E8A020"></span><strong>Classic</strong><small>Clean, warm and familiar</small></button>
+                        <button type="button" data-theme-preset="cafe"><span style="--preset-a:#3f2618;--preset-b:#d9a05b"></span><strong>Café</strong><small>Editorial cards and rich tones</small></button>
+                        <button type="button" data-theme-preset="night"><span style="--preset-a:#111827;--preset-b:#60a5fa"></span><strong>Night</strong><small>Modern dark presentation</small></button>
+                    </div>
+                    <button type="button" class="ds-reset-btn" id="ds_resetTheme"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span> Reset to default</button>
+                </div>
+
                 {# Appearance #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="canvas">
                     <p class="ds-section-title">Appearance</p>
+                    <p class="ds-section-copy">Control the visual rhythm and readability of the whole menu.</p>
                     <div class="ds-row">
                         <label class="ds-label">Theme</label>
                         <div class="ds-seg">
@@ -221,6 +496,10 @@
                         </select>
                     </div>
                     <div class="ds-row">
+                        <label class="ds-label" for="ds_fontScale">Type scale — <span id="ds_fontScaleVal">{{ (tc.fontScale * 100)|round }}</span>%</label>
+                        <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_fontScale" name="fontScale" min="0.85" max="1.2" step="0.05" value="{{ tc.fontScale }}"></div>
+                    </div>
+                    <div class="ds-row">
                         <label class="ds-label">Layout</label>
                         <div class="ds-seg">
                             <input type="radio" id="layout_list" name="layout" value="list" {% if (tc.layout ?? 'list') == 'list' %}checked{% endif %}>
@@ -231,11 +510,23 @@
                             <label class="ds-seg-btn" for="layout_compact" title="Dense list, no images">≣ Compact</label>
                         </div>
                     </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Spacing</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="density_compact" name="density" value="compact" {% if tc.density == 'compact' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_compact">Compact</label>
+                            <input type="radio" id="density_comfortable" name="density" value="comfortable" {% if tc.density == 'comfortable' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_comfortable">Balanced</label>
+                            <input type="radio" id="density_spacious" name="density" value="spacious" {% if tc.density == 'spacious' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_spacious">Airy</label>
+                        </div>
+                    </div>
                 </div>
 
                 {# Background #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="canvas">
                     <p class="ds-section-title">Background</p>
+                    <p class="ds-section-copy">Use a solid tone, gradient, or a lightweight menu backdrop.</p>
                     <div class="ds-row">
                         <label class="ds-label">Type</label>
                         <div class="ds-seg">
@@ -296,8 +587,9 @@
                 </div>
 
                 {# Header #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="brand">
                     <p class="ds-section-title">Header</p>
+                    <p class="ds-section-copy">Give the restaurant identity a clear, consistent position.</p>
                     <div class="ds-row">
                         <label class="ds-label">Background color</label>
                         <div class="ds-color-row">
@@ -319,8 +611,9 @@
                 </div>
 
                 {# Colors #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="brand">
                     <p class="ds-section-title">Colors</p>
+                    <p class="ds-section-copy">Your accent connects navigation, pricing, and highlights.</p>
                     <div class="ds-row">
                         <label class="ds-label">Accent (prices · active pills)</label>
                         <div class="ds-color-row">
@@ -328,11 +621,13 @@
                             <input type="text" class="ds-color-text" id="ds_accentTxt" value="{{ tc.accent }}" maxlength="7">
                         </div>
                     </div>
+                    <div class="ds-contrast" id="ds_contrast" role="status"></div>
                 </div>
 
                 {# Cards #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="components">
                     <p class="ds-section-title">Item Cards</p>
+                    <p class="ds-section-copy">Shape how dishes, photos, and prices are presented.</p>
                     <div class="ds-row">
                         <label class="ds-label">Style</label>
                         <div class="ds-seg">
@@ -349,6 +644,32 @@
                         <div class="ds-color-row">
                             <input type="color" class="ds-color-input" id="ds_cardBg" name="cardBg" value="{{ tc.cardBg }}">
                             <input type="text" class="ds-color-text" id="ds_cardBgTxt" value="{{ tc.cardBg }}" maxlength="7">
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label" for="ds_cardRadius">Corner radius — <span id="ds_cardRadiusVal">{{ tc.cardRadius }}</span>px</label>
+                        <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_cardRadius" name="cardRadius" min="0" max="24" step="2" value="{{ tc.cardRadius }}"></div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Image shape</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="image_square" name="imageShape" value="square" {% if tc.imageShape == 'square' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_square">Square</label>
+                            <input type="radio" id="image_rounded" name="imageShape" value="rounded" {% if tc.imageShape == 'rounded' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_rounded">Rounded</label>
+                            <input type="radio" id="image_circle" name="imageShape" value="circle" {% if tc.imageShape == 'circle' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_circle">Circle</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Price treatment</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="price_accent" name="priceStyle" value="accent" {% if tc.priceStyle == 'accent' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_accent">Accent</label>
+                            <input type="radio" id="price_neutral" name="priceStyle" value="neutral" {% if tc.priceStyle == 'neutral' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_neutral">Neutral</label>
+                            <input type="radio" id="price_badge" name="priceStyle" value="badge" {% if tc.priceStyle == 'badge' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_badge">Badge</label>
                         </div>
                     </div>
                     <div id="ds_glassCtrl">
@@ -368,8 +689,9 @@
                 </div>
 
                 {# Pills #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="components">
                     <p class="ds-section-title">Category Pills</p>
+                    <p class="ds-section-copy">Choose how guests move between menu sections.</p>
                     <div class="ds-row">
                         <label class="ds-label">Style</label>
                         <div class="ds-seg">
@@ -394,9 +716,17 @@
     var form    = document.getElementById('ds_form');
     var saveBtn = document.getElementById('ds_saveBtn');
     var pdoc    = null; // iframe contentDocument
+    var dirty   = false;
+    var pageScrollY = 0;
 
     /* ── helpers ────────────────────────────────────────── */
     function g(id) { return document.getElementById(id); }
+    function markDirty() {
+        dirty = true;
+        g('ds_dirtyState').textContent = 'Unsaved';
+        g('ds_dirtyState').className = 'ds-dirty-state unsaved';
+        if (!saveBtn.disabled) saveBtn.textContent = 'Save changes';
+    }
     function radVal(name) {
         var els = document.querySelectorAll('[name="' + name + '"]');
         for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
@@ -407,6 +737,59 @@
         if (t === 'gradient') return 'linear-gradient(' + g('ds_bgGDir').value + ',' + g('ds_bgGS').value + ',' + g('ds_bgGE').value + ')';
         if (t === 'image') return pdoc ? getComputedStyle(pdoc.documentElement).getPropertyValue('--pub-bg').trim() : '';
         return g('ds_bgColor').value;
+    }
+
+    function contrastRatio(first, second) {
+        function luminance(hex) {
+            var channels = [1, 3, 5].map(function (index) {
+                var value = parseInt(hex.slice(index, index + 2), 16) / 255;
+                return value <= .03928 ? value / 12.92 : Math.pow((value + .055) / 1.055, 2.4);
+            });
+            return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+        }
+        var light = Math.max(luminance(first), luminance(second));
+        var dark = Math.min(luminance(first), luminance(second));
+        return (light + .05) / (dark + .05);
+    }
+
+    function refreshContrast() {
+        var ratio = contrastRatio(g('ds_headerBg').value, g('ds_accent').value);
+        var output = g('ds_contrast');
+        var good = ratio >= 3;
+        output.classList.toggle('warning', !good);
+        output.textContent = good
+            ? 'Good accent contrast (' + ratio.toFixed(1) + ':1).'
+            : 'Low accent contrast (' + ratio.toFixed(1) + ':1). Some labels may be hard to read.';
+    }
+
+    function setRadio(name, value) {
+        var input = form.querySelector('[name="' + name + '"][value="' + value + '"]');
+        if (input) input.checked = true;
+    }
+
+    function applyPreset(values) {
+        setRadio('theme', values.theme);
+        setRadio('layout', values.layout);
+        setRadio('density', values.density);
+        setRadio('bgType', 'solid');
+        setRadio('cardStyle', values.cardStyle);
+        setRadio('pillStyle', values.pillStyle);
+        setRadio('imageShape', values.imageShape);
+        setRadio('priceStyle', values.priceStyle);
+        g('ds_font').value = values.font;
+        g('ds_fontScale').value = values.fontScale;
+        g('ds_fontScaleVal').textContent = Math.round(values.fontScale * 100);
+        g('ds_cardRadius').value = values.cardRadius;
+        g('ds_cardRadiusVal').textContent = values.cardRadius;
+        g('ds_bgColor').value = values.bg;
+        g('ds_headerBg').value = values.header;
+        g('ds_accent').value = values.accent;
+        g('ds_cardBg').value = values.card;
+        [['ds_bgColorTxt', values.bg], ['ds_headerBgTxt', values.header], ['ds_accentTxt', values.accent], ['ds_cardBgTxt', values.card]].forEach(function (entry) {
+            g(entry[0]).value = entry[1];
+        });
+        markDirty();
+        push();
     }
 
     /* ── sub-control visibility (runs without iframe) ───── */
@@ -422,6 +805,7 @@
     /* ── push all vars to iframe ─────────────────────────── */
     function push() {
         refreshVisibility();
+        refreshContrast();
         if (!pdoc) return;
         var root = pdoc.documentElement;
         var body = pdoc.body;
@@ -430,10 +814,12 @@
         var cardStyle = radVal('cardStyle');
 
         root.style.setProperty('--pub-font',    "'" + g('ds_font').value + "', sans-serif");
+        root.style.fontSize = (parseFloat(g('ds_fontScale').value) * 16) + 'px';
         root.style.setProperty('--pub-bg',       getBg());
         root.style.setProperty('--pub-header-bg', g('ds_headerBg').value);
         root.style.setProperty('--pub-accent',   g('ds_accent').value);
         root.style.setProperty('--pub-card-bg',  g('ds_cardBg').value);
+        root.style.setProperty('--pub-card-radius', g('ds_cardRadius').value + 'px');
         root.style.setProperty('--pub-glass-blur', g('ds_blur').value + 'px');
         root.style.setProperty('--pub-glass-opacity', g('ds_opac').value);
         root.style.setProperty('--pub-logo-align', radVal('logoAlign'));
@@ -460,6 +846,9 @@
         body.dataset.pillStyle = radVal('pillStyle');
         body.dataset.theme     = theme;
         body.dataset.layout    = radVal('layout');
+        body.dataset.density   = radVal('density');
+        body.dataset.imageShape = radVal('imageShape');
+        body.dataset.priceStyle = radVal('priceStyle');
     }
 
     /* ── sync colour text inputs ─────────────────────────── */
@@ -478,14 +867,16 @@
 
     /* ── attach all other listeners ─────────────────────── */
     ['ds_font','ds_bgGDir'].forEach(function(id){ g(id).addEventListener('change', push); });
-    ['ds_blur','ds_opac'].forEach(function(id){
+    ['ds_blur','ds_opac','ds_fontScale','ds_cardRadius'].forEach(function(id){
         g(id).addEventListener('input', function() {
             if (id === 'ds_blur')  g('ds_blurVal').textContent = this.value;
             if (id === 'ds_opac')  g('ds_opacVal').textContent = parseFloat(this.value).toFixed(2);
+            if (id === 'ds_fontScale') g('ds_fontScaleVal').textContent = Math.round(parseFloat(this.value) * 100);
+            if (id === 'ds_cardRadius') g('ds_cardRadiusVal').textContent = this.value;
             push();
         });
     });
-    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"]').forEach(function(el) {
+    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"],[name="density"],[name="imageShape"],[name="priceStyle"]').forEach(function(el) {
         el.addEventListener('change', function () {
             /* auto-swap bg+card colours on theme switch */
             if (el.name === 'theme') {
@@ -514,35 +905,122 @@
         catch (e) { pdoc = null; }
     });
 
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+
+    var presets = {
+        classic: { theme: 'light', layout: 'list', density: 'comfortable', cardStyle: 'flat', pillStyle: 'pill', imageShape: 'rounded', priceStyle: 'accent', font: 'DM Sans', fontScale: 1, cardRadius: 12, bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
+        cafe: { theme: 'light', layout: 'grid', density: 'spacious', cardStyle: 'bordered', pillStyle: 'chip', imageShape: 'rounded', priceStyle: 'badge', font: 'Playfair Display', fontScale: 1.05, cardRadius: 16, bg: '#F5EBDD', header: '#3F2618', accent: '#D9A05B', card: '#FFF9F0' },
+        night: { theme: 'dark', layout: 'list', density: 'compact', cardStyle: 'glass', pillStyle: 'underline', imageShape: 'circle', priceStyle: 'accent', font: 'Space Grotesk', fontScale: .95, cardRadius: 18, bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' }
+    };
+    document.querySelectorAll('[data-theme-preset]').forEach(function (button) {
+        button.addEventListener('click', function () { applyPreset(presets[button.dataset.themePreset]); });
+    });
+    g('ds_resetTheme').addEventListener('click', function () { applyPreset(presets.classic); });
+
+    document.querySelectorAll('[data-ds-tab]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var selected = button.dataset.dsTab;
+            document.querySelectorAll('[data-ds-tab]').forEach(function (tab) {
+                var active = tab === button;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('[data-ds-panel]').forEach(function (section) {
+                section.classList.toggle('active', section.dataset.dsPanel === selected);
+            });
+            document.querySelector('.ds-controls').scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    document.querySelectorAll('[data-ds-width]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.querySelectorAll('[data-ds-width]').forEach(function (entry) { entry.classList.remove('active'); });
+            button.classList.add('active');
+            iframe.style.width = button.dataset.dsWidth;
+        });
+    });
+
+    document.querySelectorAll('[data-ds-mobile-view]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var preview = button.dataset.dsMobileView === 'preview';
+            panel.classList.toggle('mobile-preview', preview);
+            document.querySelectorAll('[data-ds-mobile-view]').forEach(function (entry) { entry.classList.remove('active'); });
+            button.classList.add('active');
+            if (preview && iframe.src === 'about:blank') iframe.src = iframe.dataset.src;
+        });
+    });
+
     /* ── open / close ───────────────────────────────────── */
+    function lockPage() {
+        pageScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+        document.documentElement.classList.add('ds-page-locked');
+        document.body.classList.add('ds-page-locked');
+        document.body.style.top = '-' + pageScrollY + 'px';
+    }
+    function unlockPage() {
+        document.documentElement.classList.remove('ds-page-locked');
+        document.body.classList.remove('ds-page-locked');
+        document.body.style.top = '';
+        window.scrollTo(0, pageScrollY);
+    }
+    function closeStudio() {
+        if (dirty && !window.confirm('Discard your unsaved design changes?')) return;
+        panel.classList.remove('open');
+        unlockPage();
+    }
+
     g('ds_openBtn').addEventListener('click', function () {
+        lockPage();
         panel.classList.add('open');
         if (iframe.src === 'about:blank') iframe.src = iframe.dataset.src;
         else push();
     });
-    g('ds_closeBtn').addEventListener('click', function () { panel.classList.remove('open'); });
+    g('ds_closeBtn').addEventListener('click', closeStudio);
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && panel.classList.contains('open')) closeStudio();
+    });
+
+    window.addEventListener('beforeunload', function (event) {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
 
     /* ── save ───────────────────────────────────────────── */
     saveBtn.addEventListener('click', function () {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving…';
-        fetch(form.action, { method: 'POST', body: new FormData(form) })
-            .then(function (r) { return r.json(); })
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    if (!r.ok || !data.ok) throw new Error(data.error || 'The design could not be saved.');
+                    return data;
+                });
+            })
             .then(function (d) {
-                saveBtn.classList.toggle('saved', !!d.ok);
-                saveBtn.textContent = d.ok ? 'Saved ✓' : (d.error || 'Error');
-                if (d.ok) {
-                    /* reload iframe from server so it reflects the DB state */
-                    iframe.src = iframe.dataset.src + '&t=' + Date.now();
-                }
+                dirty = false;
+                g('ds_dirtyState').textContent = 'Saved';
+                g('ds_dirtyState').className = 'ds-dirty-state';
+                saveBtn.classList.add('saved');
+                saveBtn.textContent = 'Saved';
+                /* reload iframe from server so it reflects the DB state */
+                iframe.src = iframe.dataset.src + '&t=' + Date.now();
                 setTimeout(function () {
                     saveBtn.classList.remove('saved');
                     saveBtn.textContent = 'Save';
                     saveBtn.disabled = false;
                 }, 2000);
             })
-            .catch(function () {
-                saveBtn.textContent = 'Error'; saveBtn.disabled = false;
+            .catch(function (error) {
+                g('ds_dirtyState').textContent = 'Error';
+                g('ds_dirtyState').className = 'ds-dirty-state error';
+                saveBtn.textContent = error.message || 'Save failed';
+                saveBtn.disabled = false;
             });
     });
 

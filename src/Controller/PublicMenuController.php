@@ -38,7 +38,7 @@ class PublicMenuController extends AbstractController
         MenuRepository $menuRepo,
         EntitlementService $entitlements,
     ): Response {
-        $business = $businessRepo->findOneBy(['slug' => $slug]);
+        $business = $businessRepo->findOneBySlugWithOwner($slug);
         if (!$business) {
             throw $this->createNotFoundException('Business not found.');
         }
@@ -86,7 +86,7 @@ class PublicMenuController extends AbstractController
         MenuRepository $menuRepo,
         EntitlementService $entitlements,
     ): Response {
-        $business = $businessRepo->findOneBy(['slug' => $slug]);
+        $business = $businessRepo->findOneBySlugWithOwner($slug);
         if (!$business) {
             throw $this->createNotFoundException('Business not found.');
         }
@@ -101,11 +101,7 @@ class PublicMenuController extends AbstractController
             ]));
         }
 
-        $criteria  = ['slug' => $menuSlug, 'business' => $business];
-        if (!$isOwnerPreview) {
-            $criteria['status'] = 'published';
-        }
-        $menu = $menuRepo->findOneBy($criteria);
+        $menu = $menuRepo->findPublicWithContent($business, $menuSlug, $isOwnerPreview);
 
         if (!$menu) {
             return $this->redirectToRoute('app_public_menu', ['slug' => $slug]);
@@ -129,18 +125,13 @@ class PublicMenuController extends AbstractController
             }
         }
 
-        // Check if there are other published menus (for "other menus" link)
-        $otherMenus = $menuRepo->findBy(
-            ['business' => $business, 'status' => 'published'],
-            ['name' => 'ASC']
-        );
-        $otherMenus = array_filter($otherMenus, fn($m) => $m->getId() !== $menu->getId());
+        $hasOtherMenus = $menuRepo->hasOtherPublishedMenu($business, $menu->getId());
 
         return $this->withNoCache($this->render('public/menu.html.twig', [
             'business'   => $business,
             'menu'       => $menu,
             'categories' => $categories,
-            'otherMenus' => array_values($otherMenus),
+            'hasOtherMenus' => $hasOtherMenus,
         ]));
     }
 }

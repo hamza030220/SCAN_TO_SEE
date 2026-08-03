@@ -41,6 +41,53 @@
                        required>
             </div>
             <div class="form-field">
+                <label for="details">Detailed description <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <textarea id="details" name="details" rows="4" maxlength="2000" placeholder="Ingredients, preparation, or anything customers should know">{{ item ? (item.details ?? '') : '' }}</textarea>
+            </div>
+
+            <details class="item-advanced" open>
+                <summary><span class="material-symbols-outlined" aria-hidden="true">sell</span> Labels &amp; dietary information</summary>
+                <div class="item-advanced__body">
+                    <div class="form-field">
+                        <label for="badge">Highlight badge</label>
+                        <select id="badge" name="badge">
+                            {% for value, label in {'': 'No badge', 'Popular': 'Popular', 'New': 'New', 'Chef choice': 'Chef choice', 'Limited': 'Limited'} %}
+                                <option value="{{ value }}" {{ item and item.badge == value ? 'selected' : '' }}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label for="dietary_tags">Dietary tags <span style="color:var(--muted);font-weight:400">(comma separated)</span></label>
+                        <input id="dietary_tags" name="dietary_tags" type="text" maxlength="320" placeholder="Vegan, Halal, Gluten free" value="{{ item ? item.dietaryTags|join(', ') : '' }}">
+                    </div>
+                    <div class="form-field">
+                        <label for="allergens">Allergens <span style="color:var(--muted);font-weight:400">(comma separated)</span></label>
+                        <input id="allergens" name="allergens" type="text" maxlength="320" placeholder="Milk, Nuts, Gluten" value="{{ item ? item.allergens|join(', ') : '' }}">
+                    </div>
+                    <div class="form-field">
+                        <label for="availability_note">Availability note</label>
+                        <input id="availability_note" name="availability_note" type="text" maxlength="120" placeholder="Breakfast only · Until 11:30" value="{{ item ? (item.availabilityNote ?? '') : '' }}">
+                    </div>
+                </div>
+            </details>
+
+            <details class="item-advanced" open>
+                <summary><span class="material-symbols-outlined" aria-hidden="true">format_list_bulleted</span> Sizes &amp; variants</summary>
+                <div class="item-advanced__body">
+                    <p class="form-help">Add up to 12 options with their final customer price.</p>
+                    <div data-variant-rows>
+                        {% for variant in item ? item.variants : [] %}
+                            <div class="variant-row">
+                                <input name="variant_name[]" type="text" maxlength="60" placeholder="Large" value="{{ variant.name }}" aria-label="Variant name">
+                                <input name="variant_price[]" type="number" min="0" step="0.01" placeholder="0.00" value="{{ variant.price }}" aria-label="Variant price">
+                                <button type="button" data-remove-variant aria-label="Remove variant"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="variant-add" data-add-variant><span class="material-symbols-outlined" aria-hidden="true">add</span> Add variant</button>
+                </div>
+            </details>
+            <div class="form-field">
                 <label for="sort_order">Sort order</label>
                 <input id="sort_order" name="sort_order" type="number" min="0"
                        value="{{ item ? item.sortOrder : 0 }}">
