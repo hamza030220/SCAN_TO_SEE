@@ -6,26 +6,62 @@
 {% block content %}
 
 {# ── Menu header row ─────────────────────────────────────────────────── #}
-<div class="owner-menu-header">
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
-        <span style="color:var(--muted);font-size:.82rem">{{ menu.currency }}</span>
+<div class="menu-studio-heading">
+    <div class="menu-studio-heading__identity">
+        <a class="menu-studio-back" href="{{ path('app_owner_menus') }}">
+            <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+            Menus
+        </a>
+        <div>
+            <div class="menu-studio-title-row">
+                <h1>{{ menu.name }}</h1>
+                <span class="badge badge--{{ menu.status }}">{{ menu.status }}</span>
+            </div>
+            <p>{{ menu.business.name }} <span aria-hidden="true">·</span> {{ menu.currency }} <span aria-hidden="true">·</span> Updated {{ menu.updatedAt|date('M j, Y H:i') }}</p>
+        </div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <div class="menu-studio-heading__actions">
         <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
-           class="btn btn-outline btn-sm">Edit menu</a>
-        <button type="button" id="ds_openBtn" class="btn btn-outline btn-sm"><span class="material-symbols-outlined" aria-hidden="true" style="font-size:1rem">palette</span> Design</button>
-        <button type="button" id="scannerOnboardingBtn" class="btn btn-sm"
-                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}
-                style="background:linear-gradient(135deg,#18120a 0%,#2a1f10 100%);color:#E8A020;border:1.5px solid #E8A020;font-weight:700;letter-spacing:.02em;gap:7px;display:inline-flex;align-items:center;{% if not menu.canUseScanner() %}opacity:.45;cursor:not-allowed;{% endif %}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-            Scan Menu
-            <span style="font-size:.65rem;font-weight:700;background:#E8A020;color:#18120a;padding:1px 5px;border-radius:4px;letter-spacing:.05em;line-height:1.5">BETA</span>
-        </button>
-        <a href="{{ path('app_owner_menus') }}" style="font-size:.82rem;color:var(--muted)">← Menus</a>
+           class="btn btn-outline btn-sm"><span class="material-symbols-outlined" aria-hidden="true">settings</span> Settings</a>
+        <a href="{{ path('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug, preview: 1}) }}"
+           target="_blank" rel="noopener" class="btn btn-primary btn-sm">
+            <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span> Preview
+        </a>
     </div>
 </div>
+
+<div class="menu-studio-layout">
+    <nav class="menu-studio-tools" aria-label="Menu workspace">
+        <a href="#menu-content" class="active" aria-current="page">
+            <span class="material-symbols-outlined" aria-hidden="true">edit_note</span>
+            <span><strong>Content</strong><small>Categories and items</small></span>
+        </a>
+        <button type="button" id="ds_openBtn">
+            <span class="material-symbols-outlined" aria-hidden="true">palette</span>
+            <span><strong>Appearance</strong><small>Brand and layout</small></span>
+        </button>
+        <a href="{{ path('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug, preview: 1}) }}" target="_blank" rel="noopener">
+            <span class="material-symbols-outlined" aria-hidden="true">devices</span>
+            <span><strong>Live preview</strong><small>Customer experience</small></span>
+        </a>
+        <a href="{{ path('app_owner_business_qr', {id: menu.business.id}) }}">
+            <span class="material-symbols-outlined" aria-hidden="true">qr_code_2</span>
+            <span><strong>QR &amp; share</strong><small>Print and distribute</small></span>
+        </a>
+        <button type="button" id="scannerOnboardingBtn"
+                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}>
+            <span class="material-symbols-outlined" aria-hidden="true">document_scanner</span>
+            <span><strong>AI scanner <em>Beta</em></strong><small>{{ menu.canUseScanner() ? 'Import an empty menu' : 'Available on empty menus' }}</small></span>
+        </button>
+    </nav>
+
+    <section class="menu-studio-canvas" id="menu-content">
+        <div class="menu-studio-summary" aria-label="Menu summary">
+            <div><span class="material-symbols-outlined" aria-hidden="true">category</span><strong>{{ menu.categories|length }}</strong><small>Categories</small></div>
+            <div><span class="material-symbols-outlined" aria-hidden="true">room_service</span><strong>{% set itemTotal = 0 %}{% for category in menu.categories %}{% set itemTotal = itemTotal + category.items|length %}{% endfor %}{{ itemTotal }}</strong><small>Items</small></div>
+            <div><span class="material-symbols-outlined" aria-hidden="true">visibility</span><strong>{{ menu.status == 'published' ? 'Live' : 'Private' }}</strong><small>Visibility</small></div>
+        </div>
 
 {# ── Categories header ───────────────────────────────────────────────── #}
 {% if not menu.canUseScanner() %}
@@ -34,13 +70,15 @@
     </div>
 {% endif %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <h2 style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700">
-        Categories &amp; Items
-    </h2>
+<div class="menu-studio-section-head">
+    <div>
+        <span>Menu structure</span>
+        <h2>Categories &amp; Items</h2>
+        <p>Organize what customers see in your digital menu.</p>
+    </div>
     <a href="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
        data-modal="{{ path('app_owner_category_new', {menuId: menu.id}) }}"
-       class="btn btn-primary btn-sm">+ Add Category</a>
+       class="btn btn-primary btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span> Add Category</a>
 </div>
 
 {# ── Empty state ─────────────────────────────────────────────────────── #}
@@ -55,9 +93,10 @@
 
 {# ── Category cards ──────────────────────────────────────────────────── #}
 {% for category in menu.categories %}
-    <div class="owner-panel" style="margin-bottom:20px">
+    <div class="owner-panel studio-category">
         <div class="owner-panel-head">
             <div>
+                <span class="studio-category-grip material-symbols-outlined" aria-hidden="true">drag_indicator</span>
                 <strong>{{ category.name }}</strong>
                 {% if category.parent %}
                     <span style="color:var(--muted);font-size:.78rem;margin-left:8px">under {{ category.parent.name }}</span>
@@ -69,7 +108,7 @@
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
                 <a href="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
-                   class="btn btn-primary btn-sm">+ Item</a>
+                   class="btn btn-primary btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span> Item</a>
                 <a href="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    class="owner-table-action">Edit</a>
@@ -98,7 +137,7 @@
                 <tbody>
                     {% for item in category.items %}
                         <tr>
-                            <td>
+                            <td data-label="Image">
                                 {% if item.imagePath %}
                                     <img src="{{ asset(item.imagePath) }}"
                                          alt="{{ item.name }}"
@@ -107,15 +146,15 @@
                                     <div class="img-placeholder-sm"></div>
                                 {% endif %}
                             </td>
-                            <td style="font-weight:600">{{ item.name }}</td>
-                            <td style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
-                            <td>{{ item.price }} {{ menu.currency }}</td>
-                            <td>
+                            <td data-label="Item" style="font-weight:600">{{ item.name }}</td>
+                            <td data-label="Description" style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
+                            <td data-label="Price">{{ item.price }} {{ menu.currency }}</td>
+                            <td data-label="Available">
                                 <span class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }}">
                                     {{ item.isAvailable ? 'Yes' : 'No' }}
                                 </span>
                             </td>
-                            <td style="text-align:right;white-space:nowrap">
+                            <td data-label="Actions" style="text-align:right;white-space:nowrap">
                                 <a href="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    data-modal="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    class="owner-table-action">Edit</a>
@@ -143,13 +182,16 @@
 {% endfor %}
 {% endif %}
 
+    </section>
+</div>
+
 {% endblock %}
 
 {# ── Design Panel ─────────────────────────────────────────────────────── #}
 {% block after_content %}
 {% set tc = menu.themeConfig %}
 <style>
-.ds-panel{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;background:#fff;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,.68,0,1.1);}
+.ds-panel{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;height:100dvh;background:#fff;transform:translateX(100%);transition:transform .35s cubic-bezier(.22,.68,0,1.1);}
 .ds-panel.open{transform:translateX(0);}
 .ds-head{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;background:#18120a;color:#fff;flex-shrink:0;}
 .ds-head h2{flex:1;font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -158,11 +200,28 @@
 .ds-close-btn{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .ds-close-btn:hover{background:rgba(255,255,255,.22);}
 .ds-body{flex:1;display:flex;overflow:hidden;min-height:0;}
-.ds-preview-wrap{flex:1;overflow:hidden;display:none;background:#e8e3dc;}
-@media(min-width:860px){.ds-preview-wrap{display:block;}}
-.ds-preview-wrap iframe{width:100%;height:100%;border:none;}
+.ds-preview-wrap{flex:1;overflow:hidden;display:none;flex-direction:column;background:#e8e3dc;}
+@media(min-width:860px){.ds-preview-wrap{display:flex;}}
+.ds-preview-toolbar{display:flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:6px;background:#f7f3ec;border-bottom:1px solid #d8cfc2;}
+.ds-device-btn,.ds-mobile-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:#756858;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-device-btn.active,.ds-mobile-btn.active{border-color:#d2c5b4;background:#fff;color:#18120a;box-shadow:0 2px 8px rgba(35,24,10,.08);}
+.ds-device-btn .material-symbols-outlined,.ds-mobile-btn .material-symbols-outlined{font-size:17px;}
+.ds-preview-stage{display:flex;justify-content:center;flex:1;min-height:0;padding:14px;overflow:hidden;}
+.ds-preview-stage iframe{width:100%;height:100%;border:0;background:#fff;box-shadow:0 12px 40px rgba(36,25,10,.16);transition:width .2s ease;}
+.ds-mobile-bar{display:none;background:#f7f3ec;border-bottom:1px solid #ddd3c6;padding:7px 10px;gap:7px;}
+.ds-mobile-note{display:none;padding:11px 16px;background:#fff7e7;border-bottom:1px solid #f0d59f;color:#73511d;font-size:.76rem;line-height:1.45;}
 .ds-controls{width:340px;flex-shrink:0;overflow-y:auto;background:#faf9f7;border-left:1px solid #e8e3dc;}
-@media(max-width:860px){.ds-controls{width:100%;border-left:none;}}
+@media(max-width:860px){
+  .ds-controls{width:100%;border-left:none;}
+  .ds-mobile-bar{display:flex;}
+  .ds-mobile-note{display:block;}
+  .ds-mobile-btn{flex:1;justify-content:center;}
+  .ds-panel.mobile-preview .ds-controls{display:none;}
+  .ds-panel.mobile-preview .ds-preview-wrap{display:flex;width:100%;}
+  .ds-preview-toolbar{display:none;}
+  .ds-preview-stage{padding:0;}
+  .ds-preview-stage iframe{width:100%!important;box-shadow:none;}
+}
 .ds-section{padding:16px 18px;border-bottom:1px solid #e8e3dc;}
 .ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9c8874;margin:0 0 12px;}
 .ds-row{margin-bottom:10px;display:flex;flex-direction:column;gap:5px;}.ds-row:last-child{margin-bottom:0;}
@@ -184,19 +243,31 @@
 <div class="ds-panel" id="dsPanel">
     <div class="ds-head">
         <h2>Design — {{ menu.name }}</h2>
-        <button type="button" class="ds-save-btn" id="ds_saveBtn">Save</button>
-        <button type="button" class="ds-close-btn" id="ds_closeBtn" title="Close">✕</button>
+        <button type="button" class="ds-save-btn" id="ds_saveBtn" aria-live="polite">Save</button>
+        <button type="button" class="ds-close-btn" id="ds_closeBtn" title="Close" aria-label="Close design studio"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+    </div>
+    <div class="ds-mobile-bar" role="tablist" aria-label="Design studio view">
+        <button type="button" class="ds-mobile-btn active" data-ds-mobile-view="controls"><span class="material-symbols-outlined" aria-hidden="true">tune</span> Controls</button>
+        <button type="button" class="ds-mobile-btn" data-ds-mobile-view="preview"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span> Preview</button>
     </div>
     <div class="ds-body">
         {# iframe preview #}
         <div class="ds-preview-wrap">
-            <iframe id="dsPreview"
-                    data-src="{{ url('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug}) }}?preview=1"
-                    src="about:blank"
-                    title="Menu preview"></iframe>
+            <div class="ds-preview-toolbar" aria-label="Preview size">
+                <button type="button" class="ds-device-btn active" data-ds-width="100%"><span class="material-symbols-outlined" aria-hidden="true">desktop_windows</span> Desktop</button>
+                <button type="button" class="ds-device-btn" data-ds-width="768px"><span class="material-symbols-outlined" aria-hidden="true">tablet</span> Tablet</button>
+                <button type="button" class="ds-device-btn" data-ds-width="390px"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span> Phone</button>
+            </div>
+            <div class="ds-preview-stage">
+                <iframe id="dsPreview"
+                        data-src="{{ url('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug}) }}?preview=1"
+                        src="about:blank"
+                        title="Menu preview"></iframe>
+            </div>
         </div>
         {# Controls #}
         <div class="ds-controls">
+            <div class="ds-mobile-note">Quick styling works on phones. Rotate the device for more room, or use a larger screen when you want controls and preview visible together.</div>
             <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
 
@@ -394,9 +465,14 @@
     var form    = document.getElementById('ds_form');
     var saveBtn = document.getElementById('ds_saveBtn');
     var pdoc    = null; // iframe contentDocument
+    var dirty   = false;
 
     /* ── helpers ────────────────────────────────────────── */
     function g(id) { return document.getElementById(id); }
+    function markDirty() {
+        dirty = true;
+        if (!saveBtn.disabled) saveBtn.textContent = 'Save changes';
+    }
     function radVal(name) {
         var els = document.querySelectorAll('[name="' + name + '"]');
         for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
@@ -514,35 +590,74 @@
         catch (e) { pdoc = null; }
     });
 
+    form.addEventListener('input', markDirty);
+    form.addEventListener('change', markDirty);
+
+    document.querySelectorAll('[data-ds-width]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            document.querySelectorAll('[data-ds-width]').forEach(function (entry) { entry.classList.remove('active'); });
+            button.classList.add('active');
+            iframe.style.width = button.dataset.dsWidth;
+        });
+    });
+
+    document.querySelectorAll('[data-ds-mobile-view]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var preview = button.dataset.dsMobileView === 'preview';
+            panel.classList.toggle('mobile-preview', preview);
+            document.querySelectorAll('[data-ds-mobile-view]').forEach(function (entry) { entry.classList.remove('active'); });
+            button.classList.add('active');
+            if (preview && iframe.src === 'about:blank') iframe.src = iframe.dataset.src;
+        });
+    });
+
     /* ── open / close ───────────────────────────────────── */
     g('ds_openBtn').addEventListener('click', function () {
         panel.classList.add('open');
         if (iframe.src === 'about:blank') iframe.src = iframe.dataset.src;
         else push();
     });
-    g('ds_closeBtn').addEventListener('click', function () { panel.classList.remove('open'); });
+    g('ds_closeBtn').addEventListener('click', function () {
+        if (dirty && !window.confirm('Discard your unsaved design changes?')) return;
+        panel.classList.remove('open');
+    });
+
+    window.addEventListener('beforeunload', function (event) {
+        if (!dirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+    });
 
     /* ── save ───────────────────────────────────────────── */
     saveBtn.addEventListener('click', function () {
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving…';
-        fetch(form.action, { method: 'POST', body: new FormData(form) })
-            .then(function (r) { return r.json(); })
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+            .then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    if (!r.ok || !data.ok) throw new Error(data.error || 'The design could not be saved.');
+                    return data;
+                });
+            })
             .then(function (d) {
-                saveBtn.classList.toggle('saved', !!d.ok);
-                saveBtn.textContent = d.ok ? 'Saved ✓' : (d.error || 'Error');
-                if (d.ok) {
-                    /* reload iframe from server so it reflects the DB state */
-                    iframe.src = iframe.dataset.src + '&t=' + Date.now();
-                }
+                dirty = false;
+                saveBtn.classList.add('saved');
+                saveBtn.textContent = 'Saved';
+                /* reload iframe from server so it reflects the DB state */
+                iframe.src = iframe.dataset.src + '&t=' + Date.now();
                 setTimeout(function () {
                     saveBtn.classList.remove('saved');
                     saveBtn.textContent = 'Save';
                     saveBtn.disabled = false;
                 }, 2000);
             })
-            .catch(function () {
-                saveBtn.textContent = 'Error'; saveBtn.disabled = false;
+            .catch(function (error) {
+                saveBtn.textContent = error.message || 'Save failed';
+                saveBtn.disabled = false;
             });
     });
 

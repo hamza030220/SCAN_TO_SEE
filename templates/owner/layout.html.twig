@@ -173,19 +173,23 @@
         <nav class="owner-nav">
             {% set route = app.request.attributes.get('_route') %}
             <a href="{{ path('app_owner') }}"{% if route == 'app_owner' %} class="active"{% endif %}>
-                Dashboard
+                <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
+                <span>Dashboard</span>
             </a>
             <a href="{{ path('app_owner_businesses') }}"
                {% if route starts with 'app_owner_business' %} class="active"{% endif %}>
-                My Businesses
+                <span class="material-symbols-outlined" aria-hidden="true">storefront</span>
+                <span>My Businesses</span>
             </a>
             <a href="{{ path('app_owner_menus') }}"
                {% if route starts with 'app_owner_menu' or route starts with 'app_owner_category' or route starts with 'app_owner_item' %} class="active"{% endif %}>
-                Menus
+                <span class="material-symbols-outlined" aria-hidden="true">restaurant_menu</span>
+                <span>Menus</span>
             </a>
             <a href="{{ path('app_owner_account') }}"
                {% if route == 'app_owner_account' %} class="active"{% endif %}>
-                Account
+                <span class="material-symbols-outlined" aria-hidden="true">manage_accounts</span>
+                <span>Account</span>
             </a>
         </nav>
         <div class="owner-sidebar-foot">
