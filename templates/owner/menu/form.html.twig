@@ -68,9 +68,9 @@
     <div class="limit-modal-inner">
         <div class="limit-modal-icon">
             {% if error == 'subscription_expired' %}
-                🔒
+                <span class="material-symbols-outlined" aria-hidden="true">lock</span>
             {% else %}
-                ⚠️
+                <span class="material-symbols-outlined" aria-hidden="true">event_busy</span>
             {% endif %}
         </div>
         
@@ -92,7 +92,7 @@
         {% elseif error == 'published_limit_reached' %}
             <h3 class="limit-modal-title">Published Menu Limit Reached</h3>
             <p class="limit-modal-text">
-                {% set limit = subscription ? subscription.getPublishedMenuLimit() : 0 %}
+                {% set limit = accessContext.limits.published %}
                 You've reached your plan's published menu limit 
                 <strong>({{ publishedCount }} / {{ limit }} used)</strong>.<br>
                 Upgrade to publish more menus, or unpublish another menu first.
@@ -109,7 +109,7 @@
         {% elseif error == 'draft_limit_reached' %}
             <h3 class="limit-modal-title">Draft Menu Limit Reached</h3>
             <p class="limit-modal-text">
-                {% set limit = subscription ? subscription.getDraftMenuLimit() : 0 %}
+                {% set limit = accessContext.limits.draft %}
                 You've reached your plan's draft menu limit 
                 <strong>({{ draftCount }} / {{ limit }} used)</strong>.<br>
                 Upgrade to create more drafts, or delete an unused draft menu first.
@@ -126,9 +126,8 @@
         {% else %}
             {# Fallback for generic limit_reached #}
             <h3 class="limit-modal-title">Plan Limit Reached</h3>
-            <p class="limit-modal-text">
-                You've reached your plan's menu limit.<br>
-                Upgrade to a higher tier to get more slots.
+            <p class="limit-modal-text" id="limitModalMessage">
+                {{ limitMessage ?? ('Your ' ~ accessContext.label ~ ' has no free slot for that menu status. Change another menu or compare plans to continue.') }}
             </p>
             <div class="limit-modal-actions">
                 <button class="btn btn-outline" onclick="closeModal()">
@@ -204,12 +203,20 @@
 
 <script>
 const canPublish = {{ canPublish ? 'true' : 'false' }};
+const canDraft = {{ canDraft ? 'true' : 'false' }};
 const menuStatus = '{{ menu ? menu.status : 'draft' }}';
+const publishedLimitMessage = {{ (publishedLimitMessage ?? '')|json_encode|raw }};
+const draftLimitMessage = {{ (draftLimitMessage ?? '')|json_encode|raw }};
 
 function checkPublishLimit(select) {
-    if (select.value === 'published' && !canPublish) {
+    const isBlocked = (select.value === 'published' && !canPublish)
+        || (select.value === 'draft' && !canDraft);
+    if (isBlocked) {
+        const message = select.value === 'published' ? publishedLimitMessage : draftLimitMessage;
+        const messageElement = document.getElementById('limitModalMessage');
+        if (messageElement && message) messageElement.textContent = message;
         document.getElementById('limitModal').style.display = 'flex';
-        select.value = 'draft';
+        select.value = menuStatus;
     }
 }
 

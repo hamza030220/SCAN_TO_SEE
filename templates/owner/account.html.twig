@@ -5,6 +5,9 @@
 
 {% block content %}
 
+{% set trialActive = app.user.isTrialActive() and not (sub and sub.isActive()) %}
+{% set trialAiRemaining = trialActive ? (3 - app.user.trialAiUses) : null %}
+
 <div class="account-grid">
 <section class="owner-panel account-card">
     <div class="owner-panel-head">
@@ -25,6 +28,24 @@
                     </span>
                 </td>
             </tr>
+            {% if trialActive %}
+                <tr>
+                    <td style="font-weight:600">Current access</td>
+                    <td><span class="account-status account-status--success">Free trial</span></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:600">Free trial ends</td>
+                    <td style="color:var(--adm-muted)">
+                        {{ app.user.trialEndsAt|date('F j, Y \\a\\t H:i') }}
+                        <span style="display:block;font-size:.78rem;margin-top:3px">Includes 1 draft and 1 published menu. AI scans: {{ app.user.trialAiUses }} of 3 used · {{ trialAiRemaining }} remaining.</span>
+                    </td>
+                </tr>
+            {% elseif sub and sub.isActive() %}
+                <tr>
+                    <td style="font-weight:600">Current access</td>
+                    <td><span class="account-status account-status--success">{{ sub.getPlanLabel() }} plan</span></td>
+                </tr>
+            {% endif %}
             <tr>
                 <td style="font-weight:600">2FA Status</td>
                 <td>

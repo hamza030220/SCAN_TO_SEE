@@ -679,6 +679,55 @@ body.owner-body {
 }
 .owner-flash--success { background: #f0fdf4; border-color: #22c55e; color: #166534; }
 .owner-flash--error   { background: #fef2f2; border-color: #f87171; color: #991b1b; }
+.owner-flash--info    { background: #eff6ff; border-color: #60a5fa; color: #1e40af; }
+.owner-flash--warning { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+
+.owner-access-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid #ead8b8;
+  border-left: 4px solid var(--amber);
+  background: #fffaf0;
+}
+.owner-access-notice__icon { color: var(--amber-dk); font-size: 1.45rem; }
+.owner-access-notice__content { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.owner-access-notice__content strong { font-size: .88rem; }
+.owner-access-notice__content span { color: var(--muted); font-size: .8rem; line-height: 1.45; }
+.owner-access-notice__link { color: var(--amber-dk); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+
+.plan-message-modal[hidden] { display: none; }
+.plan-message-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(10, 6, 2, .72);
+  backdrop-filter: blur(5px);
+}
+.plan-message-card {
+  width: min(100%, 460px);
+  padding: 30px 26px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .35);
+  text-align: center;
+}
+.plan-message-icon { display: block; color: var(--amber-dk); font-size: 2.7rem; margin-bottom: 12px; }
+.plan-message-card h3 { margin: 0 0 10px; font-family: 'Space Grotesk', sans-serif; font-size: 1.35rem; }
+.plan-message-card p { margin: 0 0 24px; color: var(--muted); font-size: .92rem; line-height: 1.6; }
+.plan-message-actions { display: flex; justify-content: center; gap: 10px; }
+
+@media (max-width: 640px) {
+  .owner-access-notice { align-items: flex-start; flex-wrap: wrap; }
+  .owner-access-notice__link { margin-left: 38px; }
+  .plan-message-actions { flex-direction: column; }
+}
 
 /* Setup banner */
 .owner-setup-banner {

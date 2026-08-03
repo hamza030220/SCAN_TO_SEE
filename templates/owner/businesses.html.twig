@@ -4,6 +4,7 @@
 {% block page_title %}My Businesses{% endblock %}
 
 {% block content %}
+{% include 'owner/_access_notice.html.twig' %}
 <div class="owner-panel">
     <div class="owner-panel-head">
         <h2>Your businesses</h2>
@@ -12,9 +13,9 @@
                data-modal="{{ path('app_owner_business_new') }}"
                class="btn btn-primary btn-sm">Add business</a>
         {% else %}
-            <a href="{{ path('app_owner_subscription') }}"
-               class="btn btn-outline btn-sm"
-               title="Upgrade your plan to add another business">Business limit reached</a>
+            <button type="button" class="btn btn-outline btn-sm" data-plan-message-open>
+                Business limit reached
+            </button>
         {% endif %}
     </div>
 
@@ -70,4 +71,22 @@
         </table>
     {% endif %}
 </div>
+
+{% if not canCreateBusiness %}
+<div class="plan-message-modal" data-plan-message-modal hidden>
+    <div class="plan-message-card" role="dialog" aria-modal="true" aria-labelledby="business-limit-title">
+        <span class="material-symbols-outlined plan-message-icon" aria-hidden="true">domain_disabled</span>
+        <h3 id="business-limit-title">Business limit reached</h3>
+        <p>
+            Your {{ accessContext.label }} includes
+            {{ accessContext.limits.businesses is null ? 'unlimited businesses' : accessContext.limits.businesses ~ ' business' ~ (accessContext.limits.businesses == 1 ? '' : 'es') }}.
+            Your existing business is safe and ready to edit.
+        </p>
+        <div class="plan-message-actions">
+            <button type="button" class="btn btn-outline" data-plan-message-close>Got it</button>
+            <a href="{{ path('app_owner_subscription') }}" class="btn btn-primary">Compare plans</a>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

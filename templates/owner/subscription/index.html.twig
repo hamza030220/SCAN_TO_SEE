@@ -412,11 +412,23 @@ body {
 </header>
 
 <div class="sub-container">
+    {% set trialActive = app.user.isTrialActive() and not (sub and sub.isActive()) %}
+    {% set trialAiRemaining = trialActive ? (3 - app.user.trialAiUses) : null %}
     <h1 class="sub-page-title">Choose Your Plan</h1>
     <p class="sub-page-subtitle">Start publishing beautiful digital menus in minutes</p>
 
     {# ── Current status banner ──────────────────────────────────────────── #}
-    {% if sub %}
+    {% if trialActive %}
+        <div class="sub-current">
+            <div class="sub-current-info">
+                <span class="sub-plan-badge sub-plan-badge--basic">Free trial</span>
+                <div>
+                    <p class="sub-current-label">Basic access · 1 draft, 1 published menu and 3 AI scans</p>
+                    <p class="sub-current-exp">Active until {{ app.user.trialEndsAt|date('d M Y \\a\\t H:i') }} · AI scans: {{ app.user.trialAiUses }}/3 used · {{ trialAiRemaining }} remaining</p>
+                </div>
+            </div>
+        </div>
+    {% elseif sub %}
         {% if sub.isActive() %}
             {% set daysLeft = sub.getDaysUntilExpiry() %}
             {% if daysLeft is not null and daysLeft <= 7 %}

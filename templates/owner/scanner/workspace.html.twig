@@ -135,7 +135,7 @@
         <input type="text" id="wsCurrency" class="wsCurrencyInput"
                value="{{ menu ? menu.currency : 'TND' }}" maxlength="3">
         {% if trialAiRemaining is not null %}
-          <span class="wsTrialUses">{{ trialAiRemaining }} of 3 trial scans left</span>
+          <span class="wsTrialUses" id="wsTrialUses">{{ trialAiUsed }}/3 used · {{ trialAiRemaining }} remaining</span>
         {% endif %}
         <label class="wsDataTerms">
           <input type="checkbox" id="wsDataTerms">
@@ -364,6 +364,10 @@ async function callScan(file,currency){
   var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
   var json=await resp.json();
   if(!resp.ok) throw new Error(json.error||'Scan failed. Please retry.');
+  if(json.trial_ai_remaining!==undefined&&json.trial_ai_used!==undefined){
+    var usage=document.getElementById('wsTrialUses');
+    if(usage) usage.textContent=json.trial_ai_used+'/3 used · '+json.trial_ai_remaining+' remaining';
+  }
   return json;
 }
 

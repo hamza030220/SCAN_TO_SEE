@@ -204,7 +204,7 @@
         <main class="owner-content">
             {% for type, messages in app.flashes %}
                 {% for msg in messages %}
-                    <div class="owner-flash owner-flash--{{ type }}">{{ msg }}</div>
+                    <div class="owner-flash owner-flash--{{ type }}" role="{{ type == 'error' ? 'alert' : 'status' }}">{{ msg }}</div>
                 {% endfor %}
             {% endfor %}
             {% block content %}{% endblock %}
@@ -237,6 +237,23 @@
                 });
             }
 
+            /* Friendly plan-information dialogs */
+            document.addEventListener('click', function (e) {
+                var open = e.target.closest('[data-plan-message-open]');
+                var close = e.target.closest('[data-plan-message-close]');
+                if (open) {
+                    var dialog = document.querySelector('[data-plan-message-modal]');
+                    if (dialog) dialog.hidden = false;
+                }
+                if (close) {
+                    var dialogToClose = close.closest('[data-plan-message-modal]');
+                    if (dialogToClose) dialogToClose.hidden = true;
+                }
+                if (e.target.matches('[data-plan-message-modal]')) {
+                    e.target.hidden = true;
+                }
+            });
+
             /* ── Modal system ──────────────────────────────────────────── */
             var modal = document.getElementById('s2s-modal');
             var inner = document.getElementById('s2s-modal-inner');
@@ -259,7 +276,7 @@
             function prefetch(url) {
                 if (cache[url])   return Promise.resolve(cache[url]);
                 if (pending[url]) return pending[url];
-                pending[url] = fetch(url)
+                pending[url] = fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function (res) { return res.text(); })
                     .then(function (html) {
                         var entry = parse(html, url);
@@ -352,6 +369,58 @@
                     modal.classList.add('open');
                     prefetch(url).then(function (entry) { render(url, entry); });
                 }
+            });
+
+            /* Keep validation and restriction feedback inside modal forms. */
+            modal.addEventListener('submit', function (e) {
+                var form = e.target.closest('form');
+                if (!form) return;
+                e.preventDefault();
+
+                var submit = form.querySelector('[type="submit"]');
+                var originalText = submit ? submit.textContent : '';
+                if (submit) {
+                    submit.disabled = true;
+                    submit.textContent = 'Saving...';
+                }
+
+                var url = form.getAttribute('action') || window.location.href;
+                fetch(url, {
+                    method: (form.getAttribute('method') || 'POST').toUpperCase(),
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    redirect: 'manual'
+                }).then(function (response) {
+                    if (response.status >= 300 && response.status < 400) {
+                        var location = response.headers.get('Location');
+                        if (location) {
+                            window.location.assign(location);
+                            return null;
+                        }
+                    }
+                    if (response.redirected) {
+                        window.location.assign(response.url);
+                        return null;
+                    }
+                    return response.text().then(function (html) {
+                        return { response: response, html: html };
+                    });
+                }).then(function (result) {
+                    if (!result) return;
+                    var entry = parse(result.html, url);
+                    if (!entry) {
+                        throw new Error('The form response could not be displayed.');
+                    }
+                    cache[url] = entry;
+                    render(url, entry);
+                }).catch(function () {
+                    inner.innerHTML = '<div class="s2s-modal-loading" style="color:#991b1b">The action could not be completed. Please close this window and try again.</div>';
+                }).finally(function () {
+                    if (submit) {
+                        submit.disabled = false;
+                        submit.textContent = originalText;
+                    }
+                });
             });
 
             /* Start background pre-fetch after page is interactive */

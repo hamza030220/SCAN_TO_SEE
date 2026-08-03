@@ -35,14 +35,34 @@ class SubscriptionServiceTest extends TestCase
         );
         $this->entitlements->method('hasAccess')->willReturnCallback(
             function (User $user): bool {
-                return $this->subscriptionRepo->findOneBy(['owner' => $user])?->isActive() ?? false;
+                return ($this->subscriptionRepo->findOneBy(['owner' => $user])?->isActive() ?? false)
+                    || $user->isTrialActive();
             }
         );
         $this->entitlements->method('accessPlan')->willReturnCallback(
             function (User $user): ?string {
                 $subscription = $this->subscriptionRepo->findOneBy(['owner' => $user]);
-                return $subscription?->isActive() ? $subscription->getPlan() : null;
+                return $subscription?->isActive()
+                    ? $subscription->getPlan()
+                    : ($user->isTrialActive() ? Subscription::PLAN_BASIC : null);
             }
+        );
+        $this->entitlements->method('isTrialAccess')->willReturnCallback(
+            function (User $user): bool {
+                return !($this->subscriptionRepo->findOneBy(['owner' => $user])?->isActive() ?? false)
+                    && $user->isTrialActive();
+            }
+        );
+        $this->entitlements->method('paidSubscription')->willReturnCallback(
+            function (User $user): ?Subscription {
+                $subscription = $this->subscriptionRepo->findOneBy(['owner' => $user]);
+                return $subscription?->isActive() ? $subscription : null;
+            }
+        );
+        $this->entitlements->method('remainingTrialAiUses')->willReturnCallback(
+            static fn (User $user): ?int => $user->isTrialActive()
+                ? max(0, 3 - $user->getTrialAiUses())
+                : null,
         );
 
         // Initialize service with mocked dependencies
@@ -368,7 +388,10 @@ class SubscriptionServiceTest extends TestCase
 
         $this->assertFalse($result['allowed']);
         $this->assertNull($result['swapped_menu']);
-        $this->assertSame('No active subscription found.', $result['message']);
+        $this->assertSame(
+            'Your trial or subscription is not active. Choose a plan to continue managing menus.',
+            $result['message'],
+        );
     }
 
     public function testAutoSwapMenuStatusAllowsUnlimitedForProPlan(): void
@@ -620,6 +643,60 @@ class SubscriptionServiceTest extends TestCase
 
         $subscription->setPlan(Subscription::PLAN_PREMIUM);
         $this->assertTrue($this->service->canCreateBusiness($user, 10));
+    }
+
+    public function testTrialAccessContextExplainsLimitsAndAiQuota(): void
+    {
+        $user = $this->createUser()
+            ->setTrialEndsAt(new \DateTimeImmutable('+5 days'))
+            ->setTrialAiUses(1);
+        $this->subscriptionRepo->method('findOneBy')->willReturn(null);
+        $this->menuRepo->method('createQueryBuilder')->willReturnOnConsecutiveCalls(
+            $this->createMockQueryBuilder(0),
+            $this->createMockQueryBuilder(1),
+        );
+
+        $context = $this->service->getAccessContext($user);
+
+        $this->assertTrue($context['hasAccess']);
+        $this->assertTrue($context['isTrial']);
+        $this->assertSame('Free trial', $context['label']);
+        $this->assertSame(1, $context['limits']['draft']);
+        $this->assertSame(1, $context['limits']['published']);
+        $this->assertSame(1, $context['trialAiUsed']);
+        $this->assertSame(2, $context['trialAiRemaining']);
+    }
+
+    public function testPremiumLimitMessageNamesPlanAndAllowance(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PREMIUM, Subscription::STATUS_ACTIVE);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+        $this->menuRepo->method('createQueryBuilder')->willReturn($this->createMockQueryBuilder(3));
+
+        $message = $this->service->menuLimitMessage($user, 'draft');
+
+        $this->assertStringContainsString('Premium', $message);
+        $this->assertStringContainsString('3 draft menus', $message);
+        $this->assertStringContainsString('3 of 3', $message);
+    }
+
+    public function testProAccessContextReportsUnlimitedMenuAndBusinessLimits(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PRO, Subscription::STATUS_ACTIVE);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+        $this->menuRepo->method('createQueryBuilder')->willReturnOnConsecutiveCalls(
+            $this->createMockQueryBuilder(8),
+            $this->createMockQueryBuilder(6),
+        );
+
+        $context = $this->service->getAccessContext($user);
+
+        $this->assertSame('Pro', $context['label']);
+        $this->assertNull($context['limits']['draft']);
+        $this->assertNull($context['limits']['published']);
+        $this->assertNull($context['limits']['businesses']);
     }
 
     public function testStripeSynchronizationUsesItemPeriodAndConfiguredPrice(): void
