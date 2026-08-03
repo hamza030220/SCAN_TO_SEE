@@ -169,7 +169,8 @@ class SubscriptionController extends AbstractController
         SubscriptionService $service,
     ): Response {
         if (!$this->isCsrfTokenValid('change-subscription', $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException('Invalid CSRF token.');
+            $this->addFlash('error', 'Your security session expired. Refresh the page before changing plans.');
+            return $this->redirectToRoute('app_owner_subscription');
         }
         if (!in_array($plan, Subscription::PLANS, true)
             || !in_array($period, [Subscription::PERIOD_MONTHLY, Subscription::PERIOD_YEARLY], true)) {
@@ -250,7 +251,8 @@ class SubscriptionController extends AbstractController
         // Apply the downgrade and let the enforcement subscriber handle menu selection
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('downgrade', $request->request->get('_token'))) {
-                throw $this->createAccessDeniedException('Invalid CSRF token.');
+                $this->addFlash('error', 'Your security session expired. Refresh the page before changing plans.');
+                return $this->redirectToRoute('app_owner_subscription');
             }
             if ($businessLimitExceeded) {
                 $this->addFlash('error', sprintf(
@@ -322,7 +324,8 @@ class SubscriptionController extends AbstractController
         EntityManagerInterface $em,
     ): Response {
         if (!$this->isCsrfTokenValid('cancel-subscription', $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page before cancelling the subscription.');
+            return $this->redirectToRoute('app_owner_subscription');
         }
 
         /** @var \App\Entity\User $user */

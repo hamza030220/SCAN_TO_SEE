@@ -86,6 +86,7 @@ final class OwnerMenuController extends AbstractController
         $subscription = $subscriptionService->getSubscription($this->getUser());
         $publishedCount = $subscriptionService->countPublishedMenus($this->getUser());
         $draftCount = $subscriptionService->countDraftMenus($this->getUser());
+        $accessContext = $subscriptionService->getAccessContext($this->getUser());
 
         return $this->render('owner/menu/index.html.twig', [
             'businesses'     => $businesses,
@@ -94,6 +95,7 @@ final class OwnerMenuController extends AbstractController
             'subscription'   => $subscription,
             'publishedCount' => $publishedCount,
             'draftCount'     => $draftCount,
+            'accessContext'  => $accessContext,
         ]);
     }
 
@@ -116,6 +118,7 @@ final class OwnerMenuController extends AbstractController
         $menu  = $id ? $this->getOwnedMenu($id, $menuRepo, $businessRepo) : null;
         if ($id && !$menu) throw $this->createNotFoundException();
         $error = null;
+        $limitMessage = null;
 
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('menu', $request->request->get('_token'))) {
@@ -148,8 +151,8 @@ final class OwnerMenuController extends AbstractController
                         $status,
                     );
                     if (!$limitResult['allowed']) {
-                        $error = $limitResult['message'] ?? 'This plan has no free menu slot.';
-                        $this->addFlash('error', $error);
+                        $limitMessage = $limitResult['message'] ?? 'This plan has no free menu slot.';
+                        $error = $limitMessage;
                     }
                 }
 
@@ -177,22 +180,45 @@ final class OwnerMenuController extends AbstractController
         $subscription = $subscriptionService->getSubscription($this->getUser());
         $publishedCount = $subscriptionService->countPublishedMenus($this->getUser());
         $draftCount = $subscriptionService->countDraftMenus($this->getUser());
+        $accessContext = $subscriptionService->getAccessContext($this->getUser());
 
         $canPublish = $subscriptionService->canSetMenuStatus(
             $this->getUser(),
             $menu?->getStatus(),
             Menu::STATUS_PUBLISHED,
         );
+        $canDraft = $subscriptionService->canSetMenuStatus(
+            $this->getUser(),
+            $menu?->getStatus(),
+            Menu::STATUS_DRAFT,
+        );
         $canCreate = $subscriptionService->canCreateMenu($this->getUser());
+
+        if (!$menu && !$canCreate && $error === null) {
+            $limitMessage = sprintf(
+                'Your %s currently uses all included menu slots: %d of %s drafts and %d of %s published menus. Change or delete a menu, or compare plans to add more.',
+                $accessContext['label'],
+                $accessContext['usage']['draft'],
+                $accessContext['limits']['draft'] ?? 'Unlimited',
+                $accessContext['usage']['published'],
+                $accessContext['limits']['published'] ?? 'Unlimited',
+            );
+            $error = $limitMessage;
+        }
 
         return $this->render('owner/menu/form.html.twig', [
             'menu'           => $menu,
             'businesses'     => $businesses,
             'error'          => $error,
             'canPublish'     => $canPublish,
+            'canDraft'       => $canDraft,
             'subscription'   => $subscription,
             'publishedCount' => $publishedCount,
             'draftCount'     => $draftCount,
+            'accessContext'  => $accessContext,
+            'limitMessage'   => $limitMessage,
+            'publishedLimitMessage' => $canPublish ? null : $subscriptionService->menuLimitMessage($this->getUser(), Menu::STATUS_PUBLISHED),
+            'draftLimitMessage' => $canDraft ? null : $subscriptionService->menuLimitMessage($this->getUser(), Menu::STATUS_DRAFT),
         ]);
     }
 
@@ -211,7 +237,8 @@ final class OwnerMenuController extends AbstractController
         $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
         if (!$menu) throw $this->createNotFoundException();
         if (!$this->isCsrfTokenValid('delete-menu-' . $id, $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try deleting the menu again.');
+            return $this->redirectToRoute('app_owner_menus');
         }
 
         $em->remove($menu);
@@ -348,7 +375,8 @@ final class OwnerMenuController extends AbstractController
         $category = $menu ? $categoryRepo->findOneBy(['id' => $catId, 'menu' => $menu]) : null;
         if (!$menu || !$category) throw $this->createNotFoundException();
         if (!$this->isCsrfTokenValid('delete-cat-' . $catId, $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try deleting the category again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
         }
 
         $em->remove($category);
@@ -456,7 +484,8 @@ final class OwnerMenuController extends AbstractController
         }
         if (!$menu || !$category || !$item) throw $this->createNotFoundException();
         if (!$this->isCsrfTokenValid('delete-item-' . $itemId, $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try deleting the item again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
         }
 
         $em->remove($item);
@@ -481,6 +510,9 @@ final class OwnerMenuController extends AbstractController
             'menu' => $menu,
             'scannerAllowed' => $menu?->canUseScanner() ?? false,
             'trialAiRemaining' => $entitlements->remainingTrialAiUses($this->getUser()),
+            'trialAiUsed' => $entitlements->isTrialAccess($this->getUser())
+                ? $this->getUser()->getTrialAiUses()
+                : null,
         ]);
     }
 
@@ -550,7 +582,12 @@ final class OwnerMenuController extends AbstractController
 
         try {
             $capture = $captureService->capture($imageFile, $owner, $menu, $currency);
-            return $this->json($capture['response']);
+            $response = $capture['response'];
+            if ($trialUseReserved) {
+                $response['trial_ai_used'] = $owner->getTrialAiUses();
+                $response['trial_ai_remaining'] = $entitlements->remainingTrialAiUses($owner);
+            }
+            return $this->json($response);
         } catch (\RuntimeException $e) {
             if ($trialUseReserved) {
                 $entitlements->releaseTrialAiUse($owner);

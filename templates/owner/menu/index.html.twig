@@ -4,6 +4,7 @@
 {% block page_title %}Menus{% endblock %}
 
 {% block content %}
+{% include 'owner/_access_notice.html.twig' %}
 <div class="owner-panel">
     <div class="owner-panel-head">
         <h2>All menus</h2>
@@ -72,11 +73,14 @@
 {% if not canCreate %}
 <div id="menuLimitModal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(10,6,2,.75); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:24px;">
     <div style="background:#fff; border-radius:16px; max-width:460px; width:100%; padding:32px 28px; box-shadow:0 24px 80px rgba(0,0,0,.4); text-align:center;">
-        <div style="font-size:3rem; margin-bottom:16px; animation: menuBounce .6s ease;">⚠️</div>
-        <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.4rem; font-weight:700; color:#18120a; margin:0 0 12px;">Plan Limit Reached</h3>
+        <span class="material-symbols-outlined plan-message-icon" aria-hidden="true">event_busy</span>
+        <h3 style="font-family:'Space Grotesk',sans-serif; font-size:1.4rem; font-weight:700; color:#18120a; margin:0 0 12px;">{{ accessContext.label }} menu limit reached</h3>
         <p style="font-size:.95rem; color:#737373; line-height:1.6; margin:0 0 28px;">
-            You've used all your menu slots for your current plan.<br>
-            Upgrade to create more menus.
+            Your {{ accessContext.label }} includes
+            {{ accessContext.limits.draft is null ? 'unlimited drafts' : accessContext.limits.draft ~ ' draft menu' ~ (accessContext.limits.draft == 1 ? '' : 's') }}
+            and
+            {{ accessContext.limits.published is null ? 'unlimited published menus' : accessContext.limits.published ~ ' published menu' ~ (accessContext.limits.published == 1 ? '' : 's') }}.
+            You currently use {{ accessContext.usage.draft }} draft and {{ accessContext.usage.published }} published.
         </p>
         <div style="display:flex; gap:12px;">
             <button onclick="document.getElementById('menuLimitModal').style.display='none'" 
@@ -91,7 +95,6 @@
     </div>
 </div>
 <style>
-@keyframes menuBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 </style>
 <script>
 document.getElementById('menuLimitModal').addEventListener('click', function(e) {

@@ -40,6 +40,99 @@ class SubscriptionService
         return $this->entitlements->hasAccess($user);
     }
 
+    /**
+     * Returns presentation-ready entitlement information from the same source
+     * of truth used by the server-side guards.
+     *
+     * @return array{
+     *   hasAccess: bool,
+     *   isTrial: bool,
+     *   label: string,
+     *   plan: ?string,
+     *   expiresAt: ?\DateTimeImmutable,
+     *   limits: array{published: ?int, draft: ?int, businesses: ?int},
+     *   usage: array{published: int, draft: int},
+     *   trialAiUsed: ?int,
+     *   trialAiRemaining: ?int
+     * }
+     */
+    public function getAccessContext(User $user): array
+    {
+        $plan = $this->entitlements->accessPlan($user);
+        $isTrial = $this->entitlements->isTrialAccess($user);
+
+        return [
+            'hasAccess' => $plan !== null,
+            'isTrial' => $isTrial,
+            'label' => $isTrial
+                ? 'Free trial'
+                : ($plan !== null ? (Subscription::LABELS[$plan] ?? ucfirst($plan)) : 'No active plan'),
+            'plan' => $plan,
+            'expiresAt' => $isTrial
+                ? $user->getTrialEndsAt()
+                : $this->entitlements->paidSubscription($user)?->getCurrentPeriodEnd(),
+            'limits' => [
+                'published' => $plan !== null ? (Subscription::LIMITS[$plan]['published'] ?? null) : 0,
+                'draft' => $plan !== null ? (Subscription::LIMITS[$plan]['draft'] ?? null) : 0,
+                'businesses' => $plan !== null ? (Subscription::BUSINESS_LIMITS[$plan] ?? null) : 0,
+            ],
+            'usage' => [
+                'published' => $this->countPublishedMenus($user),
+                'draft' => $this->countDraftMenus($user),
+            ],
+            'trialAiUsed' => $isTrial ? $user->getTrialAiUses() : null,
+            'trialAiRemaining' => $this->entitlements->remainingTrialAiUses($user),
+        ];
+    }
+
+    public function menuLimitMessage(User $user, string $status): string
+    {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
+            return 'Your trial or subscription is not active. Choose a plan to continue managing menus.';
+        }
+
+        $label = $this->entitlements->isTrialAccess($user)
+            ? 'Free trial'
+            : (Subscription::LABELS[$plan] ?? ucfirst($plan));
+        $limit = Subscription::LIMITS[$plan][$status] ?? null;
+        $used = $status === 'published'
+            ? $this->countPublishedMenus($user)
+            : $this->countDraftMenus($user);
+        $slotLabel = $status === 'published' ? 'published menu' : 'draft menu';
+        $allowance = $limit === null
+            ? 'unlimited menus'
+            : sprintf('%d %s%s', $limit, $slotLabel, $limit === 1 ? '' : 's');
+
+        return sprintf(
+            'Your %s includes %s. You are currently using %d of %s %s. Change or delete another menu, or compare plans to add more.',
+            $label,
+            $allowance,
+            $used,
+            $limit === null ? 'unlimited' : (string) $limit,
+            $status === 'published' ? 'published slots' : 'draft slots',
+        );
+    }
+
+    public function businessLimitMessage(User $user, int $currentBusinessCount): string
+    {
+        $plan = $this->entitlements->accessPlan($user);
+        if ($plan === null) {
+            return 'Your trial or subscription is not active. Choose a plan to manage businesses.';
+        }
+
+        $label = $this->entitlements->isTrialAccess($user)
+            ? 'Free trial'
+            : (Subscription::LABELS[$plan] ?? ucfirst($plan));
+        $limit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
+        return sprintf(
+            'Your %s includes %s. You currently use %d. Edit an existing business or compare plans to add more.',
+            $label,
+            $limit === null ? 'unlimited businesses' : sprintf('%d business%s', $limit, $limit === 1 ? '' : 'es'),
+            $currentBusinessCount,
+        );
+    }
+
     // ── Published menu count for this owner ───────────────────────────────────
 
     public function countPublishedMenus(User $user): int
@@ -150,23 +243,10 @@ class SubscriptionService
             ];
         }
 
-        $plan = $this->entitlements->accessPlan($user);
-        if ($plan === null) {
-            return [
-                'allowed' => false,
-                'swapped_menu' => null,
-                'message' => 'No active subscription found.',
-            ];
-        }
-
         return [
             'allowed' => false,
             'swapped_menu' => null,
-            'message' => sprintf(
-                'Your %s plan has no free %s menu slot. Archive or change another menu first, or upgrade your plan.',
-                Subscription::LABELS[$plan] ?? ucfirst($plan),
-                $newStatus,
-            ),
+            'message' => $this->menuLimitMessage($user, $newStatus),
         ];
     }
 

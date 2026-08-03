@@ -86,9 +86,7 @@
     {% endfor %}
 
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
-        <a href="{{ path('app_owner_business_new') }}"
-           data-modal="{{ path('app_owner_business_new') }}"
-           class="btn btn-outline">+ Add business</a>
+        <a href="{{ path('app_owner_businesses') }}" class="btn btn-outline">Manage businesses</a>
         <a href="{{ path('app_owner_menus') }}" class="btn btn-outline">All menus</a>
     </div>
 {% endif %}

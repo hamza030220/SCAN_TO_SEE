@@ -16,11 +16,18 @@ class EmailVerificationController extends AbstractController
     #[Route('/verify-email/{token}', name: 'app_verify_email', methods: ['GET'])]
     public function verify(string $token, EmailVerificationService $verification): Response
     {
-        if (!$verification->verify($token)) {
+        $user = $verification->verify($token);
+        if (!$user) {
             $this->addFlash('error', 'This verification link is invalid or has expired.');
             return $this->redirectToRoute('app_login');
         }
-        $this->addFlash('success', 'Email verified. You can now log in.');
+        $this->addFlash(
+            'success',
+            sprintf(
+                'Email verified. Your five-day free trial is active until %s.',
+                $user->getTrialEndsAt()?->format('F j, Y \a\t H:i') ?? 'the displayed trial end date',
+            ),
+        );
         return $this->redirectToRoute('app_login');
     }
 

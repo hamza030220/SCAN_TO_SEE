@@ -1,0 +1,17 @@
+<div class="owner-access-notice" role="status">
+    <span class="material-symbols-outlined owner-access-notice__icon" aria-hidden="true">workspace_premium</span>
+    <div class="owner-access-notice__content">
+        <strong>{{ accessContext.label }}</strong>
+        <span>
+            {% if accessContext.isTrial and accessContext.expiresAt %}
+                Active until {{ accessContext.expiresAt|date('F j, Y \\a\\t H:i') }}.
+            {% endif %}
+            Drafts: {{ accessContext.usage.draft }}/{{ accessContext.limits.draft is null ? 'Unlimited' : accessContext.limits.draft }}.
+            Published: {{ accessContext.usage.published }}/{{ accessContext.limits.published is null ? 'Unlimited' : accessContext.limits.published }}.
+            {% if accessContext.trialAiRemaining is not null %}
+                AI scans: {{ accessContext.trialAiUsed }}/3 used · {{ accessContext.trialAiRemaining }} remaining.
+            {% endif %}
+        </span>
+    </div>
+    <a href="{{ path('app_owner_subscription') }}" class="owner-access-notice__link">Compare plans</a>
+</div>

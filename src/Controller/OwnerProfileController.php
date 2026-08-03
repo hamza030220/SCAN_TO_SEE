@@ -7,7 +7,6 @@ use App\Repository\BusinessRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\ImageUploadService;
 use App\Service\AccountDeletionService;
-use App\Service\EntitlementService;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,6 +41,7 @@ final class OwnerProfileController extends AbstractController
         return $this->render('owner/businesses.html.twig', [
             'businesses' => $businesses,
             'canCreateBusiness' => $subscriptionService->canCreateBusiness($user, count($businesses)),
+            'accessContext' => $subscriptionService->getAccessContext($user),
         ]);
     }
 
@@ -62,8 +62,11 @@ final class OwnerProfileController extends AbstractController
         if (!$business) {
             $businessCount = $businessRepo->count(['owner' => $user]);
             if (!$subscriptionService->canCreateBusiness($user, $businessCount)) {
-                $this->addFlash('warning', 'Your current plan has no free business slot.');
-                return $this->redirectToRoute('app_owner_subscription');
+                $this->addFlash(
+                    'info',
+                    $subscriptionService->businessLimitMessage($user, $businessCount),
+                );
+                return $this->redirectToRoute('app_owner_businesses');
             }
         }
         $error = null;
@@ -132,7 +135,8 @@ final class OwnerProfileController extends AbstractController
         $business = $businessRepo->findOneBy(['id' => $id, 'owner' => $user]);
         if (!$business) throw $this->createNotFoundException();
         if (!$this->isCsrfTokenValid('delete-business-' . $id, $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try deleting the business again.');
+            return $this->redirectToRoute('app_owner_businesses');
         }
         $em->remove($business);
         $em->flush();
@@ -164,7 +168,8 @@ final class OwnerProfileController extends AbstractController
         TotpAuthenticatorInterface $totpAuth,
     ): Response {
         if (!$this->isCsrfTokenValid('cancel-subscription', $request->request->get('_token'))) {
-            throw $this->createAccessDeniedException();
+            $this->addFlash('error', 'Your security session expired. Refresh the page before trying again.');
+            return $this->redirectToRoute('app_owner_account');
         }
 
         /** @var \App\Entity\User $user */
