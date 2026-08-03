@@ -16,6 +16,12 @@ class ItemTest extends TestCase
         $this->assertNull($item->getCategory());
         $this->assertNull($item->getName());
         $this->assertNull($item->getShortDescription());
+        $this->assertNull($item->getDetails());
+        $this->assertNull($item->getBadge());
+        $this->assertSame([], $item->getDietaryTags());
+        $this->assertSame([], $item->getAllergens());
+        $this->assertSame([], $item->getVariants());
+        $this->assertNull($item->getAvailabilityNote());
         $this->assertNull($item->getPrice());
         $this->assertTrue($item->isAvailable());
         $this->assertSame(0, $item->getSortOrder());
@@ -70,6 +76,24 @@ class ItemTest extends TestCase
 
         $item->setPrice('99.99');
         $this->assertSame('99.99', $item->getPrice());
+    }
+
+    public function testAdvancedCustomerInformationUsesSafeDefaultsAndFluentSetters(): void
+    {
+        $item = (new Item())
+            ->setDetails('Prepared to order.')
+            ->setBadge('Popular')
+            ->setDietaryTags(['Halal'])
+            ->setAllergens(['Milk'])
+            ->setVariants([['name' => 'Large', 'price' => '8.00']])
+            ->setAvailabilityNote('Until 11:30');
+
+        $this->assertSame('Prepared to order.', $item->getDetails());
+        $this->assertSame('Popular', $item->getBadge());
+        $this->assertSame(['Halal'], $item->getDietaryTags());
+        $this->assertSame(['Milk'], $item->getAllergens());
+        $this->assertSame([['name' => 'Large', 'price' => '8.00']], $item->getVariants());
+        $this->assertSame('Until 11:30', $item->getAvailabilityNote());
     }
 
     public function testPriceStoresAsString(): void

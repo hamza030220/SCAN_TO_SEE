@@ -24,6 +24,24 @@ class Item
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $shortDescription = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $details = null;
+
+    #[ORM\Column(length: 40, nullable: true)]
+    private ?string $badge = null;
+
+    #[ORM\Column(type: 'json')]
+    private array $dietaryTags = [];
+
+    #[ORM\Column(type: 'json')]
+    private array $allergens = [];
+
+    #[ORM\Column(type: 'json')]
+    private array $variants = [];
+
+    #[ORM\Column(length: 120, nullable: true)]
+    private ?string $availabilityNote = null;
+
     #[ORM\Column(type: 'decimal', precision: 10, scale: 2)]
     private ?string $price = null;
 
@@ -55,6 +73,18 @@ class Item
     public function setName(string $name): static { $this->name = $name; return $this; }
     public function getShortDescription(): ?string { return $this->shortDescription; }
     public function setShortDescription(?string $d): static { $this->shortDescription = $d; return $this; }
+    public function getDetails(): ?string { return $this->details; }
+    public function setDetails(?string $details): static { $this->details = $details; return $this; }
+    public function getBadge(): ?string { return $this->badge; }
+    public function setBadge(?string $badge): static { $this->badge = $badge; return $this; }
+    public function getDietaryTags(): array { return $this->dietaryTags; }
+    public function setDietaryTags(array $tags): static { $this->dietaryTags = array_values($tags); return $this; }
+    public function getAllergens(): array { return $this->allergens; }
+    public function setAllergens(array $allergens): static { $this->allergens = array_values($allergens); return $this; }
+    public function getVariants(): array { return $this->variants; }
+    public function setVariants(array $variants): static { $this->variants = array_values($variants); return $this; }
+    public function getAvailabilityNote(): ?string { return $this->availabilityNote; }
+    public function setAvailabilityNote(?string $note): static { $this->availabilityNote = $note; return $this; }
     public function getPrice(): ?string { return $this->price; }
     public function setPrice(string $price): static { $this->price = $price; return $this; }
     public function isAvailable(): bool { return $this->isAvailable; }

@@ -12,6 +12,7 @@ use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
 use App\Service\MenuContentService;
 use App\Service\MenuPublishReadinessService;
+use App\Service\ItemCustomizationService;
 use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
@@ -479,6 +480,7 @@ final class OwnerMenuController extends AbstractController
         CategoryRepository $categoryRepo,
         EntityManagerInterface $em,
         ImageUploadService $imageUpload,
+        ItemCustomizationService $customization,
         ?int $itemId = null,
     ): Response {
         $menu     = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
@@ -501,6 +503,13 @@ final class OwnerMenuController extends AbstractController
             } else {
                 $name        = trim($request->request->get('name', ''));
                 $shortDesc   = trim($request->request->get('short_description', '')) ?: null;
+                $details     = $customization->text($request->request->get('details'), 2000);
+                $badge       = $customization->badge($request->request->get('badge'));
+                $dietaryTags = $customization->labels($request->request->get('dietary_tags'));
+                $allergens   = $customization->labels($request->request->get('allergens'));
+                $availabilityNote = $customization->text($request->request->get('availability_note'), 120);
+                $variantNames = $request->request->all()['variant_name'] ?? [];
+                $variantPrices = $request->request->all()['variant_price'] ?? [];
                 $priceRaw    = $request->request->get('price', '');
                 $isAvailable = (bool) $request->request->get('is_available', false);
                 $sortOrder   = (int) $request->request->get('sort_order', 0);
@@ -511,6 +520,18 @@ final class OwnerMenuController extends AbstractController
                 } elseif (!is_numeric($priceRaw) || (float) $priceRaw < 0) {
                     $error = 'Please enter a valid price.';
                 } else {
+                    try {
+                        $variants = $customization->variants(
+                            is_array($variantNames) ? $variantNames : [],
+                            is_array($variantPrices) ? $variantPrices : [],
+                        );
+                    } catch (\InvalidArgumentException $e) {
+                        $variants = [];
+                        $error = $e->getMessage();
+                    }
+                }
+
+                if (!$error) {
                     $isNew = !$item;
                     if ($isNew) {
                         $item = new Item();
@@ -519,6 +540,12 @@ final class OwnerMenuController extends AbstractController
                     }
                     $item->setName($name);
                     $item->setShortDescription($shortDesc);
+                    $item->setDetails($details);
+                    $item->setBadge($badge);
+                    $item->setDietaryTags($dietaryTags);
+                    $item->setAllergens($allergens);
+                    $item->setVariants($variants);
+                    $item->setAvailabilityNote($availabilityNote);
                     $item->setPrice(number_format((float) $priceRaw, 2, '.', ''));
                     $item->setIsAvailable($isAvailable);
                     $item->setSortOrder($sortOrder);

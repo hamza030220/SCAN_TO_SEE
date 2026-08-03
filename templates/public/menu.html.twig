@@ -135,6 +135,12 @@
                                 data-item-id="{{ item.id }}"
                                 data-item-name="{{ item.name|e('html_attr') }}"
                                 data-item-desc="{{ item.shortDescription ?? ''|e('html_attr') }}"
+                                data-item-details="{{ item.details ?? ''|e('html_attr') }}"
+                                data-item-badge="{{ item.badge ?? ''|e('html_attr') }}"
+                                data-item-tags="{{ item.dietaryTags|json_encode|e('html_attr') }}"
+                                data-item-allergens="{{ item.allergens|json_encode|e('html_attr') }}"
+                                data-item-variants="{{ item.variants|json_encode|e('html_attr') }}"
+                                data-item-availability="{{ item.availabilityNote ?? ''|e('html_attr') }}"
                                 data-item-price="{{ item.price }}"
                                 data-item-currency="{{ menu.currency }}"
                                 data-item-image="{{ item.imagePath ? asset(item.imagePath) : '' }}"
@@ -155,9 +161,13 @@
                             </div>
 
                             <div class="pub-item-body">
+                                {% if item.badge %}<span class="pub-item-badge">{{ item.badge }}</span>{% endif %}
                                 <span class="pub-item-name">{{ item.name }}</span>
                                 {% if item.shortDescription %}
                                     <span class="pub-item-desc">{{ item.shortDescription }}</span>
+                                {% endif %}
+                                {% if item.dietaryTags|length > 0 %}
+                                    <span class="pub-item-tags">{{ item.dietaryTags|slice(0, 2)|join(' · ') }}</span>
                                 {% endif %}
                                 <span class="pub-item-price">{{ item.price }} {{ menu.currency }}</span>
                             </div>
@@ -184,10 +194,14 @@
     <div class="pub-sheet-img-wrap" id="sheetImgWrap"></div>
     <div class="pub-sheet-body">
         <div class="pub-sheet-top">
-            <h2 class="pub-sheet-name" id="sheetName"></h2>
+            <div><span class="pub-sheet-badge" id="sheetBadge" hidden></span><h2 class="pub-sheet-name" id="sheetName"></h2></div>
             <span class="pub-sheet-price" id="sheetPrice"></span>
         </div>
         <p class="pub-sheet-desc" id="sheetDesc"></p>
+        <div class="pub-sheet-tags" id="sheetTags"></div>
+        <p class="pub-sheet-availability" id="sheetAvailability" hidden></p>
+        <div class="pub-sheet-variants" id="sheetVariants" hidden></div>
+        <p class="pub-sheet-allergens" id="sheetAllergens" hidden></p>
     </div>
 </div>
 
@@ -203,10 +217,28 @@
     var nameEl   = document.getElementById('sheetName');
     var priceEl  = document.getElementById('sheetPrice');
     var descEl   = document.getElementById('sheetDesc');
+    var badgeEl  = document.getElementById('sheetBadge');
+    var tagsEl   = document.getElementById('sheetTags');
+    var availabilityEl = document.getElementById('sheetAvailability');
+    var variantsEl = document.getElementById('sheetVariants');
+    var allergensEl = document.getElementById('sheetAllergens');
+
+    function jsonData(value) {
+        try { return JSON.parse(value || '[]'); } catch (error) { return []; }
+    }
+
+    function fillLabels(container, labels) {
+        container.innerHTML = '';
+        labels.forEach(function (label) {
+            var tag = document.createElement('span');
+            tag.textContent = label;
+            container.appendChild(tag);
+        });
+    }
 
     function openSheet(card) {
         var name     = card.dataset.itemName;
-        var desc     = card.dataset.itemDesc;
+        var desc     = card.dataset.itemDetails || card.dataset.itemDesc;
         var price    = card.dataset.itemPrice;
         var currency = card.dataset.itemCurrency;
         var image    = card.dataset.itemImage;
@@ -215,6 +247,31 @@
         priceEl.textContent = window.s2sFmtPrice ? window.s2sFmtPrice(price, currency) : (price + ' ' + currency);
         descEl.textContent  = desc || '';
         descEl.style.display = desc ? 'block' : 'none';
+
+        badgeEl.textContent = card.dataset.itemBadge || '';
+        badgeEl.hidden = !card.dataset.itemBadge;
+        fillLabels(tagsEl, jsonData(card.dataset.itemTags));
+
+        availabilityEl.textContent = card.dataset.itemAvailability || '';
+        availabilityEl.hidden = !card.dataset.itemAvailability;
+
+        var variants = jsonData(card.dataset.itemVariants);
+        variantsEl.innerHTML = '';
+        variantsEl.hidden = variants.length === 0;
+        variants.forEach(function (variant) {
+            var row = document.createElement('div');
+            var label = document.createElement('span');
+            var value = document.createElement('strong');
+            label.textContent = variant.name;
+            value.textContent = window.s2sFmtPrice ? window.s2sFmtPrice(variant.price, currency) : (variant.price + ' ' + currency);
+            row.appendChild(label);
+            row.appendChild(value);
+            variantsEl.appendChild(row);
+        });
+
+        var allergens = jsonData(card.dataset.itemAllergens);
+        allergensEl.textContent = allergens.length ? 'Allergens: ' + allergens.join(', ') : '';
+        allergensEl.hidden = allergens.length === 0;
 
         imgWrap.innerHTML = '';
         if (image) {
