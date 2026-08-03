@@ -11,6 +11,7 @@ use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -22,6 +23,17 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_OWNER')]
 final class OwnerProfileController extends AbstractController
 {
+    private function redirectAfterModalSubmit(Request $request, string $route, array $parameters = []): Response
+    {
+        $url = $this->generateUrl($route, $parameters);
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['redirect' => $url]);
+        }
+
+        return $this->redirect($url);
+    }
+
     // Redirect old /owner/profile to /owner/businesses
     #[Route('/owner/profile', name: 'app_owner_profile')]
     public function profileRedirect(): Response
@@ -110,7 +122,7 @@ final class OwnerProfileController extends AbstractController
                             $business->setUpdatedAt(new \DateTimeImmutable());
                             $em->flush();
                             $this->addFlash('success', $isNew ? 'Business created.' : 'Business updated.');
-                            return $this->redirectToRoute('app_owner_businesses');
+                            return $this->redirectAfterModalSubmit($request, 'app_owner_businesses');
                         }
                     }
                 }

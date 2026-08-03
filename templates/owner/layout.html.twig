@@ -388,20 +388,27 @@
                 fetch(url, {
                     method: (form.getAttribute('method') || 'POST').toUpperCase(),
                     body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    redirect: 'manual'
-                }).then(function (response) {
-                    if (response.status >= 300 && response.status < 400) {
-                        var location = response.headers.get('Location');
-                        if (location) {
-                            window.location.assign(location);
-                            return null;
-                        }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json, text/html'
                     }
+                }).then(function (response) {
                     if (response.redirected) {
                         window.location.assign(response.url);
                         return null;
                     }
+
+                    var contentType = response.headers.get('Content-Type') || '';
+                    if (contentType.indexOf('application/json') !== -1) {
+                        return response.json().then(function (payload) {
+                            if (!payload.redirect) {
+                                throw new Error('The server did not provide a redirect destination.');
+                            }
+                            window.location.assign(payload.redirect);
+                            return null;
+                        });
+                    }
+
                     return response.text().then(function (html) {
                         return { response: response, html: html };
                     });

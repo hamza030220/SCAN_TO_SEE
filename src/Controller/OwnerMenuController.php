@@ -63,6 +63,22 @@ final class OwnerMenuController extends AbstractController
         return $slug;
     }
 
+    /**
+     * AJAX modal submissions cannot reliably inspect a manual HTTP redirect in
+     * the browser. Return the destination explicitly so the modal can navigate
+     * without consuming the success flash on an intermediate request.
+     */
+    private function redirectAfterModalSubmit(Request $request, string $route, array $parameters = []): Response
+    {
+        $url = $this->generateUrl($route, $parameters);
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(['redirect' => $url]);
+        }
+
+        return $this->redirect($url);
+    }
+
     // ── Menus ────────────────────────────────────────────────────────────────
 
     #[Route('/owner/menus', name: 'app_owner_menus')]
@@ -171,7 +187,11 @@ final class OwnerMenuController extends AbstractController
                     $em->flush();
 
                     $this->addFlash('success', $isNew ? 'Menu created.' : 'Menu updated.');
-                    return $this->redirectToRoute('app_owner_menu_show', ['id' => $menu->getId()]);
+                    return $this->redirectAfterModalSubmit(
+                        $request,
+                        'app_owner_menu_show',
+                        ['id' => $menu->getId()],
+                    );
                 }
             }
         }
@@ -350,7 +370,11 @@ final class OwnerMenuController extends AbstractController
                     $em->flush();
 
                     $this->addFlash('success', $isNew ? 'Category added.' : 'Category updated.');
-                    return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+                    return $this->redirectAfterModalSubmit(
+                        $request,
+                        'app_owner_menu_show',
+                        ['id' => $menuId],
+                    );
                 }
             }
         }
@@ -457,7 +481,11 @@ final class OwnerMenuController extends AbstractController
                         $item->setUpdatedAt(new \DateTimeImmutable());
                         $em->flush();
                         $this->addFlash('success', $isNew ? 'Item added.' : 'Item updated.');
-                        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+                        return $this->redirectAfterModalSubmit(
+                            $request,
+                            'app_owner_menu_show',
+                            ['id' => $menuId],
+                        );
                     }
                 }
             }
