@@ -9,6 +9,7 @@ use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
+use App\Service\MenuThemeConfigService;
 use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
@@ -275,6 +276,7 @@ final class OwnerMenuController extends AbstractController
         MenuRepository $menuRepo,
         EntityManagerInterface $em,
         ImageUploadService $imageUpload,
+        MenuThemeConfigService $themeConfigService,
     ): Response {
         $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
         if (!$menu) throw $this->createNotFoundException();
@@ -283,34 +285,15 @@ final class OwnerMenuController extends AbstractController
         }
 
         $current = $menu->getThemeConfig();
-        $data = [
-            'theme'           => in_array($request->request->get('theme'), ['light', 'dark']) ? $request->request->get('theme') : 'light',
-            'font'            => $request->request->get('font', 'DM Sans'),
-            'layout'          => in_array($request->request->get('layout'), ['list', 'grid', 'compact']) ? $request->request->get('layout') : 'list',
-            'bgType'          => in_array($request->request->get('bgType'), ['solid', 'gradient', 'image']) ? $request->request->get('bgType') : 'solid',
-            'bgColor'         => $request->request->get('bgColor', '#f7f4ef'),
-            'bgGradientStart' => $request->request->get('bgGradientStart', '#f7f4ef'),
-            'bgGradientEnd'   => $request->request->get('bgGradientEnd', '#e8e0d5'),
-            'bgGradientDir'   => $request->request->get('bgGradientDir', 'to bottom'),
-            'bgImagePath'     => $current['bgImagePath'] ?? null,
-            'headerBg'        => $request->request->get('headerBg', '#18120a'),
-            'accent'          => $request->request->get('accent', '#E8A020'),
-            'cardStyle'       => in_array($request->request->get('cardStyle'), ['flat', 'glass', 'bordered']) ? $request->request->get('cardStyle') : 'flat',
-            'cardBg'          => $request->request->get('cardBg', '#ffffff'),
-            'glassBlur'       => min(30, max(2, (int) $request->request->get('glassBlur', 8))),
-            'glassOpacity'    => min(0.6, max(0.05, round((float) $request->request->get('glassOpacity', 0.15), 2))),
-            'pillStyle'       => in_array($request->request->get('pillStyle'), ['pill', 'underline', 'chip']) ? $request->request->get('pillStyle') : 'pill',
-            'logoAlign'       => in_array($request->request->get('logoAlign'), ['flex-start', 'center', 'flex-end']) ? $request->request->get('logoAlign') : 'flex-start',
-        ];
+        $data = $themeConfigService->sanitize($request->request->all(), $current);
 
         /** @var UploadedFile|null $bgFile */
         $bgFile = $request->files->get('bgImage');
+        $newBackgroundPath = null;
         if ($bgFile instanceof UploadedFile) {
-            if (!empty($current['bgImagePath'])) {
-                $imageUpload->delete($current['bgImagePath']);
-            }
             try {
-                $data['bgImagePath'] = $imageUpload->uploadMenuBg($bgFile, $menu->getSlug());
+                $newBackgroundPath = $imageUpload->uploadMenuBg($bgFile, $menu->getSlug());
+                $data['bgImagePath'] = $newBackgroundPath;
             } catch (\RuntimeException $e) {
                 return $this->json(['error' => $e->getMessage()], 422);
             }
@@ -318,7 +301,16 @@ final class OwnerMenuController extends AbstractController
 
         $menu->setThemeConfig($data);
         $menu->setUpdatedAt(new \DateTimeImmutable());
-        $em->flush();
+        try {
+            $em->flush();
+        } catch (\Throwable $e) {
+            $imageUpload->delete($newBackgroundPath);
+            throw $e;
+        }
+
+        if ($newBackgroundPath && !empty($current['bgImagePath'])) {
+            $imageUpload->delete($current['bgImagePath']);
+        }
 
         return $this->json(['ok' => true]);
     }

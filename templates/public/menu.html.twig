@@ -65,38 +65,6 @@
     cursor: default;
 }
 
-/* ── Header scroll-shrink ─────────────────────────────────────────── */
-.pub-header,
-.pub-header-inner,
-.pub-header-logo,
-.pub-header-initials,
-.pub-header-name {
-    transition: all .28s ease;
-}
-.pub-header--minimal {
-    padding-top: 8px !important;
-}
-.pub-header--minimal .pub-header-inner {
-    padding-bottom: 8px;
-    gap: 10px;
-}
-.pub-header--minimal .pub-header-logo,
-.pub-header--minimal .pub-header-initials {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 6px;
-    font-size: .7rem;
-}
-.pub-header--minimal .pub-header-name {
-    font-size: .82rem;
-}
-.pub-header--minimal .pub-header-menu,
-.pub-header--minimal .pub-other-menus-link {
-    display: none;
-}
-.pub-header--minimal .pub-curr-bar {
-    padding: 4px 16px 4px;
-}
 </style>
 {% endblock %}
 
@@ -286,27 +254,8 @@
         if (dy > 60) closeSheet();
     }, { passive: true });
 
-    /* ── Sticky category nav (below sticky header) ───────────────────── */
-    var header = document.querySelector('.pub-header');
+    /* The header scrolls naturally; only the category rail is sticky. */
     var catNav = document.getElementById('catNav');
-
-    function stickyNav() {
-        if (!catNav || !header) return;
-        catNav.style.position = 'sticky';
-        catNav.style.top      = header.offsetHeight + 'px';
-        catNav.style.zIndex   = '49';
-    }
-    stickyNav();
-    window.addEventListener('resize', stickyNav, { passive: true });
-
-    /* ── Header shrinks on scroll, full only at the very top ─────────── */
-    function updateHeaderSize() {
-        var atTop = (window.scrollY || window.pageYOffset) <= 10;
-        header.classList.toggle('pub-header--minimal', !atTop);
-        stickyNav(); /* recalc catNav position after header height changes */
-    }
-    window.addEventListener('scroll', updateHeaderSize, { passive: true });
-    updateHeaderSize();
 
     /* ── Category pill scroll tracking ───────────────────────────────── */
     var pills    = Array.from(document.querySelectorAll('[data-cat-pill]'));
@@ -317,19 +266,22 @@
     if (pills.length < 2 || sections.length === 0) return;
 
     function getOffset() {
-        return (header ? header.offsetHeight : 0) +
-               (catNav  ? catNav.offsetHeight  : 0) +
+        return (catNav ? catNav.offsetHeight : 0) +
                16; /* 16 px breathing room */
     }
 
-    function setActive(id) {
+    var activeId = null;
+    function setActive(id, smooth) {
         var sid = String(id);
+        if (sid === activeId) return;
+        activeId = sid;
         pills.forEach(function (p) {
             p.classList.toggle('active', p.dataset.catPill === sid);
         });
         var active = document.querySelector('[data-cat-pill="' + sid + '"]');
-        if (active) {
-            active.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+        if (active && catNav) {
+            var target = active.offsetLeft - ((catNav.clientWidth - active.offsetWidth) / 2);
+            catNav.scrollTo({ left: Math.max(0, target), behavior: smooth ? 'smooth' : 'auto' });
         }
     }
 
@@ -341,7 +293,7 @@
             if (!section) return;
             var top = section.getBoundingClientRect().top + window.scrollY - getOffset();
             window.scrollTo({ top: top, behavior: 'smooth' });
-            setActive(pill.dataset.catPill);
+            setActive(pill.dataset.catPill, true);
         });
     });
 
@@ -360,7 +312,7 @@
                     current = s.id.replace('cat-', '');
                 }
             });
-            setActive(current);
+            setActive(current, false);
         });
     }
 

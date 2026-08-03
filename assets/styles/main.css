@@ -998,9 +998,7 @@ body.owner-body {
   background: var(--pub-header-bg);
   color: #fff;
   padding: 20px 20px 0;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  position: relative;
 }
 .pub-header-inner {
   display: flex;
@@ -1051,6 +1049,10 @@ body.owner-body {
   background: var(--pub-header-bg);
   border-bottom: 1px solid rgba(255,255,255,.08);
   overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  overscroll-behavior-inline: contain;
 }
 .pub-cat-nav::-webkit-scrollbar { display: none; }
 .pub-cat-nav-inner { display: flex; gap: 4px; padding: 10px 16px 12px; white-space: nowrap; }
@@ -1085,7 +1087,13 @@ body.owner-body {
 .pub-main { padding: 16px 14px 80px; max-width: 640px; margin: 0 auto; }
 
 /* ── Category ──────────────────────────────────────────── */
-.pub-category { margin-bottom: 32px; }
+.pub-category { margin-bottom: 32px; scroll-margin-top: 72px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-cat-nav,
+  .pub-item-card,
+  .pub-sheet { scroll-behavior: auto; transition-duration: .01ms !important; }
+}
 .pub-cat-title {
   font-family: 'Space Grotesk', sans-serif;
   font-size: .78rem; font-weight: 700;
