@@ -11,6 +11,7 @@
 <style>
 :root {
   --pub-font: '{{ tc.font }}', sans-serif;
+  font-size: {{ tc.fontScale * 16 }}px;
   {% if tc.bgType == 'gradient' %}
   --pub-bg: linear-gradient({{ tc.bgGradientDir }}, {{ tc.bgGradientStart }}, {{ tc.bgGradientEnd }});
   {% elseif tc.bgType == 'image' and tc.bgImagePath %}
@@ -26,6 +27,7 @@
   --pub-header-bg:  {{ tc.headerBg }};
   --pub-accent:     {{ tc.accent }};
   --pub-card-bg:    {{ tc.cardBg }};
+  --pub-card-radius: {{ tc.cardRadius }}px;
   --pub-glass-blur: {{ tc.glassBlur }}px;
   --pub-glass-opacity: {{ tc.glassOpacity }};
   --pub-logo-align: {{ tc.logoAlign }};
@@ -72,7 +74,7 @@
 </style>
 {% endblock %}
 
-{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout ?? 'list' }}"{% endblock %}
+{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout }}" data-density="{{ tc.density }}" data-image-shape="{{ tc.imageShape }}" data-price-style="{{ tc.priceStyle }}"{% endblock %}
 
 {% block body %}
 

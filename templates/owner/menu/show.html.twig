@@ -369,10 +369,10 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-preview-stage iframe{width:100%;height:100%;border:0;background:#fff;box-shadow:0 12px 40px rgba(36,25,10,.16);transition:width .2s ease;}
 .ds-mobile-bar{display:none;background:#f7f3ec;border-bottom:1px solid #ddd3c6;padding:7px 10px;gap:7px;}
 .ds-mobile-note{display:none;padding:11px 16px;background:#fff7e7;border-bottom:1px solid #f0d59f;color:#73511d;font-size:.76rem;line-height:1.45;}
-.ds-controls{width:340px;flex-shrink:0;overflow-y:auto;background:#faf9f7;border-left:1px solid #e8e3dc;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#c8b9a6 transparent;}
+.ds-controls{width:min(390px,36vw);min-width:350px;flex-shrink:0;overflow-y:auto;background:#f5f2ed;border-left:1px solid #ded7cd;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#c8b9a6 transparent;}
 .ds-controls::-webkit-scrollbar{width:8px;}.ds-controls::-webkit-scrollbar-thumb{background:#c8b9a6;border:2px solid #faf9f7;border-radius:999px;}
 @media(max-width:860px){
-  .ds-controls{width:100%;border-left:none;}
+  .ds-controls{width:100%;min-width:0;border-left:none;}
   .ds-mobile-bar{display:flex;}
   .ds-mobile-note{display:block;}
   .ds-mobile-btn{flex:1;justify-content:center;}
@@ -382,13 +382,24 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
   .ds-preview-stage{padding:0;}
   .ds-preview-stage iframe{width:100%!important;box-shadow:none;}
 }
-.ds-section{padding:16px 18px;border-bottom:1px solid #e8e3dc;}
-.ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9c8874;margin:0 0 12px;}
-.ds-row{margin-bottom:10px;display:flex;flex-direction:column;gap:5px;}.ds-row:last-child{margin-bottom:0;}
+.ds-inspector-top{position:sticky;top:0;z-index:4;background:rgba(245,242,237,.96);backdrop-filter:blur(12px);border-bottom:1px solid #ded7cd;}
+.ds-inspector-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px 10px;}
+.ds-inspector-kicker{display:block;color:#9c8874;font-size:.62rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;}
+.ds-inspector-head strong{display:block;margin-top:2px;color:#251d14;font:700 .98rem 'Space Grotesk',sans-serif;}
+.ds-dirty-state{padding:4px 8px;border-radius:99px;background:#e9e4dd;color:#74695d;font-size:.64rem;font-weight:800;white-space:nowrap;}
+.ds-dirty-state.unsaved{background:#fff0cf;color:#895708;}.ds-dirty-state.error{background:#fee2e2;color:#991b1b;}
+.ds-tabs{display:grid;grid-template-columns:repeat(4,1fr);padding:0 10px 10px;gap:5px;}
+.ds-tab{display:flex;min-width:0;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;border:1px solid transparent;border-radius:10px;background:transparent;color:#786c5e;font:700 .62rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-tab .material-symbols-outlined{font-size:18px;}.ds-tab.active{background:#fff;border-color:#ded7cd;color:#18120a;box-shadow:0 3px 10px rgba(36,25,10,.06);}
+.ds-section{display:none;margin:12px;padding:16px 16px 17px;border:1px solid #e2dbd1;border-radius:14px;background:#fff;box-shadow:0 5px 20px rgba(43,31,17,.035);}
+.ds-section.active{display:block;}
+.ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.71rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#806d59;margin:0 0 4px;}
+.ds-section-copy{margin:0 0 14px;color:#8b7e70;font-size:.7rem;line-height:1.45;}
+.ds-row{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}.ds-row:last-child{margin-bottom:0;}
 .ds-label{font-size:.78rem;font-weight:600;color:#3d3328;display:flex;align-items:center;gap:6px;}
-.ds-seg{display:flex;border:1px solid #d5cec5;border-radius:8px;overflow:hidden;background:#fff;}
+.ds-seg{display:flex;border:1px solid #d5cec5;border-radius:10px;overflow:hidden;background:#faf8f5;}
 .ds-seg input[type=radio]{display:none;}
-.ds-seg-btn{flex:1;padding:7px 4px;font-size:.76rem;font-weight:600;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
+.ds-seg-btn{flex:1;padding:8px 4px;font-size:.73rem;font-weight:700;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
 .ds-seg-btn:last-of-type{border-right:none;}
 .ds-seg input[type=radio]:checked+.ds-seg-btn{background:#18120a;color:#fff;}
 .ds-color-row{display:flex;align-items:center;gap:8px;}
@@ -399,10 +410,11 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-img-preview{width:100%;height:80px;object-fit:cover;border-radius:6px;display:none;border:1px solid #d5cec5;margin-bottom:6px;}
 .ds-file-label{display:block;padding:8px 14px;font-size:.78rem;font-weight:600;border:1px dashed #d5cec5;border-radius:8px;color:#7a6f60;cursor:pointer;text-align:center;transition:border-color .15s,color .15s;}
 .ds-file-label:hover{border-color:#18120a;color:#18120a;}.ds-file-input{display:none;}
-.ds-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
-.ds-presets button{padding:8px 5px;border:1px solid #d8cec0;border-radius:8px;background:#fff;color:#514537;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-presets{display:grid;grid-template-columns:1fr;gap:7px;}
+.ds-presets button{display:grid;grid-template-columns:56px 1fr;grid-template-rows:auto auto;column-gap:10px;padding:8px;border:1px solid #d8cec0;border-radius:11px;background:#fff;color:#514537;text-align:left;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
 .ds-presets button:hover{border-color:#E8A020;}
-.ds-presets button span{display:block;height:22px;margin-bottom:5px;border-radius:5px;background:linear-gradient(135deg,var(--preset-a) 0 65%,var(--preset-b) 65%);}
+.ds-presets button span{grid-row:1/3;display:block;height:42px;border-radius:7px;background:linear-gradient(135deg,var(--preset-a) 0 65%,var(--preset-b) 65%);}
+.ds-presets button strong{align-self:end;color:#30261b;font-size:.77rem;}.ds-presets button small{color:#938475;font-size:.64rem;}
 .ds-reset-btn{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:8px;padding:7px;border:0;background:transparent;color:#7a6f60;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
 .ds-reset-btn .material-symbols-outlined{font-size:16px;}
 .ds-contrast{margin-top:8px;padding:8px 10px;border-radius:6px;background:#edf8f1;color:#166534;font-size:.7rem;line-height:1.4;}
@@ -436,22 +448,36 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         {# Controls #}
         <div class="ds-controls">
             <div class="ds-mobile-note">Quick styling works on phones. Rotate the device for more room, or use a larger screen when you want controls and preview visible together.</div>
+            <div class="ds-inspector-top">
+                <div class="ds-inspector-head">
+                    <div><span class="ds-inspector-kicker">Live editor</span><strong>Customize your menu</strong></div>
+                    <span class="ds-dirty-state" id="ds_dirtyState" aria-live="polite">Saved</span>
+                </div>
+                <nav class="ds-tabs" role="tablist" aria-label="Design controls">
+                    <button type="button" class="ds-tab active" data-ds-tab="presets" role="tab" aria-selected="true"><span class="material-symbols-outlined" aria-hidden="true">auto_awesome</span>Presets</button>
+                    <button type="button" class="ds-tab" data-ds-tab="canvas" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">wallpaper</span>Canvas</button>
+                    <button type="button" class="ds-tab" data-ds-tab="brand" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">palette</span>Brand</button>
+                    <button type="button" class="ds-tab" data-ds-tab="components" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span>Cards</button>
+                </nav>
+            </div>
             <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
 
-                <div class="ds-section">
+                <div class="ds-section active" data-ds-panel="presets">
                     <p class="ds-section-title">Quick presets</p>
+                    <p class="ds-section-copy">Start with a complete look, then refine every detail.</p>
                     <div class="ds-presets">
-                        <button type="button" data-theme-preset="classic"><span style="--preset-a:#18120a;--preset-b:#E8A020"></span>Classic</button>
-                        <button type="button" data-theme-preset="cafe"><span style="--preset-a:#3f2618;--preset-b:#d9a05b"></span>Café</button>
-                        <button type="button" data-theme-preset="night"><span style="--preset-a:#111827;--preset-b:#60a5fa"></span>Night</button>
+                        <button type="button" data-theme-preset="classic"><span style="--preset-a:#18120a;--preset-b:#E8A020"></span><strong>Classic</strong><small>Clean, warm and familiar</small></button>
+                        <button type="button" data-theme-preset="cafe"><span style="--preset-a:#3f2618;--preset-b:#d9a05b"></span><strong>Café</strong><small>Editorial cards and rich tones</small></button>
+                        <button type="button" data-theme-preset="night"><span style="--preset-a:#111827;--preset-b:#60a5fa"></span><strong>Night</strong><small>Modern dark presentation</small></button>
                     </div>
                     <button type="button" class="ds-reset-btn" id="ds_resetTheme"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span> Reset to default</button>
                 </div>
 
                 {# Appearance #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="canvas">
                     <p class="ds-section-title">Appearance</p>
+                    <p class="ds-section-copy">Control the visual rhythm and readability of the whole menu.</p>
                     <div class="ds-row">
                         <label class="ds-label">Theme</label>
                         <div class="ds-seg">
@@ -470,6 +496,10 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                         </select>
                     </div>
                     <div class="ds-row">
+                        <label class="ds-label" for="ds_fontScale">Type scale — <span id="ds_fontScaleVal">{{ (tc.fontScale * 100)|round }}</span>%</label>
+                        <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_fontScale" name="fontScale" min="0.85" max="1.2" step="0.05" value="{{ tc.fontScale }}"></div>
+                    </div>
+                    <div class="ds-row">
                         <label class="ds-label">Layout</label>
                         <div class="ds-seg">
                             <input type="radio" id="layout_list" name="layout" value="list" {% if (tc.layout ?? 'list') == 'list' %}checked{% endif %}>
@@ -480,11 +510,23 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                             <label class="ds-seg-btn" for="layout_compact" title="Dense list, no images">≣ Compact</label>
                         </div>
                     </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Spacing</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="density_compact" name="density" value="compact" {% if tc.density == 'compact' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_compact">Compact</label>
+                            <input type="radio" id="density_comfortable" name="density" value="comfortable" {% if tc.density == 'comfortable' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_comfortable">Balanced</label>
+                            <input type="radio" id="density_spacious" name="density" value="spacious" {% if tc.density == 'spacious' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="density_spacious">Airy</label>
+                        </div>
+                    </div>
                 </div>
 
                 {# Background #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="canvas">
                     <p class="ds-section-title">Background</p>
+                    <p class="ds-section-copy">Use a solid tone, gradient, or a lightweight menu backdrop.</p>
                     <div class="ds-row">
                         <label class="ds-label">Type</label>
                         <div class="ds-seg">
@@ -545,8 +587,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                 </div>
 
                 {# Header #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="brand">
                     <p class="ds-section-title">Header</p>
+                    <p class="ds-section-copy">Give the restaurant identity a clear, consistent position.</p>
                     <div class="ds-row">
                         <label class="ds-label">Background color</label>
                         <div class="ds-color-row">
@@ -568,8 +611,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                 </div>
 
                 {# Colors #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="brand">
                     <p class="ds-section-title">Colors</p>
+                    <p class="ds-section-copy">Your accent connects navigation, pricing, and highlights.</p>
                     <div class="ds-row">
                         <label class="ds-label">Accent (prices · active pills)</label>
                         <div class="ds-color-row">
@@ -581,8 +625,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                 </div>
 
                 {# Cards #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="components">
                     <p class="ds-section-title">Item Cards</p>
+                    <p class="ds-section-copy">Shape how dishes, photos, and prices are presented.</p>
                     <div class="ds-row">
                         <label class="ds-label">Style</label>
                         <div class="ds-seg">
@@ -599,6 +644,32 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                         <div class="ds-color-row">
                             <input type="color" class="ds-color-input" id="ds_cardBg" name="cardBg" value="{{ tc.cardBg }}">
                             <input type="text" class="ds-color-text" id="ds_cardBgTxt" value="{{ tc.cardBg }}" maxlength="7">
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label" for="ds_cardRadius">Corner radius — <span id="ds_cardRadiusVal">{{ tc.cardRadius }}</span>px</label>
+                        <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_cardRadius" name="cardRadius" min="0" max="24" step="2" value="{{ tc.cardRadius }}"></div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Image shape</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="image_square" name="imageShape" value="square" {% if tc.imageShape == 'square' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_square">Square</label>
+                            <input type="radio" id="image_rounded" name="imageShape" value="rounded" {% if tc.imageShape == 'rounded' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_rounded">Rounded</label>
+                            <input type="radio" id="image_circle" name="imageShape" value="circle" {% if tc.imageShape == 'circle' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="image_circle">Circle</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Price treatment</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="price_accent" name="priceStyle" value="accent" {% if tc.priceStyle == 'accent' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_accent">Accent</label>
+                            <input type="radio" id="price_neutral" name="priceStyle" value="neutral" {% if tc.priceStyle == 'neutral' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_neutral">Neutral</label>
+                            <input type="radio" id="price_badge" name="priceStyle" value="badge" {% if tc.priceStyle == 'badge' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_badge">Badge</label>
                         </div>
                     </div>
                     <div id="ds_glassCtrl">
@@ -618,8 +689,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                 </div>
 
                 {# Pills #}
-                <div class="ds-section">
+                <div class="ds-section" data-ds-panel="components">
                     <p class="ds-section-title">Category Pills</p>
+                    <p class="ds-section-copy">Choose how guests move between menu sections.</p>
                     <div class="ds-row">
                         <label class="ds-label">Style</label>
                         <div class="ds-seg">
@@ -651,6 +723,8 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     function g(id) { return document.getElementById(id); }
     function markDirty() {
         dirty = true;
+        g('ds_dirtyState').textContent = 'Unsaved';
+        g('ds_dirtyState').className = 'ds-dirty-state unsaved';
         if (!saveBtn.disabled) saveBtn.textContent = 'Save changes';
     }
     function radVal(name) {
@@ -696,10 +770,17 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     function applyPreset(values) {
         setRadio('theme', values.theme);
         setRadio('layout', values.layout);
+        setRadio('density', values.density);
         setRadio('bgType', 'solid');
         setRadio('cardStyle', values.cardStyle);
         setRadio('pillStyle', values.pillStyle);
+        setRadio('imageShape', values.imageShape);
+        setRadio('priceStyle', values.priceStyle);
         g('ds_font').value = values.font;
+        g('ds_fontScale').value = values.fontScale;
+        g('ds_fontScaleVal').textContent = Math.round(values.fontScale * 100);
+        g('ds_cardRadius').value = values.cardRadius;
+        g('ds_cardRadiusVal').textContent = values.cardRadius;
         g('ds_bgColor').value = values.bg;
         g('ds_headerBg').value = values.header;
         g('ds_accent').value = values.accent;
@@ -733,10 +814,12 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         var cardStyle = radVal('cardStyle');
 
         root.style.setProperty('--pub-font',    "'" + g('ds_font').value + "', sans-serif");
+        root.style.fontSize = (parseFloat(g('ds_fontScale').value) * 16) + 'px';
         root.style.setProperty('--pub-bg',       getBg());
         root.style.setProperty('--pub-header-bg', g('ds_headerBg').value);
         root.style.setProperty('--pub-accent',   g('ds_accent').value);
         root.style.setProperty('--pub-card-bg',  g('ds_cardBg').value);
+        root.style.setProperty('--pub-card-radius', g('ds_cardRadius').value + 'px');
         root.style.setProperty('--pub-glass-blur', g('ds_blur').value + 'px');
         root.style.setProperty('--pub-glass-opacity', g('ds_opac').value);
         root.style.setProperty('--pub-logo-align', radVal('logoAlign'));
@@ -763,6 +846,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         body.dataset.pillStyle = radVal('pillStyle');
         body.dataset.theme     = theme;
         body.dataset.layout    = radVal('layout');
+        body.dataset.density   = radVal('density');
+        body.dataset.imageShape = radVal('imageShape');
+        body.dataset.priceStyle = radVal('priceStyle');
     }
 
     /* ── sync colour text inputs ─────────────────────────── */
@@ -781,14 +867,16 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 
     /* ── attach all other listeners ─────────────────────── */
     ['ds_font','ds_bgGDir'].forEach(function(id){ g(id).addEventListener('change', push); });
-    ['ds_blur','ds_opac'].forEach(function(id){
+    ['ds_blur','ds_opac','ds_fontScale','ds_cardRadius'].forEach(function(id){
         g(id).addEventListener('input', function() {
             if (id === 'ds_blur')  g('ds_blurVal').textContent = this.value;
             if (id === 'ds_opac')  g('ds_opacVal').textContent = parseFloat(this.value).toFixed(2);
+            if (id === 'ds_fontScale') g('ds_fontScaleVal').textContent = Math.round(parseFloat(this.value) * 100);
+            if (id === 'ds_cardRadius') g('ds_cardRadiusVal').textContent = this.value;
             push();
         });
     });
-    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"]').forEach(function(el) {
+    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"],[name="density"],[name="imageShape"],[name="priceStyle"]').forEach(function(el) {
         el.addEventListener('change', function () {
             /* auto-swap bg+card colours on theme switch */
             if (el.name === 'theme') {
@@ -821,14 +909,29 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     form.addEventListener('change', markDirty);
 
     var presets = {
-        classic: { theme: 'light', layout: 'list', cardStyle: 'flat', pillStyle: 'pill', font: 'DM Sans', bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
-        cafe: { theme: 'light', layout: 'grid', cardStyle: 'bordered', pillStyle: 'chip', font: 'Playfair Display', bg: '#F5EBDD', header: '#3F2618', accent: '#D9A05B', card: '#FFF9F0' },
-        night: { theme: 'dark', layout: 'list', cardStyle: 'glass', pillStyle: 'underline', font: 'Space Grotesk', bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' }
+        classic: { theme: 'light', layout: 'list', density: 'comfortable', cardStyle: 'flat', pillStyle: 'pill', imageShape: 'rounded', priceStyle: 'accent', font: 'DM Sans', fontScale: 1, cardRadius: 12, bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
+        cafe: { theme: 'light', layout: 'grid', density: 'spacious', cardStyle: 'bordered', pillStyle: 'chip', imageShape: 'rounded', priceStyle: 'badge', font: 'Playfair Display', fontScale: 1.05, cardRadius: 16, bg: '#F5EBDD', header: '#3F2618', accent: '#D9A05B', card: '#FFF9F0' },
+        night: { theme: 'dark', layout: 'list', density: 'compact', cardStyle: 'glass', pillStyle: 'underline', imageShape: 'circle', priceStyle: 'accent', font: 'Space Grotesk', fontScale: .95, cardRadius: 18, bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' }
     };
     document.querySelectorAll('[data-theme-preset]').forEach(function (button) {
         button.addEventListener('click', function () { applyPreset(presets[button.dataset.themePreset]); });
     });
     g('ds_resetTheme').addEventListener('click', function () { applyPreset(presets.classic); });
+
+    document.querySelectorAll('[data-ds-tab]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var selected = button.dataset.dsTab;
+            document.querySelectorAll('[data-ds-tab]').forEach(function (tab) {
+                var active = tab === button;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('[data-ds-panel]').forEach(function (section) {
+                section.classList.toggle('active', section.dataset.dsPanel === selected);
+            });
+            document.querySelector('.ds-controls').scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
 
     document.querySelectorAll('[data-ds-width]').forEach(function (button) {
         button.addEventListener('click', function () {
@@ -901,6 +1004,8 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
             })
             .then(function (d) {
                 dirty = false;
+                g('ds_dirtyState').textContent = 'Saved';
+                g('ds_dirtyState').className = 'ds-dirty-state';
                 saveBtn.classList.add('saved');
                 saveBtn.textContent = 'Saved';
                 /* reload iframe from server so it reflects the DB state */
@@ -912,6 +1017,8 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                 }, 2000);
             })
             .catch(function (error) {
+                g('ds_dirtyState').textContent = 'Error';
+                g('ds_dirtyState').className = 'ds-dirty-state error';
                 saveBtn.textContent = error.message || 'Save failed';
                 saveBtn.disabled = false;
             });
