@@ -54,6 +54,7 @@ class AccountDeletionService
         }
 
         $unreviewedScanUuids = [];
+        $connection = $this->em->getConnection();
         $this->em->beginTransaction();
         try {
             foreach ($this->scans->findBy(['owner' => $user]) as $scan) {
@@ -70,18 +71,23 @@ class AccountDeletionService
             $this->em->remove($user);
             $this->em->flush();
             $this->em->commit();
-
-            foreach ($localImagePaths as $localImagePath) {
-                $this->imageUpload->delete($localImagePath);
-            }
-            foreach ($unreviewedScanUuids as $scanUuid) {
-                $this->scannerClient->deleteTrainingAssets($scanUuid);
-            }
-
-            return $blockedUntil;
         } catch (\Throwable $e) {
-            $this->em->rollback();
+            if ($connection->isTransactionActive()) {
+                $this->em->rollback();
+            }
             throw $e;
         }
+
+        // Storage cleanup is deliberately outside the database transaction.
+        // Both operations are best-effort and cannot roll back an account
+        // deletion that has already committed successfully.
+        foreach ($localImagePaths as $localImagePath) {
+            $this->imageUpload->delete($localImagePath);
+        }
+        foreach ($unreviewedScanUuids as $scanUuid) {
+            $this->scannerClient->deleteTrainingAssets($scanUuid);
+        }
+
+        return $blockedUntil;
     }
 }
