@@ -10,6 +10,7 @@ use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
+use App\Service\MenuContentService;
 use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
@@ -401,6 +402,24 @@ final class OwnerMenuController extends AbstractController
         return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
     }
 
+    #[Route('/owner/menus/{menuId}/categories/{catId}/duplicate', name: 'app_owner_category_duplicate', requirements: ['menuId' => '\d+', 'catId' => '\d+'], methods: ['POST'])]
+    public function categoryDuplicate(int $menuId, int $catId, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, CategoryRepository $categoryRepo, MenuContentService $contentService, EntityManagerInterface $em): Response
+    {
+        $menu = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
+        $category = $menu ? $categoryRepo->findOneBy(['id' => $catId, 'menu' => $menu]) : null;
+        if (!$menu || !$category) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('duplicate-category-' . $catId, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+        }
+
+        $contentService->duplicateCategory($category);
+        $em->flush();
+        $this->addFlash('success', 'Category duplicated.');
+
+        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+    }
+
     // ── Items ────────────────────────────────────────────────────────────────
 
     #[Route('/owner/menus/{menuId}/categories/{catId}/items/new', name: 'app_owner_item_new', requirements: ['menuId' => '\d+', 'catId' => '\d+'])]
@@ -512,6 +531,59 @@ final class OwnerMenuController extends AbstractController
         $em->flush();
         $this->addFlash('success', 'Item deleted.');
         return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+    }
+
+    #[Route('/owner/menus/{menuId}/categories/{catId}/items/{itemId}/duplicate', name: 'app_owner_item_duplicate', requirements: ['menuId' => '\d+', 'catId' => '\d+', 'itemId' => '\d+'], methods: ['POST'])]
+    public function itemDuplicate(int $menuId, int $catId, int $itemId, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, CategoryRepository $categoryRepo, MenuContentService $contentService, EntityManagerInterface $em): Response
+    {
+        $menu = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
+        $category = $menu ? $categoryRepo->findOneBy(['id' => $catId, 'menu' => $menu]) : null;
+        $item = null;
+        foreach ($category?->getItems() ?? [] as $candidate) {
+            if ($candidate->getId() === $itemId) { $item = $candidate; break; }
+        }
+        if (!$menu || !$category || !$item) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('duplicate-item-' . $itemId, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+        }
+
+        $contentService->duplicateItem($item);
+        $em->flush();
+        $this->addFlash('success', 'Item duplicated.');
+
+        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+    }
+
+    #[Route('/owner/menus/{id}/reorder', name: 'app_owner_menu_reorder', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function reorder(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, CategoryRepository $categoryRepo, MenuContentService $contentService, EntityManagerInterface $em): JsonResponse
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload) || !$this->isCsrfTokenValid('reorder-menu-' . $id, $payload['_token'] ?? '')) {
+            return $this->json(['error' => 'Invalid security token. Refresh and try again.'], 403);
+        }
+
+        $ids = is_array($payload['ids'] ?? null) ? $payload['ids'] : [];
+        if (($payload['type'] ?? null) === 'categories') {
+            $valid = $contentService->reorderCategories($menu, $ids);
+        } elseif (($payload['type'] ?? null) === 'items') {
+            $category = $categoryRepo->findOneBy(['id' => (int) ($payload['categoryId'] ?? 0), 'menu' => $menu]);
+            $valid = $category && $contentService->reorderItems($category, $ids);
+        } else {
+            $valid = false;
+        }
+
+        if (!$valid) {
+            return $this->json(['error' => 'The menu order changed elsewhere. Refresh and try again.'], 409);
+        }
+
+        $menu->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+
+        return $this->json(['ok' => true]);
     }
 
     // ── Menu Scanner (beta) ──────────────────────────────────────────────────

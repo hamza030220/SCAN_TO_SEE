@@ -92,8 +92,11 @@
 {% else %}
 
 {# ── Category cards ──────────────────────────────────────────────────── #}
+<div id="studioCategories"
+     data-reorder-url="{{ path('app_owner_menu_reorder', {id: menu.id}) }}"
+     data-reorder-token="{{ csrf_token('reorder-menu-' ~ menu.id) }}">
 {% for category in menu.categories %}
-    <div class="owner-panel studio-category">
+    <div class="owner-panel studio-category" data-category-id="{{ category.id }}" draggable="true">
         <div class="owner-panel-head">
             <div>
                 <span class="studio-category-grip material-symbols-outlined" aria-hidden="true">drag_indicator</span>
@@ -112,6 +115,12 @@
                 <a href="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    class="owner-table-action">Edit</a>
+                <form method="post"
+                      action="{{ path('app_owner_category_duplicate', {menuId: menu.id, catId: category.id}) }}"
+                      style="display:inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate-category-' ~ category.id) }}">
+                    <button type="submit" class="owner-table-action">Duplicate</button>
+                </form>
                 <form method="post"
                       action="{{ path('app_owner_category_delete', {menuId: menu.id, catId: category.id}) }}"
                       style="display:inline"
@@ -134,10 +143,11 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-sortable-items data-category-id="{{ category.id }}">
                     {% for item in category.items %}
-                        <tr>
+                        <tr data-item-id="{{ item.id }}" draggable="true">
                             <td data-label="Image">
+                                <span class="studio-item-grip material-symbols-outlined" aria-hidden="true">drag_indicator</span>
                                 {% if item.imagePath %}
                                     <img src="{{ asset(item.imagePath) }}"
                                          alt="{{ item.name }}"
@@ -158,6 +168,12 @@
                                 <a href="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    data-modal="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    class="owner-table-action">Edit</a>
+                                <form method="post"
+                                      action="{{ path('app_owner_item_duplicate', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
+                                      style="display:inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('duplicate-item-' ~ item.id) }}">
+                                    <button type="submit" class="owner-table-action">Duplicate</button>
+                                </form>
                                 <form method="post"
                                       action="{{ path('app_owner_item_delete', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                       style="display:inline"
@@ -180,10 +196,102 @@
         {% endif %}
     </div>
 {% endfor %}
+</div>
 {% endif %}
 
     </section>
 </div>
+
+<div class="studio-toast" id="studioToast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+    var categoryContainer = document.getElementById('studioCategories');
+    if (!categoryContainer) return;
+
+    var endpoint = categoryContainer.dataset.reorderUrl;
+    var token = categoryContainer.dataset.reorderToken;
+    var toast = document.getElementById('studioToast');
+
+    function directChildren(container, selector) {
+        return Array.from(container.children).filter(function (entry) { return entry.matches(selector); });
+    }
+
+    function notify(message, isError) {
+        toast.textContent = message;
+        toast.classList.toggle('studio-toast--error', !!isError);
+        toast.hidden = false;
+        window.clearTimeout(notify.timer);
+        notify.timer = window.setTimeout(function () { toast.hidden = true; }, 2600);
+    }
+
+    function restore(container, selector, attribute, originalIds) {
+        var entries = {};
+        directChildren(container, selector).forEach(function (entry) { entries[entry.dataset[attribute]] = entry; });
+        originalIds.forEach(function (id) { if (entries[id]) container.appendChild(entries[id]); });
+    }
+
+    function persist(container, selector, attribute, type, categoryId, originalIds) {
+        var ids = directChildren(container, selector).map(function (entry) { return Number(entry.dataset[attribute]); });
+        fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ _token: token, type: type, categoryId: categoryId || null, ids: ids })
+        }).then(function (response) {
+            return response.json().catch(function () { return {}; }).then(function (payload) {
+                if (!response.ok || !payload.ok) throw new Error(payload.error || 'The new order could not be saved.');
+            });
+        }).then(function () {
+            notify('Order saved.', false);
+        }).catch(function (error) {
+            restore(container, selector, attribute, originalIds);
+            notify(error.message || 'The new order could not be saved.', true);
+        });
+    }
+
+    function makeSortable(container, selector, attribute, type, categoryId) {
+        var dragged = null;
+        var originalIds = [];
+
+        directChildren(container, selector).forEach(function (entry) {
+            entry.addEventListener('dragstart', function (event) {
+                if (event.target !== entry) return;
+                dragged = entry;
+                originalIds = directChildren(container, selector).map(function (item) { return item.dataset[attribute]; });
+                entry.classList.add('is-dragging');
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', entry.dataset[attribute]);
+                event.stopPropagation();
+            });
+            entry.addEventListener('dragend', function (event) {
+                if (event.target !== entry || !dragged) return;
+                entry.classList.remove('is-dragging');
+                persist(container, selector, attribute, type, categoryId, originalIds);
+                dragged = null;
+                event.stopPropagation();
+            });
+        });
+
+        container.addEventListener('dragover', function (event) {
+            if (!dragged) return;
+            event.preventDefault();
+            var candidates = directChildren(container, selector).filter(function (entry) { return entry !== dragged; });
+            var after = candidates.reduce(function (closest, entry) {
+                var box = entry.getBoundingClientRect();
+                var offset = event.clientY - box.top - (box.height / 2);
+                return offset < 0 && offset > closest.offset ? { offset: offset, entry: entry } : closest;
+            }, { offset: Number.NEGATIVE_INFINITY, entry: null }).entry;
+            if (after) container.insertBefore(dragged, after);
+            else container.appendChild(dragged);
+        });
+    }
+
+    makeSortable(categoryContainer, '.studio-category', 'categoryId', 'categories', null);
+    document.querySelectorAll('[data-sortable-items]').forEach(function (tbody) {
+        makeSortable(tbody, '[data-item-id]', 'itemId', 'items', Number(tbody.dataset.categoryId));
+    });
+})();
+</script>
 
 {% endblock %}
 
