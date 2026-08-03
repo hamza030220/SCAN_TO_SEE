@@ -467,6 +467,25 @@ final class OwnerMenuController extends AbstractController
         return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
     }
 
+    #[Route('/owner/menus/{menuId}/categories/{catId}/visibility', name: 'app_owner_category_visibility', requirements: ['menuId' => '\d+', 'catId' => '\d+'], methods: ['POST'])]
+    public function categoryVisibility(int $menuId, int $catId, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, CategoryRepository $categoryRepo, EntityManagerInterface $em): Response
+    {
+        $menu = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
+        $category = $menu ? $categoryRepo->findOneBy(['id' => $catId, 'menu' => $menu]) : null;
+        if (!$menu || !$category) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('category-visibility-' . $catId, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+        }
+
+        $category->setIsVisible(!$category->isVisible());
+        $menu->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+        $this->addFlash('success', $category->isVisible() ? 'Category is visible to customers.' : 'Category hidden from customers.');
+
+        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+    }
+
     // ── Items ────────────────────────────────────────────────────────────────
 
     #[Route('/owner/menus/{menuId}/categories/{catId}/items/new', name: 'app_owner_item_new', requirements: ['menuId' => '\d+', 'catId' => '\d+'])]
@@ -551,11 +570,11 @@ final class OwnerMenuController extends AbstractController
                     $item->setSortOrder($sortOrder);
 
                     if ($imageFile instanceof UploadedFile) {
+                        $previousImagePath = $item->getImagePath();
+                        $newImagePath = null;
                         try {
-                            $imageUpload->delete($item->getImagePath());
-                            $item->setImagePath(
-                                $imageUpload->uploadItemImage($imageFile, $name)
-                            );
+                            $newImagePath = $imageUpload->uploadItemImage($imageFile, $name);
+                            $item->setImagePath($newImagePath);
                         } catch (\RuntimeException $e) {
                             $error = $e->getMessage();
                         }
@@ -563,7 +582,15 @@ final class OwnerMenuController extends AbstractController
 
                     if (!$error) {
                         $item->setUpdatedAt(new \DateTimeImmutable());
-                        $em->flush();
+                        try {
+                            $em->flush();
+                        } catch (\Throwable $e) {
+                            $imageUpload->delete($newImagePath ?? null);
+                            throw $e;
+                        }
+                        if (($newImagePath ?? null) && ($previousImagePath ?? null)) {
+                            $imageUpload->delete($previousImagePath);
+                        }
                         $this->addFlash('success', $isNew ? 'Item added.' : 'Item updated.');
                         return $this->redirectAfterModalSubmit(
                             $request,
@@ -624,6 +651,30 @@ final class OwnerMenuController extends AbstractController
         $contentService->duplicateItem($item);
         $em->flush();
         $this->addFlash('success', 'Item duplicated.');
+
+        return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+    }
+
+    #[Route('/owner/menus/{menuId}/categories/{catId}/items/{itemId}/availability', name: 'app_owner_item_availability', requirements: ['menuId' => '\d+', 'catId' => '\d+', 'itemId' => '\d+'], methods: ['POST'])]
+    public function itemAvailability(int $menuId, int $catId, int $itemId, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, CategoryRepository $categoryRepo, EntityManagerInterface $em): Response
+    {
+        $menu = $this->getOwnedMenu($menuId, $menuRepo, $businessRepo);
+        $category = $menu ? $categoryRepo->findOneBy(['id' => $catId, 'menu' => $menu]) : null;
+        $item = null;
+        foreach ($category?->getItems() ?? [] as $candidate) {
+            if ($candidate->getId() === $itemId) { $item = $candidate; break; }
+        }
+        if (!$menu || !$category || !$item) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('item-availability-' . $itemId, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
+        }
+
+        $item->setIsAvailable(!$item->isAvailable());
+        $item->setUpdatedAt(new \DateTimeImmutable());
+        $menu->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+        $this->addFlash('success', $item->isAvailable() ? 'Item is available to customers.' : 'Item marked unavailable.');
 
         return $this->redirectToRoute('app_owner_menu_show', ['id' => $menuId]);
     }

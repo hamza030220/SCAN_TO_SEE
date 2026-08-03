@@ -124,12 +124,18 @@
                 {% endif %}
             </div>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <button type="button" class="owner-table-action studio-move" data-move-category="up" title="Move category up" aria-label="Move {{ category.name }} up"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span></button>
+                <button type="button" class="owner-table-action studio-move" data-move-category="down" title="Move category down" aria-label="Move {{ category.name }} down"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span></button>
                 <a href="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_item_new', {menuId: menu.id, catId: category.id}) }}"
                    class="btn btn-primary btn-sm"><span class="material-symbols-outlined" aria-hidden="true">add</span> Item</a>
                 <a href="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    data-modal="{{ path('app_owner_category_edit', {menuId: menu.id, catId: category.id}) }}"
                    class="owner-table-action">Edit</a>
+                <form method="post" action="{{ path('app_owner_category_visibility', {menuId: menu.id, catId: category.id}) }}" style="display:inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('category-visibility-' ~ category.id) }}">
+                    <button type="submit" class="owner-table-action">{{ category.isVisible ? 'Hide' : 'Show' }}</button>
+                </form>
                 <form method="post"
                       action="{{ path('app_owner_category_duplicate', {menuId: menu.id, catId: category.id}) }}"
                       style="display:inline">
@@ -175,11 +181,16 @@
                             <td data-label="Description" style="color:var(--muted);font-size:.82rem">{{ item.shortDescription ?? '—' }}</td>
                             <td data-label="Price">{{ item.price }} {{ menu.currency }}</td>
                             <td data-label="Available">
-                                <span class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }}">
-                                    {{ item.isAvailable ? 'Yes' : 'No' }}
-                                </span>
+                                <form method="post" action="{{ path('app_owner_item_availability', {menuId: menu.id, catId: category.id, itemId: item.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('item-availability-' ~ item.id) }}">
+                                    <button type="submit" class="badge badge--{{ item.isAvailable ? 'published' : 'draft' }} studio-status-toggle" title="Change availability">
+                                        {{ item.isAvailable ? 'Yes' : 'No' }}
+                                    </button>
+                                </form>
                             </td>
                             <td data-label="Actions" style="text-align:right;white-space:nowrap">
+                                <button type="button" class="owner-table-action studio-move" data-move-item="up" title="Move item up" aria-label="Move {{ item.name }} up"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_up</span></button>
+                                <button type="button" class="owner-table-action studio-move" data-move-item="down" title="Move item down" aria-label="Move {{ item.name }} down"><span class="material-symbols-outlined" aria-hidden="true">keyboard_arrow_down</span></button>
                                 <a href="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    data-modal="{{ path('app_owner_item_edit', {menuId: menu.id, catId: category.id, itemId: item.id}) }}"
                                    class="owner-table-action">Edit</a>
@@ -304,6 +315,29 @@
     makeSortable(categoryContainer, '.studio-category', 'categoryId', 'categories', null);
     document.querySelectorAll('[data-sortable-items]').forEach(function (tbody) {
         makeSortable(tbody, '[data-item-id]', 'itemId', 'items', Number(tbody.dataset.categoryId));
+    });
+
+    categoryContainer.addEventListener('click', function (event) {
+        var categoryButton = event.target.closest('[data-move-category]');
+        var itemButton = event.target.closest('[data-move-item]');
+        if (!categoryButton && !itemButton) return;
+
+        var isCategory = !!categoryButton;
+        var button = categoryButton || itemButton;
+        var entry = isCategory ? button.closest('.studio-category') : button.closest('[data-item-id]');
+        var container = isCategory ? categoryContainer : entry.parentElement;
+        var selector = isCategory ? '.studio-category' : '[data-item-id]';
+        var attribute = isCategory ? 'categoryId' : 'itemId';
+        var entries = directChildren(container, selector);
+        var originalIds = entries.map(function (candidate) { return candidate.dataset[attribute]; });
+        var position = entries.indexOf(entry);
+        var direction = button.dataset[isCategory ? 'moveCategory' : 'moveItem'];
+
+        if (direction === 'up' && position > 0) container.insertBefore(entry, entries[position - 1]);
+        else if (direction === 'down' && position < entries.length - 1) container.insertBefore(entries[position + 1], entry);
+        else return;
+
+        persist(container, selector, attribute, isCategory ? 'categories' : 'items', isCategory ? null : Number(container.dataset.categoryId), originalIds);
     });
 })();
 </script>

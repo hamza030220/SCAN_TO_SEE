@@ -108,11 +108,11 @@ final class OwnerProfileController extends AbstractController
                         }
 
                         if ($logoFile instanceof UploadedFile) {
+                            $previousLogoPath = $business->getLogoPath();
+                            $newLogoPath = null;
                             try {
-                                $imageUpload->delete($business->getLogoPath());
-                                $business->setLogoPath(
-                                    $imageUpload->uploadBusinessLogo($logoFile, $name)
-                                );
+                                $newLogoPath = $imageUpload->uploadBusinessLogo($logoFile, $name);
+                                $business->setLogoPath($newLogoPath);
                             } catch (\RuntimeException $e) {
                                 $error = $e->getMessage();
                             }
@@ -120,7 +120,15 @@ final class OwnerProfileController extends AbstractController
 
                         if (!$error) {
                             $business->setUpdatedAt(new \DateTimeImmutable());
-                            $em->flush();
+                            try {
+                                $em->flush();
+                            } catch (\Throwable $e) {
+                                $imageUpload->delete($newLogoPath ?? null);
+                                throw $e;
+                            }
+                            if (($newLogoPath ?? null) && ($previousLogoPath ?? null)) {
+                                $imageUpload->delete($previousLogoPath);
+                            }
                             $this->addFlash('success', $isNew ? 'Business created.' : 'Business updated.');
                             return $this->redirectAfterModalSubmit($request, 'app_owner_businesses');
                         }
