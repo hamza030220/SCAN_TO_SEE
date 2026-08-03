@@ -24,6 +24,15 @@
         <a href="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            data-modal="{{ path('app_owner_menu_edit', {id: menu.id}) }}"
            class="btn btn-outline btn-sm"><span class="material-symbols-outlined" aria-hidden="true">settings</span> Settings</a>
+        <form method="post" action="{{ path('app_owner_menu_status', {id: menu.id}) }}"
+              onsubmit="return confirm('{{ menu.status == 'published' ? 'Move this menu to draft? Customers will no longer be able to open it.' : 'Publish this menu for customers now?' }}')">
+            <input type="hidden" name="_token" value="{{ csrf_token('menu-status-' ~ menu.id) }}">
+            <input type="hidden" name="status" value="{{ menu.status == 'published' ? 'draft' : 'published' }}">
+            <button type="submit" class="btn {{ menu.status == 'published' ? 'btn-outline' : 'btn-primary' }} btn-sm">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ menu.status == 'published' ? 'visibility_off' : 'publish' }}</span>
+                {{ menu.status == 'published' ? 'Unpublish' : 'Publish' }}
+            </button>
+        </form>
         <a href="{{ path('app_public_menu_view', {slug: menu.business.slug, menuSlug: menu.slug, preview: 1}) }}"
            target="_blank" rel="noopener" class="btn btn-primary btn-sm">
             <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span> Preview
@@ -57,6 +66,12 @@
     </nav>
 
     <section class="menu-studio-canvas" id="menu-content">
+        {% if menu.status == 'published' %}
+            <div class="studio-live-notice" role="status">
+                <span class="material-symbols-outlined" aria-hidden="true">public</span>
+                <div><strong>This menu is live.</strong><span>Content and design changes are visible to customers as soon as you save them.</span></div>
+            </div>
+        {% endif %}
         <div class="menu-studio-summary" aria-label="Menu summary">
             <div><span class="material-symbols-outlined" aria-hidden="true">category</span><strong>{{ menu.categories|length }}</strong><small>Categories</small></div>
             <div><span class="material-symbols-outlined" aria-hidden="true">room_service</span><strong>{% set itemTotal = 0 %}{% for category in menu.categories %}{% set itemTotal = itemTotal + category.items|length %}{% endfor %}{{ itemTotal }}</strong><small>Items</small></div>
@@ -347,6 +362,14 @@
 .ds-img-preview{width:100%;height:80px;object-fit:cover;border-radius:6px;display:none;border:1px solid #d5cec5;margin-bottom:6px;}
 .ds-file-label{display:block;padding:8px 14px;font-size:.78rem;font-weight:600;border:1px dashed #d5cec5;border-radius:8px;color:#7a6f60;cursor:pointer;text-align:center;transition:border-color .15s,color .15s;}
 .ds-file-label:hover{border-color:#18120a;color:#18120a;}.ds-file-input{display:none;}
+.ds-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.ds-presets button{padding:8px 5px;border:1px solid #d8cec0;border-radius:8px;background:#fff;color:#514537;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-presets button:hover{border-color:#E8A020;}
+.ds-presets button span{display:block;height:22px;margin-bottom:5px;border-radius:5px;background:linear-gradient(135deg,var(--preset-a) 0 65%,var(--preset-b) 65%);}
+.ds-reset-btn{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;margin-top:8px;padding:7px;border:0;background:transparent;color:#7a6f60;font:600 .72rem 'DM Sans',sans-serif;cursor:pointer;}
+.ds-reset-btn .material-symbols-outlined{font-size:16px;}
+.ds-contrast{margin-top:8px;padding:8px 10px;border-radius:6px;background:#edf8f1;color:#166534;font-size:.7rem;line-height:1.4;}
+.ds-contrast.warning{background:#fff6e5;color:#8a5300;}
 </style>
 <div class="ds-panel" id="dsPanel">
     <div class="ds-head">
@@ -378,6 +401,16 @@
             <div class="ds-mobile-note">Quick styling works on phones. Rotate the device for more room, or use a larger screen when you want controls and preview visible together.</div>
             <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
+
+                <div class="ds-section">
+                    <p class="ds-section-title">Quick presets</p>
+                    <div class="ds-presets">
+                        <button type="button" data-theme-preset="classic"><span style="--preset-a:#18120a;--preset-b:#E8A020"></span>Classic</button>
+                        <button type="button" data-theme-preset="cafe"><span style="--preset-a:#3f2618;--preset-b:#d9a05b"></span>Café</button>
+                        <button type="button" data-theme-preset="night"><span style="--preset-a:#111827;--preset-b:#60a5fa"></span>Night</button>
+                    </div>
+                    <button type="button" class="ds-reset-btn" id="ds_resetTheme"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span> Reset to default</button>
+                </div>
 
                 {# Appearance #}
                 <div class="ds-section">
@@ -507,6 +540,7 @@
                             <input type="text" class="ds-color-text" id="ds_accentTxt" value="{{ tc.accent }}" maxlength="7">
                         </div>
                     </div>
+                    <div class="ds-contrast" id="ds_contrast" role="status"></div>
                 </div>
 
                 {# Cards #}
@@ -593,6 +627,52 @@
         return g('ds_bgColor').value;
     }
 
+    function contrastRatio(first, second) {
+        function luminance(hex) {
+            var channels = [1, 3, 5].map(function (index) {
+                var value = parseInt(hex.slice(index, index + 2), 16) / 255;
+                return value <= .03928 ? value / 12.92 : Math.pow((value + .055) / 1.055, 2.4);
+            });
+            return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+        }
+        var light = Math.max(luminance(first), luminance(second));
+        var dark = Math.min(luminance(first), luminance(second));
+        return (light + .05) / (dark + .05);
+    }
+
+    function refreshContrast() {
+        var ratio = contrastRatio(g('ds_headerBg').value, g('ds_accent').value);
+        var output = g('ds_contrast');
+        var good = ratio >= 3;
+        output.classList.toggle('warning', !good);
+        output.textContent = good
+            ? 'Good accent contrast (' + ratio.toFixed(1) + ':1).'
+            : 'Low accent contrast (' + ratio.toFixed(1) + ':1). Some labels may be hard to read.';
+    }
+
+    function setRadio(name, value) {
+        var input = form.querySelector('[name="' + name + '"][value="' + value + '"]');
+        if (input) input.checked = true;
+    }
+
+    function applyPreset(values) {
+        setRadio('theme', values.theme);
+        setRadio('layout', values.layout);
+        setRadio('bgType', 'solid');
+        setRadio('cardStyle', values.cardStyle);
+        setRadio('pillStyle', values.pillStyle);
+        g('ds_font').value = values.font;
+        g('ds_bgColor').value = values.bg;
+        g('ds_headerBg').value = values.header;
+        g('ds_accent').value = values.accent;
+        g('ds_cardBg').value = values.card;
+        [['ds_bgColorTxt', values.bg], ['ds_headerBgTxt', values.header], ['ds_accentTxt', values.accent], ['ds_cardBgTxt', values.card]].forEach(function (entry) {
+            g(entry[0]).value = entry[1];
+        });
+        markDirty();
+        push();
+    }
+
     /* ── sub-control visibility (runs without iframe) ───── */
     function refreshVisibility() {
         var bt = radVal('bgType');
@@ -606,6 +686,7 @@
     /* ── push all vars to iframe ─────────────────────────── */
     function push() {
         refreshVisibility();
+        refreshContrast();
         if (!pdoc) return;
         var root = pdoc.documentElement;
         var body = pdoc.body;
@@ -700,6 +781,16 @@
 
     form.addEventListener('input', markDirty);
     form.addEventListener('change', markDirty);
+
+    var presets = {
+        classic: { theme: 'light', layout: 'list', cardStyle: 'flat', pillStyle: 'pill', font: 'DM Sans', bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
+        cafe: { theme: 'light', layout: 'grid', cardStyle: 'bordered', pillStyle: 'chip', font: 'Playfair Display', bg: '#F5EBDD', header: '#3F2618', accent: '#D9A05B', card: '#FFF9F0' },
+        night: { theme: 'dark', layout: 'list', cardStyle: 'glass', pillStyle: 'underline', font: 'Space Grotesk', bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' }
+    };
+    document.querySelectorAll('[data-theme-preset]').forEach(function (button) {
+        button.addEventListener('click', function () { applyPreset(presets[button.dataset.themePreset]); });
+    });
+    g('ds_resetTheme').addEventListener('click', function () { applyPreset(presets.classic); });
 
     document.querySelectorAll('[data-ds-width]').forEach(function (button) {
         button.addEventListener('click', function () {

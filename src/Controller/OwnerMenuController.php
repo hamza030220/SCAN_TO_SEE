@@ -11,6 +11,7 @@ use App\Repository\MenuRepository;
 use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
 use App\Service\MenuContentService;
+use App\Service\MenuPublishReadinessService;
 use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
@@ -125,6 +126,7 @@ final class OwnerMenuController extends AbstractController
         MenuRepository $menuRepo,
         EntityManagerInterface $em,
         SubscriptionService $subscriptionService,
+        MenuPublishReadinessService $publishReadiness,
         ?int $id = null,
     ): Response {
         $businesses = $this->getOwnedBusinesses($businessRepo);
@@ -171,6 +173,12 @@ final class OwnerMenuController extends AbstractController
                     if (!$limitResult['allowed']) {
                         $limitMessage = $limitResult['message'] ?? 'This plan has no free menu slot.';
                         $error = $limitMessage;
+                    }
+                }
+
+                if (!$error) {
+                    if ($status === Menu::STATUS_PUBLISHED && !$publishReadiness->isReady($menu ?? new Menu())) {
+                        $error = implode(' ', $publishReadiness->issues($menu ?? new Menu()));
                     }
                 }
 
@@ -267,6 +275,44 @@ final class OwnerMenuController extends AbstractController
         $em->flush();
         $this->addFlash('success', 'Menu deleted.');
         return $this->redirectToRoute('app_owner_menus');
+    }
+
+    #[Route('/owner/menus/{id}/status', name: 'app_owner_menu_status', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function menuStatus(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, SubscriptionService $subscriptionService, MenuPublishReadinessService $publishReadiness, EntityManagerInterface $em): Response
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('menu-status-' . $id, $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page and try again.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
+        }
+
+        $status = $request->request->get('status');
+        if (!in_array($status, [Menu::STATUS_DRAFT, Menu::STATUS_PUBLISHED], true)) {
+            $this->addFlash('error', 'Unsupported menu status.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
+        }
+
+        if ($status === Menu::STATUS_PUBLISHED) {
+            $issues = $publishReadiness->issues($menu);
+            if ($issues !== []) {
+                $this->addFlash('warning', 'Before publishing: ' . implode(' ', $issues));
+                return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
+            }
+
+            $limit = $subscriptionService->autoSwapMenuStatus($this->getUser(), $menu->getId(), $menu->getStatus(), $status);
+            if (!$limit['allowed']) {
+                $this->addFlash('info', $limit['message'] ?? 'Your plan has no free published menu slot.');
+                return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
+            }
+        }
+
+        $menu->setStatus($status);
+        $menu->setUpdatedAt(new \DateTimeImmutable());
+        $em->flush();
+        $this->addFlash('success', $status === Menu::STATUS_PUBLISHED ? 'Menu published successfully.' : 'Menu moved to draft. Its QR link is no longer public.');
+
+        return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
     }
 
     #[Route('/owner/menus/{id}/theme', name: 'app_owner_menu_theme', requirements: ['id' => '\d+'], methods: ['POST'])]
