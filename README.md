@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Twig-3.x-bacf29?logo=twig&logoColor=black" />
   <img src="https://img.shields.io/badge/FastAPI-0.x-009688?logo=fastapi&logoColor=white" />
   <img src="https://img.shields.io/badge/PHPUnit-11.5-3776E6?logo=php&logoColor=white" />
-  <img src="https://img.shields.io/badge/Tests-140_passing-brightgreen?logo=checkmarx&logoColor=white" />
+  <img src="https://img.shields.io/badge/Tests-195_passing-brightgreen?logo=checkmarx&logoColor=white" />
   <img src="https://img.shields.io/badge/Coverage-100%25-brightgreen" />
   <img src="https://img.shields.io/badge/license-proprietary-red" />
 </p>
@@ -28,6 +28,7 @@
 - [The Core Promise](#the-core-promise)
 - [Features](#features)
   - [Owner Dashboard](#owner-dashboard)
+  - [Live Menu Designer](#live-menu-designer)
   - [Menu Scanner (Beta)](#menu-scanner-beta)
   - [Admin Panel](#admin-panel)
   - [Customer-Facing Menu](#customer-facing-menu)
@@ -84,6 +85,28 @@ The QR code encodes a fixed URL (e.g. `s2s.app/m/blue-bean-cafe`) tied to a menu
 | **Password reset** | Secure token-based password reset flow via email |
 | **2FA setup** | TOTP-based two-factor authentication with backup codes |
 | **Profile management** | Update name, email, and account preferences |
+
+---
+
+### Live Menu Designer
+
+The menu workspace includes a responsive visual designer for building a branded customer experience without editing code. Owners work against a live preview while draft and published versions remain separate.
+
+| Capability | Description |
+|---|---|
+| **Quick presets** | Start with a coordinated theme and refine it without losing the menu content |
+| **Canvas and brand controls** | Adjust background, typography, font scale, spacing, colors, and custom fonts |
+| **Custom font library** | Load common web font formats including TTF and OTF for use in menu designs |
+| **Item card controls** | Configure card corners, image shape, price alignment, color, and emphasis treatment |
+| **Responsive preview** | Inspect desktop, tablet, and phone output directly in the workspace |
+| **Promotional hero** | Build an optional header from text, image, shape, and countdown layers |
+| **Direct manipulation** | Select, move, and resize hero layers with on-canvas controls |
+| **Independent layouts** | Keep separate layer position and sizing values for desktop and mobile |
+| **Safe layer tools** | Rename, order, duplicate, hide, lock, and delete layers with clear feedback |
+| **Scheduled campaigns** | Set optional start and expiration times; expired public heroes disappear automatically |
+| **Draft and publish workflow** | Save private design work, validate it, then explicitly publish or hide the public hero |
+
+The public feature overview is available at `/menu-designer`. The authenticated editor is opened from an owner's menu using **Design Menu**.
 
 ---
 
@@ -191,7 +214,7 @@ Browser → POST /owner/scanner/save (Symfony)
 | **Email** | `symfony/mailer` + `symfony/google-mailer` |
 | **Scheduler** | `symfony/scheduler` — daily subscription expiry checks |
 | **OCR Pipeline** | FastAPI (Python) — `handwritten-menu-scanner/` (separate service, port 8001) |
-| **Testing** | PHPUnit 11.5 — 140 tests, 337 assertions (100% pass rate) |
+| **Testing** | PHPUnit 11.5 — 195 tests, 621 assertions (100% pass rate) |
 | **Typography** | Space Grotesk + DM Sans (Google Fonts) |
 | **Dev server** | Symfony CLI (`symfony serve`) |
 
@@ -481,7 +504,7 @@ curl -X POST http://localhost:8001/scan-menu \
 
 ## Testing
 
-The application includes a comprehensive test suite covering all entities and core services.
+The application includes a comprehensive test suite covering entities, services, controllers, security rules, subscription enforcement, administration, and menu publishing behavior.
 
 ### Running Tests
 
@@ -500,13 +523,11 @@ php bin/phpunit tests/Service/SubscriptionServiceTest.php
 php bin/phpunit --coverage-html coverage/
 ```
 
-### Test Coverage
+### Current Test Result
 
-| Test Suite | Tests | Assertions | Coverage |
-|---|---|---|---|
-| **Entity Tests** | 108 | 236 | 100% (6/6 entities) |
-| **Service Tests** | 32 | 101 | 100% (2/2 services) |
-| **Total** | **140** | **337** | **100% pass rate** |
+| Tests | Assertions | Result |
+|---:|---:|---|
+| **195** | **621** | **100% passing** |
 
 #### Entity Tests
 
