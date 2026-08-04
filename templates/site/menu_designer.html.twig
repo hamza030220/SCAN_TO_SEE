@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Live Menu Designer — Build a menu that fits your brand{% endblock %}
+{% block meta_description %}Design responsive digital menus with live previews, custom fonts, flexible cards, draggable promotional layers, schedules, and countdowns.{% endblock %}
+
+{% block body %}
+    <section class="designer-page-hero">
+        <div class="designer-grid-bg" aria-hidden="true"></div>
+        <div class="shell designer-page-hero-grid">
+            <div class="designer-page-copy" data-reveal>
+                <span class="status-pill"><span></span>Live visual workspace</span>
+                <h1>Design the menu your brand deserves.</h1>
+                <p>Move from a reliable preset to a fully styled customer experience. Every decision is previewed before publishing, with separate control for desktop and phone layouts.</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Start designing <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></a>
+                    <a class="btn btn-ghost btn-icon" href="#designer-capabilities">See every capability <span class="material-symbols-outlined" aria-hidden="true">south</span></a>
+                </div>
+                <div class="designer-page-proof">
+                    <span>Live preview</span><i></i><span>Draft safe</span><i></i><span>Mobile aware</span>
+                </div>
+            </div>
+
+            <div class="designer-stage" data-reveal aria-label="Animated preview of the Live Menu Designer">
+                <div class="designer-window">
+                    <div class="designer-window-head">
+                        <span class="designer-window-dots"><i></i><i></i><i></i></span>
+                        <strong>Menu Designer</strong>
+                        <span class="designer-live"><i></i>Live</span>
+                    </div>
+                    <div class="designer-window-body">
+                        <aside class="designer-tabs" aria-hidden="true">
+                            <span><i class="material-symbols-outlined">auto_awesome</i>Presets</span>
+                            <span><i class="material-symbols-outlined">wallpaper</i>Canvas</span>
+                            <span><i class="material-symbols-outlined">palette</i>Brand</span>
+                            <span><i class="material-symbols-outlined">view_agenda</i>Cards</span>
+                            <span class="active"><i class="material-symbols-outlined">campaign</i>Hero</span>
+                        </aside>
+                        <div class="designer-canvas">
+                            <div class="designer-canvas-toolbar"><span>Desktop</span><span>Tablet</span><span class="active">Phone</span></div>
+                            <div class="designer-phone">
+                                <div class="designer-promo">
+                                    <span class="designer-layer-chip">Offer title</span>
+                                    <small>WEEKEND EDITION</small>
+                                    <strong>Brunch,<br>reimagined.</strong>
+                                    <div class="designer-countdown"><span>01<small>days</small></span><span>08<small>hours</small></span><span>24<small>min</small></span></div>
+                                    <i class="designer-handle handle-nw"></i><i class="designer-handle handle-ne"></i><i class="designer-handle handle-sw"></i><i class="designer-handle handle-se"></i>
+                                </div>
+                                <div class="designer-phone-menu"><b>Featured plates</b><span></span><span></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="designer-float-card designer-float-card--layers"><span class="material-symbols-outlined">layers</span><div><b>Layer control</b><small>Move, resize, order</small></div></div>
+                <div class="designer-float-card designer-float-card--schedule"><span class="material-symbols-outlined">event_available</span><div><b>Scheduled</b><small>Ends automatically</small></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="designer-value-strip" aria-label="Menu Designer benefits">
+        <div class="shell">
+            <span>Visual control</span><i></i><span>Custom typography</span><i></i><span>Responsive layouts</span><i></i><span>Scheduled campaigns</span>
+        </div>
+    </section>
+
+    <section class="designer-capabilities" id="designer-capabilities">
+        <div class="shell">
+            <div class="section-split-head" data-reveal>
+                <div><span class="eyebrow">Built for real brand control</span><h2>Creative freedom without losing publishing safety.</h2></div>
+                <p>The designer keeps everyday changes approachable while giving detailed controls to owners who want a distinctive menu.</p>
+            </div>
+            <div class="designer-cap-grid">
+                <article data-reveal><span class="material-symbols-outlined">auto_awesome</span><small>01</small><h3>Start fast with presets</h3><p>Choose a coordinated visual direction, then adjust every important detail instead of starting from an empty canvas.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">format_size</span><small>02</small><h3>Use your typography</h3><p>Control menu fonts and load common font files for a closer match to your printed brand materials.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">dashboard_customize</span><small>03</small><h3>Shape every item card</h3><p>Tune spacing, image shape, corners, price position, price color, and emphasis treatments.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">devices</span><small>04</small><h3>Design for every screen</h3><p>Preview desktop, tablet, and phone output, with independent hero positioning for compact screens.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">layers</span><small>05</small><h3>Compose with layers</h3><p>Add text, images, shapes, and countdowns; rename, order, hide, lock, move, and resize them directly.</p></article>
+                <article data-reveal><span class="material-symbols-outlined">schedule</span><small>06</small><h3>Run timely promotions</h3><p>Schedule a hero to start and expire automatically. Add an optional countdown that disappears with the campaign.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="designer-responsive-section">
+        <div class="shell designer-responsive-grid">
+            <div data-reveal>
+                <span class="eyebrow">Responsive by decision</span>
+                <h2>One campaign. Two layouts. No mobile compromise.</h2>
+                <p>A wide desktop composition rarely fits a phone perfectly. S2S keeps the same content while letting you position and size every hero layer independently for each layout.</p>
+                <ul class="designer-checks">
+                    <li><span class="material-symbols-outlined">check</span>Dedicated desktop and mobile coordinates</li>
+                    <li><span class="material-symbols-outlined">check</span>Direct drag and corner-resize controls</li>
+                    <li><span class="material-symbols-outlined">check</span>Image proportion locking when needed</li>
+                    <li><span class="material-symbols-outlined">check</span>Text boxes that grow with their content</li>
+                </ul>
+            </div>
+            <div class="responsive-devices" data-reveal aria-hidden="true">
+                <div class="responsive-desktop"><div><small>SEASONAL</small><strong>A menu made<br>for the moment.</strong><span>Explore today</span></div></div>
+                <div class="responsive-phone"><div><small>SEASONAL</small><strong>Made for<br>the moment.</strong><span>Explore</span></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="designer-schedule-section">
+        <div class="shell">
+            <div class="section-center" data-reveal><span class="eyebrow">Campaign lifecycle</span><h2>Publish the moment, not another manual task.</h2><p>Prepare an offer once and let its schedule control what guests see.</p></div>
+            <div class="schedule-flow">
+                <article data-reveal><span>01</span><i class="material-symbols-outlined">edit_square</i><h3>Compose</h3><p>Create the hero from reusable visual layers.</p></article>
+                <i class="material-symbols-outlined schedule-arrow">arrow_forward</i>
+                <article data-reveal><span>02</span><i class="material-symbols-outlined">event</i><h3>Schedule</h3><p>Choose a start, expiration, and optional countdown.</p></article>
+                <i class="material-symbols-outlined schedule-arrow">arrow_forward</i>
+                <article data-reveal><span>03</span><i class="material-symbols-outlined">visibility</i><h3>Go live</h3><p>The promotion appears through the existing QR menu.</p></article>
+                <i class="material-symbols-outlined schedule-arrow">arrow_forward</i>
+                <article data-reveal><span>04</span><i class="material-symbols-outlined">timer_off</i><h3>Expire safely</h3><p>The whole hero disappears automatically at the deadline.</p></article>
+            </div>
+        </div>
+    </section>
+
+    <section class="s-cta--new designer-page-cta">
+        <div class="shell"><div class="cta-panel" data-reveal><div><span class="eyebrow">Your menu, your direction</span><h2>Build a guest experience that changes as quickly as your business.</h2></div><div class="cta-actions"><a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Create your menu <span class="material-symbols-outlined">arrow_forward</span></a><a class="cta-secondary-link" href="{{ path('app_pricing') }}">Compare plans</a></div></div></div>
+    </section>
+{% endblock %}

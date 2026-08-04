@@ -41,9 +41,9 @@ final class SiteController extends AbstractController
                 ],
                 [
                     'icon' => 'palette',
-                    'label' => 'Brand control',
-                    'title' => 'Make every menu feel like your venue',
-                    'body' => 'Control colors, typography, layout, imagery, categories, variants, and availability.',
+                    'label' => 'Live Menu Designer',
+                    'title' => 'Design every detail visually',
+                    'body' => 'Style cards, fonts, spacing, imagery, and responsive promotional heroes with draggable layers and scheduled countdowns.',
                 ],
                 [
                     'icon' => 'database',
@@ -70,6 +70,12 @@ final class SiteController extends AbstractController
     public function aiScanner(): Response
     {
         return $this->render('site/ai_scanner.html.twig');
+    }
+
+    #[Route('/menu-designer', name: 'app_menu_designer', methods: ['GET'])]
+    public function menuDesigner(): Response
+    {
+        return $this->render('site/menu_designer.html.twig');
     }
 
     #[Route('/privacy', name: 'app_privacy', methods: ['GET'])]
