@@ -1544,7 +1544,6 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
             if (layer.id === selectedId && !layer.locked) {
                 var moveHandle = doc.createElement('button');
                 moveHandle.type = 'button'; moveHandle.className = 'hero-preview-move-handle'; moveHandle.title = 'Drag to move ' + layer.name; moveHandle.setAttribute('aria-label', moveHandle.title);
-                moveHandle.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">open_with</span>';
                 moveHandle.addEventListener('pointerdown', function (event) { event.stopPropagation(); startDrag(event, layer, element, hero, moveHandle); });
                 element.appendChild(moveHandle);
                 ['nw','ne','sw','se'].forEach(function (corner) {

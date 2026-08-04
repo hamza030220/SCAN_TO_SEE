@@ -295,23 +295,13 @@
     var expiresAt = hero.dataset.heroExpiresAt;
     var preview = hero.dataset.heroPreview === '1';
     var countdowns = Array.from(hero.querySelectorAll('[data-hero-countdown]'));
-    if (!expiresAt || countdowns.length === 0) return;
+    if (!expiresAt) return;
     var deadline = Date.parse(expiresAt);
     if (!Number.isFinite(deadline)) return;
 
     function update() {
-        var remaining = Math.max(0, deadline - Date.now());
-        var days = Math.floor(remaining / 86400000);
-        var hours = Math.floor((remaining % 86400000) / 3600000);
-        var minutes = Math.floor((remaining % 3600000) / 60000);
-        var seconds = Math.floor((remaining % 60000) / 1000);
-        countdowns.forEach(function (timer) {
-            timer.querySelector('[data-countdown-days]').firstChild.nodeValue = String(days).padStart(2, '0');
-            timer.querySelector('[data-countdown-hours]').firstChild.nodeValue = String(hours).padStart(2, '0');
-            timer.querySelector('[data-countdown-minutes]').firstChild.nodeValue = String(minutes).padStart(2, '0');
-            timer.querySelector('[data-countdown-seconds]').firstChild.nodeValue = String(seconds).padStart(2, '0');
-        });
-        if (remaining === 0) {
+        var remaining = deadline - Date.now();
+        if (remaining <= 0) {
             if (preview) {
                 countdowns.forEach(function (timer) { timer.setAttribute('aria-label', 'Expired countdown'); });
             } else {
@@ -319,6 +309,17 @@
             }
             return false;
         }
+        var displayRemaining = Math.ceil(remaining / 1000) * 1000;
+        var days = Math.floor(displayRemaining / 86400000);
+        var hours = Math.floor((displayRemaining % 86400000) / 3600000);
+        var minutes = Math.floor((displayRemaining % 3600000) / 60000);
+        var seconds = Math.floor((displayRemaining % 60000) / 1000);
+        countdowns.forEach(function (timer) {
+            timer.querySelector('[data-countdown-days]').firstChild.nodeValue = String(days).padStart(2, '0');
+            timer.querySelector('[data-countdown-hours]').firstChild.nodeValue = String(hours).padStart(2, '0');
+            timer.querySelector('[data-countdown-minutes]').firstChild.nodeValue = String(minutes).padStart(2, '0');
+            timer.querySelector('[data-countdown-seconds]').firstChild.nodeValue = String(seconds).padStart(2, '0');
+        });
         return true;
     }
     if (update()) {
