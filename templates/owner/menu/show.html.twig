@@ -471,6 +471,11 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                         <button type="button" data-theme-preset="classic"><span style="--preset-a:#18120a;--preset-b:#E8A020"></span><strong>Classic</strong><small>Clean, warm and familiar</small></button>
                         <button type="button" data-theme-preset="cafe"><span style="--preset-a:#3f2618;--preset-b:#d9a05b"></span><strong>Café</strong><small>Editorial cards and rich tones</small></button>
                         <button type="button" data-theme-preset="night"><span style="--preset-a:#111827;--preset-b:#60a5fa"></span><strong>Night</strong><small>Modern dark presentation</small></button>
+                        <button type="button" data-theme-preset="minimal"><span style="--preset-a:#f8fafc;--preset-b:#334155"></span><strong>Minimal</strong><small>Quiet typography and clean space</small></button>
+                        <button type="button" data-theme-preset="bistro"><span style="--preset-a:#4c1d1d;--preset-b:#fbbf24"></span><strong>Bistro</strong><small>Confident red and golden details</small></button>
+                        <button type="button" data-theme-preset="fresh"><span style="--preset-a:#14532d;--preset-b:#86efac"></span><strong>Fresh</strong><small>Natural colors for healthy menus</small></button>
+                        <button type="button" data-theme-preset="luxe"><span style="--preset-a:#171717;--preset-b:#d4af37"></span><strong>Luxe</strong><small>Dark premium dining presentation</small></button>
+                        <button type="button" data-theme-preset="sunset"><span style="--preset-a:#7c2d12;--preset-b:#fb923c"></span><strong>Sunset</strong><small>Warm energy and bold highlights</small></button>
                     </div>
                     <button type="button" class="ds-reset-btn" id="ds_resetTheme"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span> Reset to default</button>
                 </div>
@@ -918,7 +923,12 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     var presets = {
         classic: { theme: 'light', layout: 'list', density: 'comfortable', cardStyle: 'flat', pillStyle: 'pill', imageShape: 'rounded', priceStyle: 'accent', font: 'DM Sans', fontScale: 1, cardRadius: 12, bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
         cafe: { theme: 'light', layout: 'grid', density: 'spacious', cardStyle: 'bordered', pillStyle: 'chip', imageShape: 'rounded', priceStyle: 'badge', font: 'Playfair Display', fontScale: 1.05, cardRadius: 16, bg: '#F5EBDD', header: '#3F2618', accent: '#D9A05B', card: '#FFF9F0' },
-        night: { theme: 'dark', layout: 'list', density: 'compact', cardStyle: 'glass', pillStyle: 'underline', imageShape: 'circle', priceStyle: 'accent', font: 'Space Grotesk', fontScale: .95, cardRadius: 18, bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' }
+        night: { theme: 'dark', layout: 'list', density: 'compact', cardStyle: 'glass', pillStyle: 'underline', imageShape: 'circle', priceStyle: 'accent', font: 'Space Grotesk', fontScale: .95, cardRadius: 18, bg: '#111827', header: '#0B1220', accent: '#60A5FA', card: '#1F2937' },
+        minimal: { theme: 'light', layout: 'list', density: 'spacious', cardStyle: 'flat', pillStyle: 'underline', imageShape: 'square', priceStyle: 'neutral', font: 'Inter', fontScale: .95, cardRadius: 4, bg: '#F8FAFC', header: '#0F172A', accent: '#475569', card: '#FFFFFF' },
+        bistro: { theme: 'light', layout: 'grid', density: 'comfortable', cardStyle: 'bordered', pillStyle: 'chip', imageShape: 'rounded', priceStyle: 'badge', font: 'Merriweather', fontScale: 1, cardRadius: 10, bg: '#FFF7ED', header: '#4C1D1D', accent: '#FBBF24', card: '#FFFBEB' },
+        fresh: { theme: 'light', layout: 'grid', density: 'spacious', cardStyle: 'flat', pillStyle: 'pill', imageShape: 'circle', priceStyle: 'accent', font: 'Nunito', fontScale: 1, cardRadius: 20, bg: '#F0FDF4', header: '#14532D', accent: '#4ADE80', card: '#FFFFFF' },
+        luxe: { theme: 'dark', layout: 'list', density: 'spacious', cardStyle: 'bordered', pillStyle: 'underline', imageShape: 'square', priceStyle: 'badge', font: 'Playfair Display', fontScale: 1.1, cardRadius: 0, bg: '#171717', header: '#0A0A0A', accent: '#D4AF37', card: '#262626' },
+        sunset: { theme: 'light', layout: 'grid', density: 'comfortable', cardStyle: 'glass', pillStyle: 'pill', imageShape: 'rounded', priceStyle: 'accent', font: 'Poppins', fontScale: 1, cardRadius: 18, bg: '#FFF7ED', header: '#7C2D12', accent: '#FB923C', card: '#FFFFFF' }
     };
     document.querySelectorAll('[data-theme-preset]').forEach(function (button) {
         button.addEventListener('click', function () { applyPreset(presets[button.dataset.themePreset]); });
