@@ -6,6 +6,7 @@ use App\Repository\BusinessRepository;
 use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\EntitlementService;
+use App\Service\MenuFontCatalogService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -85,6 +86,7 @@ class PublicMenuController extends AbstractController
         BusinessRepository $businessRepo,
         MenuRepository $menuRepo,
         EntitlementService $entitlements,
+        MenuFontCatalogService $fontCatalog,
     ): Response {
         $business = $businessRepo->findOneBySlugWithOwner($slug);
         if (!$business) {
@@ -132,6 +134,7 @@ class PublicMenuController extends AbstractController
             'menu'       => $menu,
             'categories' => $categories,
             'hasOtherMenus' => $hasOtherMenus,
+            'customFonts' => $fontCatalog->customFonts(),
         ]));
     }
 }

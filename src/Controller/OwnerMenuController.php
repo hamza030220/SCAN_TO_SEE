@@ -11,6 +11,7 @@ use App\Repository\MenuRepository;
 use App\Repository\ItemRepository;
 use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
+use App\Service\MenuFontCatalogService;
 use App\Service\MenuContentService;
 use App\Service\MenuPublishReadinessService;
 use App\Service\ItemCustomizationService;
@@ -255,12 +256,16 @@ final class OwnerMenuController extends AbstractController
     }
 
     #[Route('/owner/menus/{id}', name: 'app_owner_menu_show', requirements: ['id' => '\d+'])]
-    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo): Response
+    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuFontCatalogService $fontCatalog): Response
     {
         $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
         if (!$menu) throw $this->createNotFoundException();
 
-        return $this->render('owner/menu/show.html.twig', ['menu' => $menu]);
+        return $this->render('owner/menu/show.html.twig', [
+            'menu' => $menu,
+            'builtInFonts' => MenuFontCatalogService::BUILT_IN_FONTS,
+            'customFonts' => $fontCatalog->customFonts(),
+        ]);
     }
 
     #[Route('/owner/menus/{id}/delete', name: 'app_owner_menu_delete', requirements: ['id' => '\d+'], methods: ['POST'])]

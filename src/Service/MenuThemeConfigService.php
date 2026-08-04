@@ -6,16 +6,11 @@ use App\Entity\Menu;
 
 final class MenuThemeConfigService
 {
-    public const FONTS = [
-        'DM Sans',
-        'Space Grotesk',
-        'Playfair Display',
-        'Poppins',
-        'Montserrat',
-        'Inter',
-    ];
-
     private const GRADIENT_DIRECTIONS = ['to bottom', 'to right', '135deg', '45deg'];
+
+    public function __construct(private readonly MenuFontCatalogService $fontCatalog)
+    {
+    }
 
     public function sanitize(array $input, array $current = []): array
     {
@@ -23,7 +18,7 @@ final class MenuThemeConfigService
 
         return [
             'theme' => $this->enum($input, 'theme', ['light', 'dark'], $defaults['theme']),
-            'font' => $this->enum($input, 'font', self::FONTS, $defaults['font']),
+            'font' => $this->enum($input, 'font', $this->fontCatalog->allowedFamilies(), $defaults['font']),
             'fontScale' => min(1.2, max(0.85, round((float) ($input['fontScale'] ?? $defaults['fontScale']), 2))),
             'layout' => $this->enum($input, 'layout', ['list', 'grid', 'compact'], $defaults['layout']),
             'density' => $this->enum($input, 'density', ['compact', 'comfortable', 'spacious'], $defaults['density']),

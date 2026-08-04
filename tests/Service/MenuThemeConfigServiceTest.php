@@ -3,6 +3,7 @@
 namespace App\Tests\Service;
 
 use App\Service\MenuThemeConfigService;
+use App\Service\MenuFontCatalogService;
 use PHPUnit\Framework\TestCase;
 
 final class MenuThemeConfigServiceTest extends TestCase
@@ -11,7 +12,7 @@ final class MenuThemeConfigServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new MenuThemeConfigService();
+        $this->service = new MenuThemeConfigService(new MenuFontCatalogService(sys_get_temp_dir()));
     }
 
     public function testItAcceptsSupportedThemeValues(): void

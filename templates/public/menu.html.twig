@@ -4,7 +4,10 @@
 {% block title %}{{ menu.name }} — {{ business.name }}{% endblock %}
 
 {% block font_styles %}
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700{% if tc.font == 'DM Sans' %}&family=DM+Sans:opsz,wght@9..40,300..700{% elseif tc.font == 'Playfair Display' %}&family=Playfair+Display:ital,wght@0,400;0,700;1,400{% elseif tc.font == 'Poppins' %}&family=Poppins:wght@400;600;700{% elseif tc.font == 'Montserrat' %}&family=Montserrat:wght@400;600;700{% elseif tc.font == 'Inter' %}&family=Inter:wght@400;600;700{% endif %}&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300..700&family=Inter:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;600;700&family=Raleway:wght@400;600;700&family=Roboto:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    {% for customFont in customFonts %}
+        <style>@font-face{font-family:'{{ customFont.family|e('css') }}';src:url('{{ asset(customFont.path) }}') format('{{ customFont.format }}');font-display:swap;}</style>
+    {% endfor %}
 {% endblock %}
 
 {% block theme_vars %}

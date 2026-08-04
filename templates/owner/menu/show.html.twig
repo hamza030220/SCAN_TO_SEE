@@ -397,6 +397,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-section-copy{margin:0 0 14px;color:#8b7e70;font-size:.7rem;line-height:1.45;}
 .ds-row{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}.ds-row:last-child{margin-bottom:0;}
 .ds-label{font-size:.78rem;font-weight:600;color:#3d3328;display:flex;align-items:center;gap:6px;}
+.ds-field-help{color:#8b7e70;font-size:.66rem;line-height:1.45;}.ds-field-help code{padding:1px 4px;border-radius:4px;background:#eee8df;color:#5f5142;font-size:.63rem;}
 .ds-seg{display:flex;border:1px solid #d5cec5;border-radius:10px;overflow:hidden;background:#faf8f5;}
 .ds-seg input[type=radio]{display:none;}
 .ds-seg-btn{flex:1;padding:8px 4px;font-size:.73rem;font-weight:700;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
@@ -490,10 +491,16 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                     <div class="ds-row">
                         <label class="ds-label" for="ds_font">Font</label>
                         <select class="ds-select" id="ds_font" name="font">
-                            {% for f in ['DM Sans', 'Space Grotesk', 'Playfair Display', 'Poppins', 'Montserrat', 'Inter'] %}
-                                <option value="{{ f }}" {% if tc.font == f %}selected{% endif %}>{{ f }}</option>
-                            {% endfor %}
+                            <optgroup label="Built-in fonts">
+                                {% for f in builtInFonts %}<option value="{{ f }}" {% if tc.font == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+                            </optgroup>
+                            {% if customFonts is not empty %}
+                                <optgroup label="Custom fonts">
+                                    {% for f in customFonts %}<option value="{{ f.family }}" {% if tc.font == f.family %}selected{% endif %}>{{ f.family }}</option>{% endfor %}
+                                </optgroup>
+                            {% endif %}
                         </select>
+                        <small class="ds-field-help">Add licensed TTF, OTF, WOFF, or WOFF2 files to <code>public/fontes_desgne_tool</code>, then reload.</small>
                     </div>
                     <div class="ds-row">
                         <label class="ds-label" for="ds_fontScale">Type scale — <span id="ds_fontScaleVal">{{ (tc.fontScale * 100)|round }}</span>%</label>
