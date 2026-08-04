@@ -49,13 +49,15 @@ final class MenuHeroConfigServiceTest extends TestCase
     {
         $layers = [['type' => 'background']];
         for ($i = 0; $i < 30; ++$i) {
-            $layers[] = ['id' => 'image-'.$i, 'type' => 'image', 'imagePath' => $i === 0 ? 'image/hero/offer.webp' : 'https://bad.test/x.png'];
+            $layers[] = ['id' => 'image-'.$i, 'type' => 'image', 'imagePath' => $i === 0 ? 'image/hero/offer.webp' : 'https://bad.test/x.png', 'aspectLocked' => $i !== 0];
         }
 
         $config = $this->service->sanitize(['layers' => $layers]);
 
         self::assertCount(MenuHeroConfigService::MAX_LAYERS, $config['layers']);
         self::assertSame('image/hero/offer.webp', $config['layers'][1]['imagePath']);
+        self::assertFalse($config['layers'][1]['aspectLocked']);
+        self::assertTrue($config['layers'][2]['aspectLocked']);
         self::assertNull($config['layers'][2]['imagePath']);
     }
 

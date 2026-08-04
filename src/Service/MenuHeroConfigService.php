@@ -165,6 +165,7 @@ final class MenuHeroConfigService
             'alt' => $this->text($layer['alt'] ?? null, '', 150),
             'fit' => $this->enum($layer['fit'] ?? null, ['contain', 'cover'], 'contain'),
             'radius' => (int) $this->number($layer['radius'] ?? 12, 0, 50, 12),
+            'aspectLocked' => (bool) ($layer['aspectLocked'] ?? true),
         ];
     }
 
