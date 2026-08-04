@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Category;
 use App\Entity\Item;
 use App\Entity\Menu;
+use App\Entity\MenuHero;
 use App\Repository\BusinessRepository;
 use App\Repository\CategoryRepository;
 use App\Repository\MenuRepository;
@@ -12,6 +13,7 @@ use App\Repository\ItemRepository;
 use App\Service\ImageUploadService;
 use App\Service\MenuThemeConfigService;
 use App\Service\MenuFontCatalogService;
+use App\Service\MenuHeroConfigService;
 use App\Service\MenuContentService;
 use App\Service\MenuPublishReadinessService;
 use App\Service\ItemCustomizationService;
@@ -256,15 +258,21 @@ final class OwnerMenuController extends AbstractController
     }
 
     #[Route('/owner/menus/{id}', name: 'app_owner_menu_show', requirements: ['id' => '\d+'])]
-    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuFontCatalogService $fontCatalog): Response
+    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuFontCatalogService $fontCatalog, MenuHeroConfigService $heroConfigService): Response
     {
         $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
         if (!$menu) throw $this->createNotFoundException();
+
+        $hero = $menu->getHero();
+        $heroConfig = $heroConfigService->sanitize($hero?->getDraftConfig() ?: $heroConfigService->defaults());
 
         return $this->render('owner/menu/show.html.twig', [
             'menu' => $menu,
             'builtInFonts' => MenuFontCatalogService::BUILT_IN_FONTS,
             'customFonts' => $fontCatalog->customFonts(),
+            'heroConfig' => $heroConfig,
+            'heroPublished' => $hero?->getPublishedConfig() !== null,
+            'heroPublishedAt' => $hero?->getPublishedAt(),
         ]);
     }
 
@@ -367,6 +375,117 @@ final class OwnerMenuController extends AbstractController
         }
 
         return $this->json(['ok' => true]);
+    }
+
+    #[Route('/owner/menus/{id}/hero/draft', name: 'app_owner_menu_hero_draft', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function heroDraft(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuHeroConfigService $heroConfigService, EntityManagerInterface $em): JsonResponse
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('hero-' . $id, $request->headers->get('X-CSRF-Token', ''))) {
+            return $this->json(['ok' => false, 'message' => 'Your editing session expired. Reload the page and try again.'], 403);
+        }
+
+        $payload = $this->heroPayload($request);
+        if ($payload === null) return $this->json(['ok' => false, 'message' => 'The hero data could not be read. Reload the editor and try again.'], 400);
+
+        $config = $heroConfigService->sanitize($payload);
+        $hero = $this->heroForMenu($menu);
+        $hero->setDraftConfig($config);
+        $em->persist($hero);
+        $em->flush();
+
+        return $this->json(['ok' => true, 'config' => $config, 'message' => 'Hero draft saved. Customers still see the last published version.']);
+    }
+
+    #[Route('/owner/menus/{id}/hero/publish', name: 'app_owner_menu_hero_publish', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function heroPublish(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuHeroConfigService $heroConfigService, EntityManagerInterface $em): JsonResponse
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('hero-' . $id, $request->headers->get('X-CSRF-Token', ''))) {
+            return $this->json(['ok' => false, 'message' => 'Your editing session expired. Reload the page and try again.'], 403);
+        }
+
+        $payload = $this->heroPayload($request);
+        if ($payload === null) return $this->json(['ok' => false, 'message' => 'The hero data could not be read. Reload the editor and try again.'], 400);
+
+        $config = $heroConfigService->sanitize($payload);
+        $errors = $heroConfigService->publishingErrors($config);
+        if ($errors !== []) {
+            return $this->json(['ok' => false, 'message' => 'The hero is not ready to publish.', 'errors' => $errors], 422);
+        }
+
+        $hero = $this->heroForMenu($menu);
+        $hero->setDraftConfig($config)->publish($config);
+        $em->persist($hero);
+        $em->flush();
+
+        $message = $menu->getStatus() === Menu::STATUS_PUBLISHED
+            ? 'Hero published. It is now visible to customers.'
+            : 'Hero published, but customers cannot see it until this menu is published.';
+
+        return $this->json(['ok' => true, 'config' => $config, 'message' => $message, 'menuPublished' => $menu->getStatus() === Menu::STATUS_PUBLISHED]);
+    }
+
+    #[Route('/owner/menus/{id}/hero/hide', name: 'app_owner_menu_hero_hide', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function heroHide(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, EntityManagerInterface $em): JsonResponse
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('hero-' . $id, $request->headers->get('X-CSRF-Token', ''))) {
+            return $this->json(['ok' => false, 'message' => 'Your editing session expired. Reload the page and try again.'], 403);
+        }
+
+        $hero = $menu->getHero();
+        if ($hero === null || $hero->getPublishedConfig() === null) {
+            return $this->json(['ok' => false, 'message' => 'There is no published hero to hide yet. Save and publish one first.'], 409);
+        }
+        $hero->hide();
+        $em->flush();
+
+        return $this->json(['ok' => true, 'message' => 'Hero hidden. Customers no longer see it; your draft is still available.']);
+    }
+
+    #[Route('/owner/menus/{id}/hero/image', name: 'app_owner_menu_hero_image', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function heroImage(int $id, Request $request, BusinessRepository $businessRepo, MenuRepository $menuRepo, ImageUploadService $imageUpload): JsonResponse
+    {
+        $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
+        if (!$menu) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('hero-' . $id, $request->request->get('_token', ''))) {
+            return $this->json(['ok' => false, 'message' => 'Your editing session expired. Reload the page and try again.'], 403);
+        }
+        $file = $request->files->get('image');
+        if (!$file instanceof UploadedFile) {
+            return $this->json(['ok' => false, 'message' => 'Choose a JPG, PNG, or WEBP image first.'], 422);
+        }
+        try {
+            $path = $imageUpload->uploadHeroImage($file, $menu->getSlug());
+        } catch (\RuntimeException $error) {
+            return $this->json(['ok' => false, 'message' => $error->getMessage()], 422);
+        }
+
+        return $this->json(['ok' => true, 'path' => $path, 'url' => '/'.ltrim($path, '/'), 'message' => 'Image uploaded. Save the hero draft to keep this layer.']);
+    }
+
+    private function heroForMenu(Menu $menu): MenuHero
+    {
+        $hero = $menu->getHero();
+        if ($hero === null) {
+            $hero = (new MenuHero())->setMenu($menu);
+            $menu->setHero($hero);
+        }
+        return $hero;
+    }
+
+    private function heroPayload(Request $request): ?array
+    {
+        try {
+            $payload = json_decode($request->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            return is_array($payload) ? $payload : null;
+        } catch (\JsonException) {
+            return null;
+        }
     }
 
     // ── Categories ───────────────────────────────────────────────────────────

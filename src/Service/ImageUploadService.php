@@ -51,6 +51,13 @@ class ImageUploadService
         return $this->upload($file, 'menu', 'bg_' . $this->slugify($menuSlug));
     }
 
+    /** Upload an image used by the menu hero background or an image layer. */
+    public function uploadHeroImage(UploadedFile $file, string $menuSlug): string
+    {
+        $this->validate($file);
+        return $this->upload($file, 'hero', 'hero_' . $this->slugify($menuSlug));
+    }
+
     /**
      * Delete a previously stored image (pass the web-relative path from the DB).
      * Silently ignores missing files.

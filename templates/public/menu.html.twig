@@ -129,6 +129,20 @@
 [data-price-style="outline"][data-price-align="right"] .pub-item-price,
 [data-price-style="badge"][data-price-align="right"] .pub-item-price { align-self: flex-end; }
 
+/* Scheduled promotional hero */
+.pub-hero{position:relative;width:100%;height:var(--hero-desktop-height,360px);overflow:hidden;background-color:var(--hero-bg,#18120a);background-image:var(--hero-bg-image,none);background-position:center;background-size:cover;isolation:isolate;}
+.pub-hero-overlay{position:absolute;inset:0;z-index:0;background:var(--hero-overlay,#000);opacity:var(--hero-overlay-opacity,0);pointer-events:none;}
+.pub-hero-canvas{position:absolute;inset:0;z-index:1;}
+.pub-hero-layer{position:absolute;left:calc(var(--hx)*1%);top:calc(var(--hy)*1%);width:calc(var(--hw)*1%);height:calc(var(--hh)*1%);opacity:var(--hopacity,1);transform:rotate(var(--hrotation,0deg));display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.pub-hero-text{width:100%;max-height:100%;padding:8px 10px;line-height:1.12;overflow:hidden;overflow-wrap:anywhere;}
+.pub-hero-image,.pub-hero-shape{width:100%;height:100%;display:block;}
+.pub-hero-shape--circle{border-radius:50%;}
+.pub-hero-countdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%;padding:10px;border-radius:12px;text-align:center;line-height:1;}
+.pub-hero-countdown span{display:flex;flex-direction:column;gap:5px;}.pub-hero-countdown small{font-size:.35em;font-weight:600;text-transform:uppercase;letter-spacing:.08em;opacity:.7;}
+.pub-hero-preview-note{position:absolute;top:8px;left:50%;z-index:100;transform:translateX(-50%);padding:5px 9px;border-radius:999px;background:#fff2d6;color:#7a4c00;font-size:11px;font-weight:800;white-space:nowrap;}
+@media(max-width:640px){.pub-hero{height:var(--hero-mobile-height,320px)}.pub-hero-layer{left:calc(var(--hmx)*1%);top:calc(var(--hmy)*1%);width:calc(var(--hmw)*1%);height:calc(var(--hmh)*1%)}.pub-hero-countdown{gap:4px;padding:8px}.pub-hero-preview-note{max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis}}
+@media(prefers-reduced-motion:reduce){.pub-hero-layer{transition:none!important;animation:none!important}}
+
 </style>
 {% endblock %}
 
@@ -176,6 +190,8 @@
     </div>
 </nav>
 {% endif %}
+
+{% include 'public/_hero.html.twig' %}
 
 {# ── Menu body ───────────────────────────────────────────────────────── #}
 <main class="pub-main" id="pubMain">
@@ -268,6 +284,46 @@
 {% endblock %}
 
 {% block scripts %}
+{% if heroConfig %}
+<script>
+(function () {
+    var hero = document.getElementById('menuHero');
+    if (!hero) return;
+    var expiresAt = hero.dataset.heroExpiresAt;
+    var preview = hero.dataset.heroPreview === '1';
+    var countdowns = Array.from(hero.querySelectorAll('[data-hero-countdown]'));
+    if (!expiresAt || countdowns.length === 0) return;
+    var deadline = Date.parse(expiresAt);
+    if (!Number.isFinite(deadline)) return;
+
+    function update() {
+        var remaining = Math.max(0, deadline - Date.now());
+        var days = Math.floor(remaining / 86400000);
+        var hours = Math.floor((remaining % 86400000) / 3600000);
+        var minutes = Math.floor((remaining % 3600000) / 60000);
+        var seconds = Math.floor((remaining % 60000) / 1000);
+        countdowns.forEach(function (timer) {
+            timer.querySelector('[data-countdown-days]').firstChild.nodeValue = String(days).padStart(2, '0');
+            timer.querySelector('[data-countdown-hours]').firstChild.nodeValue = String(hours).padStart(2, '0');
+            timer.querySelector('[data-countdown-minutes]').firstChild.nodeValue = String(minutes).padStart(2, '0');
+            timer.querySelector('[data-countdown-seconds]').firstChild.nodeValue = String(seconds).padStart(2, '0');
+        });
+        if (remaining === 0) {
+            if (preview) {
+                countdowns.forEach(function (timer) { timer.setAttribute('aria-label', 'Expired countdown'); });
+            } else {
+                hero.remove();
+            }
+            return false;
+        }
+        return true;
+    }
+    if (update()) {
+        var interval = window.setInterval(function () { if (!update()) window.clearInterval(interval); }, 1000);
+    }
+})();
+</script>
+{% endif %}
 <script>
 (function () {
     /* ── Item bottom sheet ───────────────────────────────────────────── */

@@ -1,0 +1,38 @@
+{% if heroConfig %}
+    {% set background = heroConfig.layers|first %}
+    <section class="pub-hero{{ heroPreview ? ' pub-hero--preview' : '' }}"
+             id="menuHero"
+             data-hero-expires-at="{{ heroConfig.expiresAt ?? '' }}"
+             data-hero-preview="{{ heroPreview ? '1' : '0' }}"
+             style="--hero-desktop-height:{{ heroConfig.desktopHeight }}px;--hero-mobile-height:{{ heroConfig.mobileHeight }}px;--hero-bg:{{ background.color }};{% if background.imagePath %}--hero-bg-image:url('{{ asset(background.imagePath) }}');{% endif %}--hero-overlay:{{ background.overlayColor }};--hero-overlay-opacity:{{ background.overlayOpacity }}">
+        <div class="pub-hero-overlay" aria-hidden="true"></div>
+        {% if heroPreview and not heroConfig.enabled %}
+            <div class="pub-hero-preview-note">Draft preview — turn on “Show hero” before publishing</div>
+        {% endif %}
+        <div class="pub-hero-canvas" id="menuHeroCanvas">
+            {% for layer in heroConfig.layers|slice(1) %}
+                {% if layer.visible %}
+                    <div class="pub-hero-layer pub-hero-layer--{{ layer.type }}"
+                         data-hero-layer="{{ layer.id }}"
+                         data-layer-type="{{ layer.type }}"
+                         style="--hx:{{ layer.desktop.x }};--hy:{{ layer.desktop.y }};--hw:{{ layer.desktop.width }};--hh:{{ layer.desktop.height }};--hmx:{{ layer.mobile.x }};--hmy:{{ layer.mobile.y }};--hmw:{{ layer.mobile.width }};--hmh:{{ layer.mobile.height }};--hopacity:{{ layer.opacity }};--hrotation:{{ layer.rotation }}deg;z-index:{{ loop.index }}">
+                        {% if layer.type == 'text' %}
+                            <div class="pub-hero-text" style="font-family:'{{ layer.font|e('html_attr') }}',sans-serif;font-size:{{ layer.fontSize }}px;font-weight:{{ layer.fontWeight }};color:{{ layer.color }};text-align:{{ layer.align }};{% if layer.backgroundEnabled %}background:{{ layer.backgroundColor }};{% endif %}">{{ layer.content|nl2br }}</div>
+                        {% elseif layer.type == 'image' and layer.imagePath %}
+                            <img class="pub-hero-image" src="{{ asset(layer.imagePath) }}" alt="{{ layer.alt }}" style="object-fit:{{ layer.fit }};border-radius:{{ layer.radius }}px" decoding="async">
+                        {% elseif layer.type == 'shape' %}
+                            <div class="pub-hero-shape pub-hero-shape--{{ layer.shape }}" style="background:{{ layer.fill }};border:{{ layer.borderWidth }}px solid {{ layer.borderColor }}"></div>
+                        {% elseif layer.type == 'countdown' %}
+                            <div class="pub-hero-countdown" data-hero-countdown style="font-family:'{{ layer.font|e('html_attr') }}',sans-serif;font-size:{{ layer.fontSize }}px;font-weight:{{ layer.fontWeight }};color:{{ layer.color }};background:{{ layer.backgroundColor }}">
+                                <span data-countdown-days>00<small{% if not layer.showLabels %} hidden{% endif %}>days</small></span>
+                                <span data-countdown-hours>00<small{% if not layer.showLabels %} hidden{% endif %}>hours</small></span>
+                                <span data-countdown-minutes>00<small{% if not layer.showLabels %} hidden{% endif %}>min</small></span>
+                                <span data-countdown-seconds>00<small{% if not layer.showLabels %} hidden{% endif %}>sec</small></span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}

@@ -128,6 +128,8 @@ class PublicMenuController extends AbstractController
         }
 
         $hasOtherMenus = $menuRepo->hasOtherPublishedMenu($business, $menu->getId());
+        $hero = $menu->getHero();
+        $heroConfig = $isOwnerPreview ? $hero?->getDraftConfig() : $hero?->getPublicConfig();
 
         return $this->withNoCache($this->render('public/menu.html.twig', [
             'business'   => $business,
@@ -135,6 +137,8 @@ class PublicMenuController extends AbstractController
             'categories' => $categories,
             'hasOtherMenus' => $hasOtherMenus,
             'customFonts' => $fontCatalog->customFonts(),
+            'heroConfig' => $heroConfig,
+            'heroPreview' => $isOwnerPreview,
         ]));
     }
 }
