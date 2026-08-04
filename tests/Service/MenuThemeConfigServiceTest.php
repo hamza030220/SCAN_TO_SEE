@@ -35,6 +35,13 @@ final class MenuThemeConfigServiceTest extends TestCase
             'cardRadius' => '20',
             'imageShape' => 'circle',
             'priceStyle' => 'badge',
+            'priceAlign' => 'right',
+            'priceFont' => 'Montserrat',
+            'priceSize' => '1.2',
+            'priceWeight' => '800',
+            'priceColor' => '#ff3300',
+            'priceBoxColor' => '#ffee00',
+            'priceRadius' => '14',
             'glassBlur' => '18',
             'glassOpacity' => '0.32',
             'pillStyle' => 'chip',
@@ -53,6 +60,13 @@ final class MenuThemeConfigServiceTest extends TestCase
         self::assertSame(20, $config['cardRadius']);
         self::assertSame('circle', $config['imageShape']);
         self::assertSame('badge', $config['priceStyle']);
+        self::assertSame('right', $config['priceAlign']);
+        self::assertSame('Montserrat', $config['priceFont']);
+        self::assertSame(1.2, $config['priceSize']);
+        self::assertSame('800', $config['priceWeight']);
+        self::assertSame('#FF3300', $config['priceColor']);
+        self::assertSame('#FFEE00', $config['priceBoxColor']);
+        self::assertSame(14, $config['priceRadius']);
     }
 
     public function testItRejectsValuesThatCouldBreakGeneratedCss(): void
@@ -66,6 +80,10 @@ final class MenuThemeConfigServiceTest extends TestCase
             'density' => 'crushed',
             'imageShape' => 'triangle',
             'priceStyle' => 'javascript',
+            'priceAlign' => 'absolute',
+            'priceFont' => 'serif;display:none',
+            'priceWeight' => '999',
+            'priceColor' => 'transparent',
         ]);
 
         self::assertSame('DM Sans', $config['font']);
@@ -76,12 +94,16 @@ final class MenuThemeConfigServiceTest extends TestCase
         self::assertSame('comfortable', $config['density']);
         self::assertSame('rounded', $config['imageShape']);
         self::assertSame('accent', $config['priceStyle']);
+        self::assertSame('left', $config['priceAlign']);
+        self::assertSame('Space Grotesk', $config['priceFont']);
+        self::assertSame('700', $config['priceWeight']);
+        self::assertSame('#E8A020', $config['priceColor']);
     }
 
     public function testItPreservesTheCurrentBackgroundAndClampsRanges(): void
     {
         $config = $this->service->sanitize(
-            ['glassBlur' => 100, 'glassOpacity' => -1, 'fontScale' => 8, 'cardRadius' => -4],
+            ['glassBlur' => 100, 'glassOpacity' => -1, 'fontScale' => 8, 'cardRadius' => -4, 'priceSize' => 9, 'priceRadius' => -2],
             ['bgImagePath' => 'image/menu/existing.webp'],
         );
 
@@ -90,5 +112,7 @@ final class MenuThemeConfigServiceTest extends TestCase
         self::assertSame(0.05, $config['glassOpacity']);
         self::assertSame(1.2, $config['fontScale']);
         self::assertSame(0, $config['cardRadius']);
+        self::assertSame(1.4, $config['priceSize']);
+        self::assertSame(0, $config['priceRadius']);
     }
 }

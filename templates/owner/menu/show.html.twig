@@ -403,6 +403,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-seg-btn{flex:1;padding:8px 4px;font-size:.73rem;font-weight:700;text-align:center;color:#7a6f60;cursor:pointer;border-right:1px solid #d5cec5;transition:background .12s,color .12s;user-select:none;}
 .ds-seg-btn:last-of-type{border-right:none;}
 .ds-seg input[type=radio]:checked+.ds-seg-btn{background:#18120a;color:#fff;}
+.ds-seg--four .ds-seg-btn{font-size:.66rem;}
 .ds-color-row{display:flex;align-items:center;gap:8px;}
 .ds-color-input{width:40px;height:34px;border:1px solid #d5cec5;border-radius:8px;padding:2px;cursor:pointer;background:#fff;flex-shrink:0;}
 .ds-color-text{flex:1;font-size:.8rem;font-family:monospace;border:1px solid #d5cec5;border-radius:8px;padding:6px 10px;color:#3d3328;background:#fff;}
@@ -675,13 +676,74 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                     </div>
                     <div class="ds-row">
                         <label class="ds-label">Price treatment</label>
-                        <div class="ds-seg">
+                        <div class="ds-seg ds-seg--four">
                             <input type="radio" id="price_accent" name="priceStyle" value="accent" {% if tc.priceStyle == 'accent' %}checked{% endif %}>
-                            <label class="ds-seg-btn" for="price_accent">Accent</label>
+                            <label class="ds-seg-btn" for="price_accent">Color</label>
                             <input type="radio" id="price_neutral" name="priceStyle" value="neutral" {% if tc.priceStyle == 'neutral' %}checked{% endif %}>
-                            <label class="ds-seg-btn" for="price_neutral">Neutral</label>
+                            <label class="ds-seg-btn" for="price_neutral">Plain</label>
+                            <input type="radio" id="price_outline" name="priceStyle" value="outline" {% if tc.priceStyle == 'outline' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_outline">Outline</label>
                             <input type="radio" id="price_badge" name="priceStyle" value="badge" {% if tc.priceStyle == 'badge' %}checked{% endif %}>
-                            <label class="ds-seg-btn" for="price_badge">Badge</label>
+                            <label class="ds-seg-btn" for="price_badge">Filled</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Price position</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="price_align_left" name="priceAlign" value="left" {% if tc.priceAlign == 'left' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_align_left">Left</label>
+                            <input type="radio" id="price_align_center" name="priceAlign" value="center" {% if tc.priceAlign == 'center' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_align_center">Center</label>
+                            <input type="radio" id="price_align_right" name="priceAlign" value="right" {% if tc.priceAlign == 'right' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_align_right">Right</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label" for="ds_priceFont">Price font</label>
+                        <select class="ds-select" id="ds_priceFont" name="priceFont">
+                            <optgroup label="Built-in fonts">
+                                {% for f in builtInFonts %}<option value="{{ f }}" {% if tc.priceFont == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+                            </optgroup>
+                            {% if customFonts is not empty %}
+                                <optgroup label="Custom fonts">
+                                    {% for f in customFonts %}<option value="{{ f.family }}" {% if tc.priceFont == f.family %}selected{% endif %}>{{ f.family }}</option>{% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label" for="ds_priceSize">Price size — <span id="ds_priceSizeVal">{{ (tc.priceSize * 16)|round }}</span>px</label>
+                        <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_priceSize" name="priceSize" min="0.65" max="1.4" step="0.05" value="{{ tc.priceSize }}"></div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Price weight</label>
+                        <div class="ds-seg">
+                            <input type="radio" id="price_weight_500" name="priceWeight" value="500" {% if tc.priceWeight == '500' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_weight_500">Medium</label>
+                            <input type="radio" id="price_weight_700" name="priceWeight" value="700" {% if tc.priceWeight == '700' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_weight_700">Bold</label>
+                            <input type="radio" id="price_weight_800" name="priceWeight" value="800" {% if tc.priceWeight == '800' %}checked{% endif %}>
+                            <label class="ds-seg-btn" for="price_weight_800">Heavy</label>
+                        </div>
+                    </div>
+                    <div class="ds-row">
+                        <label class="ds-label">Price color</label>
+                        <div class="ds-color-row">
+                            <input type="color" class="ds-color-input" id="ds_priceColor" name="priceColor" value="{{ tc.priceColor }}">
+                            <input type="text" class="ds-color-text" id="ds_priceColorTxt" value="{{ tc.priceColor }}" maxlength="7">
+                        </div>
+                    </div>
+                    <div id="ds_priceBoxControls">
+                        <div class="ds-row">
+                            <label class="ds-label">Box color</label>
+                            <div class="ds-color-row">
+                                <input type="color" class="ds-color-input" id="ds_priceBoxColor" name="priceBoxColor" value="{{ tc.priceBoxColor }}">
+                                <input type="text" class="ds-color-text" id="ds_priceBoxColorTxt" value="{{ tc.priceBoxColor }}" maxlength="7">
+                            </div>
+                        </div>
+                        <div class="ds-row">
+                            <label class="ds-label" for="ds_priceRadius">Box corners — <span id="ds_priceRadiusVal">{{ tc.priceRadius }}</span>px</label>
+                            <div class="ds-slider-row"><input type="range" class="ds-slider" id="ds_priceRadius" name="priceRadius" min="0" max="20" step="2" value="{{ tc.priceRadius }}"></div>
                         </div>
                     </div>
                     <div id="ds_glassCtrl">
@@ -788,16 +850,25 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         setRadio('pillStyle', values.pillStyle);
         setRadio('imageShape', values.imageShape);
         setRadio('priceStyle', values.priceStyle);
+        setRadio('priceAlign', values.priceAlign || 'left');
+        setRadio('priceWeight', values.priceWeight || '700');
         g('ds_font').value = values.font;
+        g('ds_priceFont').value = values.priceFont || 'Space Grotesk';
         g('ds_fontScale').value = values.fontScale;
         g('ds_fontScaleVal').textContent = Math.round(values.fontScale * 100);
         g('ds_cardRadius').value = values.cardRadius;
         g('ds_cardRadiusVal').textContent = values.cardRadius;
+        g('ds_priceSize').value = values.priceSize || .9;
+        g('ds_priceSizeVal').textContent = Math.round((values.priceSize || .9) * 16);
+        g('ds_priceRadius').value = values.priceRadius || 8;
+        g('ds_priceRadiusVal').textContent = values.priceRadius || 8;
         g('ds_bgColor').value = values.bg;
         g('ds_headerBg').value = values.header;
         g('ds_accent').value = values.accent;
         g('ds_cardBg').value = values.card;
-        [['ds_bgColorTxt', values.bg], ['ds_headerBgTxt', values.header], ['ds_accentTxt', values.accent], ['ds_cardBgTxt', values.card]].forEach(function (entry) {
+        g('ds_priceColor').value = values.priceColor || values.accent;
+        g('ds_priceBoxColor').value = values.priceBoxColor || values.accent;
+        [['ds_bgColorTxt', values.bg], ['ds_headerBgTxt', values.header], ['ds_accentTxt', values.accent], ['ds_cardBgTxt', values.card], ['ds_priceColorTxt', values.priceColor || values.accent], ['ds_priceBoxColorTxt', values.priceBoxColor || values.accent]].forEach(function (entry) {
             g(entry[0]).value = entry[1];
         });
         markDirty();
@@ -808,10 +879,12 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     function refreshVisibility() {
         var bt = radVal('bgType');
         var cs = radVal('cardStyle');
+        var ps = radVal('priceStyle');
         g('ds_bgSolid').style.display    = bt === 'solid'    ? 'block' : 'none';
         g('ds_bgGradient').style.display = bt === 'gradient' ? 'block' : 'none';
         g('ds_bgImage').style.display    = bt === 'image'    ? 'block' : 'none';
         g('ds_glassCtrl').style.display  = cs === 'glass'    ? 'block' : 'none';
+        g('ds_priceBoxControls').style.display = ps === 'outline' || ps === 'badge' ? 'block' : 'none';
     }
 
     /* ── push all vars to iframe ─────────────────────────── */
@@ -832,6 +905,12 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         root.style.setProperty('--pub-accent',   g('ds_accent').value);
         root.style.setProperty('--pub-card-bg',  g('ds_cardBg').value);
         root.style.setProperty('--pub-card-radius', g('ds_cardRadius').value + 'px');
+        root.style.setProperty('--pub-price-font', "'" + g('ds_priceFont').value + "', sans-serif");
+        root.style.setProperty('--pub-price-size', g('ds_priceSize').value + 'rem');
+        root.style.setProperty('--pub-price-weight', radVal('priceWeight'));
+        root.style.setProperty('--pub-price-color', g('ds_priceColor').value);
+        root.style.setProperty('--pub-price-box', g('ds_priceBoxColor').value);
+        root.style.setProperty('--pub-price-radius', g('ds_priceRadius').value + 'px');
         root.style.setProperty('--pub-glass-blur', g('ds_blur').value + 'px');
         root.style.setProperty('--pub-glass-opacity', g('ds_opac').value);
         root.style.setProperty('--pub-logo-align', radVal('logoAlign'));
@@ -861,6 +940,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         body.dataset.density   = radVal('density');
         body.dataset.imageShape = radVal('imageShape');
         body.dataset.priceStyle = radVal('priceStyle');
+        body.dataset.priceAlign = radVal('priceAlign');
     }
 
     /* ── sync colour text inputs ─────────────────────────── */
@@ -876,19 +956,23 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     syncText('ds_headerBg',  'ds_headerBgTxt');
     syncText('ds_accent',    'ds_accentTxt');
     syncText('ds_cardBg',    'ds_cardBgTxt');
+    syncText('ds_priceColor', 'ds_priceColorTxt');
+    syncText('ds_priceBoxColor', 'ds_priceBoxColorTxt');
 
     /* ── attach all other listeners ─────────────────────── */
-    ['ds_font','ds_bgGDir'].forEach(function(id){ g(id).addEventListener('change', push); });
-    ['ds_blur','ds_opac','ds_fontScale','ds_cardRadius'].forEach(function(id){
+    ['ds_font','ds_priceFont','ds_bgGDir'].forEach(function(id){ g(id).addEventListener('change', push); });
+    ['ds_blur','ds_opac','ds_fontScale','ds_cardRadius','ds_priceSize','ds_priceRadius'].forEach(function(id){
         g(id).addEventListener('input', function() {
             if (id === 'ds_blur')  g('ds_blurVal').textContent = this.value;
             if (id === 'ds_opac')  g('ds_opacVal').textContent = parseFloat(this.value).toFixed(2);
             if (id === 'ds_fontScale') g('ds_fontScaleVal').textContent = Math.round(parseFloat(this.value) * 100);
             if (id === 'ds_cardRadius') g('ds_cardRadiusVal').textContent = this.value;
+            if (id === 'ds_priceSize') g('ds_priceSizeVal').textContent = Math.round(parseFloat(this.value) * 16);
+            if (id === 'ds_priceRadius') g('ds_priceRadiusVal').textContent = this.value;
             push();
         });
     });
-    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"],[name="density"],[name="imageShape"],[name="priceStyle"]').forEach(function(el) {
+    document.querySelectorAll('[name="theme"],[name="bgType"],[name="cardStyle"],[name="pillStyle"],[name="logoAlign"],[name="layout"],[name="density"],[name="imageShape"],[name="priceStyle"],[name="priceAlign"],[name="priceWeight"]').forEach(function(el) {
         el.addEventListener('change', function () {
             /* auto-swap bg+card colours on theme switch */
             if (el.name === 'theme') {

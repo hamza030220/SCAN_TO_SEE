@@ -31,6 +31,12 @@
   --pub-accent:     {{ tc.accent }};
   --pub-card-bg:    {{ tc.cardBg }};
   --pub-card-radius: {{ tc.cardRadius }}px;
+  --pub-price-font: '{{ tc.priceFont }}', sans-serif;
+  --pub-price-size: {{ tc.priceSize }}rem;
+  --pub-price-weight: {{ tc.priceWeight }};
+  --pub-price-color: {{ tc.priceColor }};
+  --pub-price-box: {{ tc.priceBoxColor }};
+  --pub-price-radius: {{ tc.priceRadius }}px;
   --pub-glass-blur: {{ tc.glassBlur }}px;
   --pub-glass-opacity: {{ tc.glassOpacity }};
   --pub-logo-align: {{ tc.logoAlign }};
@@ -77,7 +83,7 @@
 </style>
 {% endblock %}
 
-{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout }}" data-density="{{ tc.density }}" data-image-shape="{{ tc.imageShape }}" data-price-style="{{ tc.priceStyle }}"{% endblock %}
+{% block body_attrs %}data-theme="{{ tc.theme }}" data-card-style="{{ tc.cardStyle }}" data-pill-style="{{ tc.pillStyle }}" data-layout="{{ tc.layout }}" data-density="{{ tc.density }}" data-image-shape="{{ tc.imageShape }}" data-price-style="{{ tc.priceStyle }}" data-price-align="{{ tc.priceAlign }}"{% endblock %}
 
 {% block body %}
 
