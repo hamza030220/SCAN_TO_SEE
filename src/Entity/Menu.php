@@ -39,6 +39,9 @@ class Menu
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $themeConfig = null;
 
+    #[ORM\OneToOne(mappedBy: 'menu', targetEntity: MenuHero::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?MenuHero $hero = null;
+
     public const DEFAULT_THEME = [
         'theme'           => 'light',
         'font'            => 'DM Sans',
@@ -101,6 +104,13 @@ class Menu
     public function setCurrency(string $c): static { $this->currency = $c; return $this; }
     public function getThemeConfig(): array { return array_merge(self::DEFAULT_THEME, $this->themeConfig ?? []); }
     public function setThemeConfig(?array $c): static { $this->themeConfig = $c; return $this; }
+    public function getHero(): ?MenuHero { return $this->hero; }
+    public function setHero(?MenuHero $hero): static
+    {
+        $this->hero = $hero;
+        if ($hero !== null && $hero->getMenu() !== $this) $hero->setMenu($this);
+        return $this;
+    }
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
     public function getUpdatedAt(): \DateTimeImmutable { return $this->updatedAt; }
     public function setUpdatedAt(\DateTimeImmutable $dt): static { $this->updatedAt = $dt; return $this; }
