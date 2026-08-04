@@ -388,7 +388,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-inspector-head strong{display:block;margin-top:2px;color:#251d14;font:700 .98rem 'Space Grotesk',sans-serif;}
 .ds-dirty-state{padding:4px 8px;border-radius:99px;background:#e9e4dd;color:#74695d;font-size:.64rem;font-weight:800;white-space:nowrap;}
 .ds-dirty-state.unsaved{background:#fff0cf;color:#895708;}.ds-dirty-state.error{background:#fee2e2;color:#991b1b;}
-.ds-tabs{display:grid;grid-template-columns:repeat(4,1fr);padding:0 10px 10px;gap:5px;}
+.ds-tabs{display:grid;grid-template-columns:repeat(5,1fr);padding:0 10px 10px;gap:5px;}
 .ds-tab{display:flex;min-width:0;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;border:1px solid transparent;border-radius:10px;background:transparent;color:#786c5e;font:700 .62rem 'DM Sans',sans-serif;cursor:pointer;}
 .ds-tab .material-symbols-outlined{font-size:18px;}.ds-tab.active{background:#fff;border-color:#ded7cd;color:#18120a;box-shadow:0 3px 10px rgba(36,25,10,.06);}
 .ds-preview-feedback{display:flex;align-items:center;gap:6px;margin:0 12px 10px;padding:7px 9px;border-radius:8px;background:#eaf7ee;color:#23643a;font-size:.66rem;font-weight:700;transition:background .18s,transform .18s;}
@@ -423,6 +423,16 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-reset-btn .material-symbols-outlined{font-size:16px;}
 .ds-contrast{margin-top:8px;padding:8px 10px;border-radius:6px;background:#edf8f1;color:#166534;font-size:.7rem;line-height:1.4;}
 .ds-contrast.warning{background:#fff6e5;color:#8a5300;}
+.hero-panel-status{display:flex;align-items:flex-start;gap:9px;margin-bottom:14px;padding:10px 11px;border-radius:10px;background:#edf8f1;color:#1f6339;font-size:.7rem;line-height:1.45;}.hero-panel-status.warning{background:#fff6e5;color:#805000}.hero-panel-status.error{background:#feecec;color:#991b1b}.hero-panel-status .material-symbols-outlined{font-size:18px;flex:0 0 auto}.hero-panel-status strong,.hero-panel-status span{display:block}
+.hero-switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px;border:1px solid #dfd7cc;border-radius:10px;background:#faf8f5}.hero-switch strong{display:block;font-size:.76rem}.hero-switch small{display:block;margin-top:2px;color:#86796b;font-size:.65rem}.hero-switch input{width:38px;height:20px;accent-color:#18120a}
+.hero-schedule-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-schedule-grid input{min-width:0;width:100%;padding:7px;border:1px solid #d5cec5;border-radius:8px;font:inherit;font-size:.7rem}
+.hero-mode{display:flex;gap:6px;margin-bottom:10px}.hero-mode button{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border:1px solid #d5cec5;border-radius:8px;background:#fff;color:#756858;font-size:.7rem;font-weight:700;cursor:pointer}.hero-mode button.active{background:#18120a;color:#fff;border-color:#18120a}.hero-mode .material-symbols-outlined{font-size:16px}
+.hero-add-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.hero-add-grid button{display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;border:1px solid #d8cec0;border-radius:8px;background:#fff;color:#514537;font-size:.69rem;font-weight:700;cursor:pointer}.hero-add-grid button:hover{border-color:#E8A020}.hero-add-grid button:disabled{opacity:.48;cursor:not-allowed}.hero-add-grid .material-symbols-outlined{font-size:16px}
+.hero-layer-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}.hero-layer-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:8px;border:1px solid #ddd5ca;border-radius:9px;background:#fff;cursor:pointer}.hero-layer-row.active{border-color:#E8A020;background:#fff9ed}.hero-layer-row .material-symbols-outlined{font-size:18px;color:#8c7b68}.hero-layer-row strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.72rem}.hero-layer-row small{display:block;color:#938677;font-size:.6rem;text-transform:capitalize}.hero-layer-actions{display:flex;gap:2px}.hero-layer-actions button{display:grid;place-items:center;width:25px;height:25px;border:0;border-radius:5px;background:transparent;color:#756858;cursor:pointer}.hero-layer-actions button:hover{background:#eee7dc}.hero-layer-actions button:disabled{opacity:.3;cursor:not-allowed}.hero-layer-actions .material-symbols-outlined{font-size:16px}
+.hero-editor-empty{padding:18px;border:1px dashed #d5cec5;border-radius:10px;color:#887b6d;text-align:center;font-size:.7rem;line-height:1.5}.hero-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.hero-editor-grid .ds-row{margin:0}.hero-editor-grid .span-2{grid-column:1/-1}.hero-editor-grid input[type=text],.hero-editor-grid input[type=number],.hero-editor-grid textarea,.hero-editor-grid select{width:100%;padding:7px 8px;border:1px solid #d5cec5;border-radius:8px;background:#fff;color:#3d3328;font:inherit;font-size:.72rem}.hero-editor-grid textarea{min-height:72px;resize:vertical}.hero-editor-grid input[type=color]{width:100%;height:34px;border:1px solid #d5cec5;border-radius:8px;background:#fff}.hero-check{display:flex;align-items:center;gap:6px;color:#514537;font-size:.69rem;font-weight:700}.hero-help{margin:7px 0 0;color:#8b7e70;font-size:.65rem;line-height:1.45}
+.hero-validation{margin:10px 0 0;padding:9px 10px;border-radius:8px;background:#f3f0eb;color:#675b4e;font-size:.67rem;line-height:1.45}.hero-validation ul{margin:5px 0 0;padding-left:18px}.hero-validation.error{background:#fff0f0;color:#991b1b}.hero-validation.good{background:#edf8f1;color:#1f6339}
+.hero-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.hero-action-grid button{padding:9px 7px;border:1px solid #18120a;border-radius:8px;background:#fff;color:#18120a;font-size:.7rem;font-weight:800;cursor:pointer}.hero-action-grid .primary{background:#E8A020;border-color:#E8A020}.hero-action-grid .danger{grid-column:1/-1;border-color:#e2a7a7;color:#a11f1f}.hero-action-grid button:disabled{opacity:.45;cursor:not-allowed}.hero-action-note{margin:7px 0 0;color:#8b7e70;font-size:.64rem;line-height:1.45;text-align:center}
+.hero-upload-progress{margin-top:7px;color:#805000;font-size:.67rem;font-weight:700}
 </style>
 <div class="ds-panel" id="dsPanel">
     <div class="ds-head">
@@ -462,6 +472,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                     <button type="button" class="ds-tab" data-ds-tab="canvas" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">wallpaper</span>Canvas</button>
                     <button type="button" class="ds-tab" data-ds-tab="brand" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">palette</span>Brand</button>
                     <button type="button" class="ds-tab" data-ds-tab="components" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span>Cards</button>
+                    <button type="button" class="ds-tab" data-ds-tab="hero" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">campaign</span>Hero</button>
                 </nav>
                 <div class="ds-preview-feedback" id="ds_previewFeedback" role="status" aria-live="polite"><span class="material-symbols-outlined" aria-hidden="true">visibility</span><span>Live preview ready</span></div>
             </div>
@@ -782,6 +793,84 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                     </div>
                 </div>
             </form>
+
+            <section class="ds-section hero-section" data-ds-panel="hero" id="heroEditorSection">
+                <p class="ds-section-title">Promotional hero</p>
+                <p class="ds-section-copy">Build a responsive offer above the menu. Draft changes stay private until you publish them.</p>
+                <div class="hero-panel-status{{ heroPublished ? '' : ' warning' }}" id="heroStatus" role="status" aria-live="polite">
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ heroPublished ? 'check_circle' : 'info' }}</span>
+                    <div><strong>{{ heroPublished ? 'A published hero exists' : 'Draft only' }}</strong><span>{{ heroPublishedAt ? 'Last published ' ~ heroPublishedAt|date('F j, Y \a\t H:i') : 'Customers cannot see a hero until you publish one.' }}</span></div>
+                </div>
+
+                <div class="hero-switch">
+                    <div><strong>Show hero</strong><small>Required before publishing. Turning this off does not hide an already published version until you press Hide.</small></div>
+                    <input type="checkbox" id="hero_enabled" {{ heroConfig.enabled ? 'checked' : '' }} aria-label="Show hero when published">
+                </div>
+
+                <div class="ds-row" style="margin-top:14px">
+                    <label class="ds-label">Schedule</label>
+                    <div class="hero-schedule-grid">
+                        <div><span class="ds-field-help">Starts (optional)</span><input type="datetime-local" id="hero_startsAt"></div>
+                        <div><span class="ds-field-help">Expires (optional)</span><input type="datetime-local" id="hero_expiresAt"></div>
+                    </div>
+                    <p class="hero-help">No expiration means the hero stays visible until you hide it. A countdown requires a future expiration.</p>
+                </div>
+
+                <div class="ds-row">
+                    <label class="ds-label">Editing layout</label>
+                    <div class="hero-mode">
+                        <button type="button" class="active" data-hero-mode="desktop"><span class="material-symbols-outlined" aria-hidden="true">desktop_windows</span>Desktop</button>
+                        <button type="button" data-hero-mode="mobile"><span class="material-symbols-outlined" aria-hidden="true">smartphone</span>Mobile</button>
+                    </div>
+                    <p class="hero-help">Mobile positions are independent. Configure both layouts before publishing.</p>
+                </div>
+
+                <div class="ds-row">
+                    <label class="ds-label">Canvas height</label>
+                    <div class="hero-editor-grid">
+                        <div class="ds-row"><label class="ds-field-help" for="hero_desktopHeight">Desktop px</label><input type="number" id="hero_desktopHeight" min="240" max="600" value="{{ heroConfig.desktopHeight }}"></div>
+                        <div class="ds-row"><label class="ds-field-help" for="hero_mobileHeight">Mobile px</label><input type="number" id="hero_mobileHeight" min="220" max="520" value="{{ heroConfig.mobileHeight }}"></div>
+                    </div>
+                </div>
+
+                <div class="ds-row">
+                    <label class="ds-label">Add layer <span id="heroLayerCount">{{ heroConfig.layers|length }}/20</span></label>
+                    <div class="hero-add-grid">
+                        <button type="button" data-hero-add="text"><span class="material-symbols-outlined" aria-hidden="true">title</span>Text</button>
+                        <button type="button" data-hero-add="shape"><span class="material-symbols-outlined" aria-hidden="true">shapes</span>Shape</button>
+                        <button type="button" data-hero-add="image"><span class="material-symbols-outlined" aria-hidden="true">image</span>Image</button>
+                        <button type="button" data-hero-add="countdown"><span class="material-symbols-outlined" aria-hidden="true">timer</span>Countdown</button>
+                    </div>
+                    <input type="file" id="heroImageInput" accept="image/jpeg,image/png,image/webp" hidden>
+                    <div class="hero-upload-progress" id="heroUploadProgress" hidden></div>
+                    <p class="hero-help" id="heroAddHelp">Maximum 20 layers including the locked background. Only one countdown is allowed.</p>
+                </div>
+
+                <div class="ds-row">
+                    <label class="ds-label">Layers</label>
+                    <div class="hero-layer-list" id="heroLayerList"></div>
+                </div>
+
+                <div class="ds-row">
+                    <label class="ds-label">Selected layer</label>
+                    <div id="heroLayerEditor" class="hero-editor-empty">Select a layer to edit it. Drag unlocked layers directly in the preview to position them.</div>
+                </div>
+
+                <div class="hero-validation" id="heroValidation" role="status">Your draft has not been checked yet.</div>
+                <div class="hero-action-grid">
+                    <button type="button" id="heroSaveDraft">Save draft</button>
+                    <button type="button" class="primary" id="heroPublish">Publish hero</button>
+                    <button type="button" class="danger" id="heroHide" {{ heroPublished ? '' : 'disabled' }}>Hide published hero</button>
+                </div>
+                <p class="hero-action-note" id="heroActionNote">{{ heroPublished ? 'Hide removes the public hero immediately but keeps this draft.' : 'Hide is unavailable because no hero has been published yet.' }}</p>
+            </section>
+            <script type="application/json" id="heroConfigData">{{ heroConfigJson|raw }}</script>
+            <div hidden id="heroEndpoints"
+                 data-draft="{{ path('app_owner_menu_hero_draft', {id: menu.id}) }}"
+                 data-publish="{{ path('app_owner_menu_hero_publish', {id: menu.id}) }}"
+                 data-hide="{{ path('app_owner_menu_hero_hide', {id: menu.id}) }}"
+                 data-image="{{ path('app_owner_menu_hero_image', {id: menu.id}) }}"
+                 data-token="{{ csrf_token('hero-' ~ menu.id) }}"></div>
         </div>{# /.ds-controls #}
     </div>{# /.ds-body #}
 </div>{# /.ds-panel #}
@@ -1055,6 +1144,8 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
             document.querySelectorAll('[data-ds-panel]').forEach(function (section) {
                 section.classList.toggle('active', section.dataset.dsPanel === selected);
             });
+            saveBtn.hidden = selected === 'hero';
+            g('ds_previewFeedback').style.display = selected === 'hero' ? 'none' : 'flex';
             document.querySelector('.ds-controls').scrollTo({ top: 0, behavior: 'smooth' });
         });
     });
@@ -1091,7 +1182,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         window.scrollTo(0, pageScrollY);
     }
     function closeStudio() {
-        if (dirty && !window.confirm('Discard your unsaved design changes?')) return;
+        if ((dirty || window.s2sHeroDirty) && !window.confirm('Discard your unsaved design changes?')) return;
         panel.classList.remove('open');
         unlockPage();
     }
@@ -1108,7 +1199,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
     });
 
     window.addEventListener('beforeunload', function (event) {
-        if (!dirty) return;
+        if (!dirty && !window.s2sHeroDirty) return;
         event.preventDefault();
         event.returnValue = '';
     });
@@ -1152,6 +1243,385 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 
     /* ── initial sub-control visibility ─────────────────── */
     refreshVisibility();
+})();
+</script>
+
+<script>
+(function () {
+    var dataNode = document.getElementById('heroConfigData');
+    var endpoints = document.getElementById('heroEndpoints');
+    var iframe = document.getElementById('dsPreview');
+    if (!dataNode || !endpoints || !iframe) return;
+
+    var config = JSON.parse(dataNode.textContent || '{}');
+    var selectedId = 'background';
+    var editMode = 'desktop';
+    var pendingImageTarget = null;
+    var published = {{ heroPublished ? 'true' : 'false' }};
+    window.s2sHeroDirty = false;
+
+    var layerList = document.getElementById('heroLayerList');
+    var layerEditor = document.getElementById('heroLayerEditor');
+    var validation = document.getElementById('heroValidation');
+    var status = document.getElementById('heroStatus');
+    var imageInput = document.getElementById('heroImageInput');
+    var uploadProgress = document.getElementById('heroUploadProgress');
+    var saveButton = document.getElementById('heroSaveDraft');
+    var publishButton = document.getElementById('heroPublish');
+    var hideButton = document.getElementById('heroHide');
+
+    function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/[&<>'"]/g, function (character) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[character];
+        });
+    }
+    function id() { return 'layer-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+    function selectedLayer() { return config.layers.find(function (layer) { return layer.id === selectedId; }) || config.layers[0]; }
+    function toLocalInput(value) {
+        if (!value) return '';
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    function toIso(value) {
+        if (!value) return null;
+        var date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    }
+    function clamp(value, min, max) { return Math.min(max, Math.max(min, Number(value) || 0)); }
+    function fontOptions(selected) {
+        return Array.from(document.getElementById('ds_font').options).map(function (option) {
+            return '<option value="' + escapeHtml(option.value) + '"' + (option.value === selected ? ' selected' : '') + '>' + escapeHtml(option.textContent) + '</option>';
+        }).join('');
+    }
+    function setStatus(title, detail, kind, icon) {
+        status.className = 'hero-panel-status' + (kind ? ' ' + kind : '');
+        status.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + escapeHtml(icon || 'info') + '</span><div><strong>' + escapeHtml(title) + '</strong><span>' + escapeHtml(detail) + '</span></div>';
+    }
+    function markDirty(message) {
+        window.s2sHeroDirty = true;
+        setStatus('Unpublished hero changes', message || 'Save the draft when you are ready. Customers are not seeing these changes.', 'warning', 'edit');
+    }
+    function syncTopFields() {
+        config.enabled = document.getElementById('hero_enabled').checked;
+        config.startsAt = toIso(document.getElementById('hero_startsAt').value);
+        config.expiresAt = toIso(document.getElementById('hero_expiresAt').value);
+        config.desktopHeight = clamp(document.getElementById('hero_desktopHeight').value, 240, 600);
+        config.mobileHeight = clamp(document.getElementById('hero_mobileHeight').value, 220, 520);
+    }
+    function messageList(messages, goodText) {
+        validation.className = 'hero-validation ' + (messages.length ? 'error' : 'good');
+        validation.innerHTML = messages.length
+            ? '<strong>Please fix the following:</strong><ul>' + messages.map(function (message) { return '<li>' + escapeHtml(message) + '</li>'; }).join('') + '</ul>'
+            : '<strong>' + escapeHtml(goodText || 'Hero is ready to publish.') + '</strong>';
+    }
+    function localErrors(forPublish) {
+        syncTopFields();
+        var errors = [];
+        var visible = config.layers.filter(function (layer) { return layer.type !== 'background' && layer.visible; });
+        if (forPublish && !config.enabled) errors.push('Turn on “Show hero” before publishing it.');
+        if (forPublish && visible.length === 0) errors.push('Add at least one visible content layer.');
+        var start = config.startsAt ? Date.parse(config.startsAt) : null;
+        var end = config.expiresAt ? Date.parse(config.expiresAt) : null;
+        if (end && end <= Date.now()) errors.push('Choose an expiration time in the future.');
+        if (start && end && start >= end) errors.push('The start time must be earlier than the expiration time.');
+        visible.forEach(function (layer) {
+            if (layer.type === 'text' && !String(layer.content || '').trim()) errors.push(layer.name + ' needs some text.');
+            if (layer.type === 'image' && !layer.imagePath) errors.push(layer.name + ' needs an uploaded image.');
+            if (layer.type === 'countdown' && !end) errors.push(layer.name + ' needs an expiration date and time.');
+        });
+        return Array.from(new Set(errors));
+    }
+    function validate(forPublish) {
+        var errors = localErrors(!!forPublish);
+        messageList(errors, forPublish ? 'Hero is ready to publish.' : 'Draft structure looks good.');
+        return errors;
+    }
+
+    function makeLayer(type, imagePath) {
+        var number = config.layers.length;
+        var common = {
+            id: id(), name: type.charAt(0).toUpperCase() + type.slice(1) + ' ' + number,
+            type: type, visible: true, locked: false, opacity: 1, rotation: 0,
+            desktop: {x: 10, y: 15, width: 80, height: 24},
+            mobile: {x: 8, y: 15, width: 84, height: 24}
+        };
+        if (type === 'text') Object.assign(common, {content:'Special offer',font:'Space Grotesk',fontSize:38,fontWeight:'700',color:'#FFFFFF',align:'center',backgroundEnabled:false,backgroundColor:'#000000'});
+        if (type === 'shape') Object.assign(common, {shape:'rectangle',fill:'#E8A020',borderColor:'#FFFFFF',borderWidth:0,desktop:{x:20,y:25,width:60,height:30},mobile:{x:15,y:25,width:70,height:30}});
+        if (type === 'image') Object.assign(common, {imagePath:imagePath || null,alt:'',fit:'contain',radius:12,desktop:{x:30,y:15,width:40,height:55},mobile:{x:25,y:15,width:50,height:50}});
+        if (type === 'countdown') Object.assign(common, {font:'Space Grotesk',fontSize:28,fontWeight:'700',color:'#FFFFFF',backgroundColor:'#18120A',showLabels:true,desktop:{x:20,y:55,width:60,height:22},mobile:{x:8,y:60,width:84,height:22}});
+        return common;
+    }
+
+    function renderLayerList() {
+        layerList.innerHTML = '';
+        config.layers.forEach(function (layer, index) {
+            var row = document.createElement('div');
+            row.className = 'hero-layer-row' + (layer.id === selectedId ? ' active' : '');
+            row.dataset.layerId = layer.id;
+            row.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">' + ({background:'wallpaper',text:'title',image:'image',shape:'shapes',countdown:'timer'}[layer.type] || 'layers') + '</span>' +
+                '<div><strong>' + escapeHtml(layer.name) + '</strong><small>' + escapeHtml(layer.type) + (layer.visible ? '' : ' · hidden') + (layer.locked ? ' · locked' : '') + '</small></div>' +
+                '<div class="hero-layer-actions">' +
+                '<button type="button" data-layer-action="up" title="Move layer up"' + (index <= 1 ? ' disabled' : '') + '><span class="material-symbols-outlined">arrow_upward</span></button>' +
+                '<button type="button" data-layer-action="down" title="Move layer down"' + (index === 0 || index === config.layers.length - 1 ? ' disabled' : '') + '><span class="material-symbols-outlined">arrow_downward</span></button>' +
+                '<button type="button" data-layer-action="visibility" title="' + (layer.visible ? 'Hide layer' : 'Show layer') + '"><span class="material-symbols-outlined">' + (layer.visible ? 'visibility' : 'visibility_off') + '</span></button>' +
+                '</div>';
+            row.addEventListener('click', function (event) {
+                var action = event.target.closest('[data-layer-action]');
+                if (action) { handleLayerAction(layer.id, action.dataset.layerAction); return; }
+                selectedId = layer.id; renderAll(true);
+            });
+            layerList.appendChild(row);
+        });
+        document.getElementById('heroLayerCount').textContent = config.layers.length + '/20';
+        var full = config.layers.length >= 20;
+        document.querySelectorAll('[data-hero-add]').forEach(function (button) { button.disabled = full || (button.dataset.heroAdd === 'countdown' && config.layers.some(function (layer) { return layer.type === 'countdown'; })); });
+        document.getElementById('heroAddHelp').textContent = full
+            ? 'The 20-layer limit is reached. Delete an unlocked layer before adding another.'
+            : (config.layers.some(function (layer) { return layer.type === 'countdown'; }) ? 'A countdown already exists. Delete it before adding another.' : 'Maximum 20 layers including the locked background. Only one countdown is allowed.');
+    }
+
+    function handleLayerAction(layerId, action) {
+        var index = config.layers.findIndex(function (layer) { return layer.id === layerId; });
+        if (index < 0) return;
+        var layer = config.layers[index];
+        if (action === 'up' && index > 1) { config.layers.splice(index, 1); config.layers.splice(index - 1, 0, layer); }
+        if (action === 'down' && index > 0 && index < config.layers.length - 1) { config.layers.splice(index, 1); config.layers.splice(index + 1, 0, layer); }
+        if (action === 'visibility') {
+            if (layer.type === 'background') { setStatus('Background cannot be hidden', 'Layer 0 always defines the hero canvas. Change its color or image instead.', 'warning', 'lock'); return; }
+            layer.visible = !layer.visible;
+        }
+        markDirty('Layer order or visibility changed. Save the draft to keep it.');
+        renderAll(true);
+    }
+
+    function commonFields(layer) {
+        var position = layer[editMode];
+        return '<div class="hero-editor-grid">' +
+            '<div class="ds-row span-2"><label class="ds-field-help">Layer name</label><input type="text" maxlength="50" data-hero-field="name" value="' + escapeHtml(layer.name) + '"></div>' +
+            '<label class="hero-check"><input type="checkbox" data-hero-field="visible"' + (layer.visible ? ' checked' : '') + '> Visible</label>' +
+            '<label class="hero-check"><input type="checkbox" data-hero-field="locked"' + (layer.locked ? ' checked' : '') + '> Lock position</label>' +
+            ['x','y','width','height'].map(function (field) { return '<div class="ds-row"><label class="ds-field-help">' + ({x:'Left %',y:'Top %',width:'Width %',height:'Height %'}[field]) + '</label><input type="number" min="' + (field === 'width' || field === 'height' ? 5 : 0) + '" max="100" step="1" data-hero-position="' + field + '" value="' + position[field] + '"></div>'; }).join('') +
+            '<div class="ds-row"><label class="ds-field-help">Opacity</label><input type="number" min="0" max="1" step="0.05" data-hero-field="opacity" value="' + layer.opacity + '"></div>' +
+            '<div class="ds-row"><label class="ds-field-help">Rotation °</label><input type="number" min="-180" max="180" data-hero-field="rotation" value="' + layer.rotation + '"></div>' +
+            '</div>';
+    }
+
+    function renderEditor() {
+        var layer = selectedLayer();
+        selectedId = layer.id;
+        if (layer.type === 'background') {
+            layerEditor.className = '';
+            layerEditor.innerHTML = '<div class="hero-editor-grid">' +
+                '<div class="ds-row"><label class="ds-field-help">Background color</label><input type="color" data-hero-field="color" value="' + layer.color + '"></div>' +
+                '<div class="ds-row"><label class="ds-field-help">Overlay color</label><input type="color" data-hero-field="overlayColor" value="' + layer.overlayColor + '"></div>' +
+                '<div class="ds-row span-2"><label class="ds-field-help">Overlay opacity</label><input type="range" min="0" max="0.85" step="0.05" data-hero-field="overlayOpacity" value="' + layer.overlayOpacity + '"></div>' +
+                '<div class="ds-row span-2"><button type="button" class="ds-file-label" id="heroBackgroundUpload">' + (layer.imagePath ? 'Replace background image' : 'Upload background image') + '</button>' + (layer.imagePath ? '<button type="button" class="ds-reset-btn" id="heroBackgroundRemove"><span class="material-symbols-outlined">delete</span>Remove background image</button>' : '') + '</div>' +
+                '</div><p class="hero-help">Background is permanently locked as Layer 0 and cannot be hidden, moved, or deleted.</p>';
+            bindEditor(layer);
+            document.getElementById('heroBackgroundUpload').addEventListener('click', function () { pendingImageTarget = 'background'; imageInput.click(); });
+            var remove = document.getElementById('heroBackgroundRemove');
+            if (remove) remove.addEventListener('click', function () { layer.imagePath = null; markDirty('Background image removed from the draft.'); renderAll(true); });
+            return;
+        }
+
+        var specific = '';
+        if (layer.type === 'text') specific = '<div class="hero-editor-grid" style="margin-top:10px"><div class="ds-row span-2"><label class="ds-field-help">Text</label><textarea maxlength="300" data-hero-field="content">' + escapeHtml(layer.content) + '</textarea></div><div class="ds-row span-2"><label class="ds-field-help">Font</label><select data-hero-field="font">' + fontOptions(layer.font) + '</select></div><div class="ds-row"><label class="ds-field-help">Size px</label><input type="number" min="12" max="96" data-hero-field="fontSize" value="' + layer.fontSize + '"></div><div class="ds-row"><label class="ds-field-help">Color</label><input type="color" data-hero-field="color" value="' + layer.color + '"></div><div class="ds-row"><label class="ds-field-help">Alignment</label><select data-hero-field="align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></div><div class="ds-row"><label class="ds-field-help">Weight</label><select data-hero-field="fontWeight"><option>400</option><option>600</option><option>700</option><option>800</option></select></div><label class="hero-check span-2"><input type="checkbox" data-hero-field="backgroundEnabled"' + (layer.backgroundEnabled ? ' checked' : '') + '> Add text background</label><div class="ds-row span-2"><label class="ds-field-help">Text background color</label><input type="color" data-hero-field="backgroundColor" value="' + layer.backgroundColor + '"></div></div>';
+        if (layer.type === 'shape') specific = '<div class="hero-editor-grid" style="margin-top:10px"><div class="ds-row"><label class="ds-field-help">Shape</label><select data-hero-field="shape"><option value="rectangle">Rectangle</option><option value="circle">Circle</option></select></div><div class="ds-row"><label class="ds-field-help">Fill</label><input type="color" data-hero-field="fill" value="' + layer.fill + '"></div><div class="ds-row"><label class="ds-field-help">Border color</label><input type="color" data-hero-field="borderColor" value="' + layer.borderColor + '"></div><div class="ds-row"><label class="ds-field-help">Border px</label><input type="number" min="0" max="12" data-hero-field="borderWidth" value="' + layer.borderWidth + '"></div></div>';
+        if (layer.type === 'image') specific = '<div class="hero-editor-grid" style="margin-top:10px"><div class="ds-row span-2"><label class="ds-field-help">Alternative text</label><input type="text" maxlength="150" data-hero-field="alt" value="' + escapeHtml(layer.alt) + '"></div><div class="ds-row"><label class="ds-field-help">Fit</label><select data-hero-field="fit"><option value="contain">Contain</option><option value="cover">Cover</option></select></div><div class="ds-row"><label class="ds-field-help">Corners px</label><input type="number" min="0" max="50" data-hero-field="radius" value="' + layer.radius + '"></div><div class="ds-row span-2"><button type="button" class="ds-file-label" id="heroReplaceImage">Replace image</button></div></div>';
+        if (layer.type === 'countdown') specific = '<div class="hero-editor-grid" style="margin-top:10px"><div class="ds-row span-2"><label class="ds-field-help">Font</label><select data-hero-field="font">' + fontOptions(layer.font) + '</select></div><div class="ds-row"><label class="ds-field-help">Size px</label><input type="number" min="12" max="64" data-hero-field="fontSize" value="' + layer.fontSize + '"></div><div class="ds-row"><label class="ds-field-help">Weight</label><select data-hero-field="fontWeight"><option>400</option><option>600</option><option>700</option><option>800</option></select></div><div class="ds-row"><label class="ds-field-help">Text color</label><input type="color" data-hero-field="color" value="' + layer.color + '"></div><div class="ds-row"><label class="ds-field-help">Background</label><input type="color" data-hero-field="backgroundColor" value="' + layer.backgroundColor + '"></div><label class="hero-check span-2"><input type="checkbox" data-hero-field="showLabels"' + (layer.showLabels ? ' checked' : '') + '> Show day/hour labels</label></div><p class="hero-help">The countdown uses the hero expiration time. Publishing is blocked until a future expiration is selected.</p>';
+
+        layerEditor.className = '';
+        layerEditor.innerHTML = commonFields(layer) + specific + '<div class="hero-action-grid"><button type="button" id="heroDuplicateLayer">Duplicate layer</button><button type="button" class="danger" id="heroDeleteLayer"' + (layer.locked ? ' disabled' : '') + '>Delete layer</button></div><p class="hero-action-note">' + (layer.locked ? 'Unlock this layer before deleting it.' : 'Deletion affects the draft only until you publish.') + '</p>';
+        bindEditor(layer);
+        document.getElementById('heroDuplicateLayer').addEventListener('click', duplicateSelected);
+        document.getElementById('heroDeleteLayer').addEventListener('click', deleteSelected);
+        var replace = document.getElementById('heroReplaceImage');
+        if (replace) replace.addEventListener('click', function () { pendingImageTarget = layer.id; imageInput.click(); });
+    }
+
+    function bindEditor(layer) {
+        layerEditor.querySelectorAll('[data-hero-field]').forEach(function (input) {
+            if (input.tagName === 'SELECT' && layer[input.dataset.heroField] != null) input.value = String(layer[input.dataset.heroField]);
+            input.addEventListener('input', function () {
+                var key = input.dataset.heroField;
+                layer[key] = input.type === 'checkbox' ? input.checked : (input.type === 'number' || input.type === 'range' ? Number(input.value) : input.value);
+                markDirty(layer.name + ' changed in the draft preview.'); renderPreview(); validate(false); renderLayerList();
+            });
+        });
+        layerEditor.querySelectorAll('[data-hero-position]').forEach(function (input) {
+            input.addEventListener('input', function () {
+                var position = layer[editMode];
+                var key = input.dataset.heroPosition;
+                var minimum = key === 'width' || key === 'height' ? 5 : 0;
+                position[key] = clamp(input.value, minimum, 100);
+                if (key === 'x') position.width = Math.min(position.width, 100 - position.x);
+                if (key === 'y') position.height = Math.min(position.height, 100 - position.y);
+                if (key === 'width') position.width = Math.min(position.width, 100 - position.x);
+                if (key === 'height') position.height = Math.min(position.height, 100 - position.y);
+                markDirty(layer.name + ' repositioned for ' + editMode + '.'); renderPreview(); validate(false);
+            });
+        });
+    }
+
+    function duplicateSelected() {
+        if (config.layers.length >= 20) { setStatus('Layer limit reached', 'Delete an unlocked layer before duplicating another one.', 'warning', 'layers'); return; }
+        var layer = selectedLayer();
+        if (layer.type === 'countdown') { setStatus('Countdown cannot be duplicated', 'Only one countdown is allowed. Edit the existing timer instead.', 'warning', 'timer'); return; }
+        var copy = JSON.parse(JSON.stringify(layer));
+        copy.id = id(); copy.name = layer.name + ' copy'; copy.locked = false;
+        copy.desktop.x = Math.min(95, copy.desktop.x + 3); copy.mobile.x = Math.min(95, copy.mobile.x + 3);
+        config.layers.push(copy); selectedId = copy.id; markDirty('Layer duplicated.'); renderAll(true);
+    }
+    function deleteSelected() {
+        var layer = selectedLayer();
+        if (layer.type === 'background') { setStatus('Background cannot be deleted', 'Layer 0 is required for every hero.', 'warning', 'lock'); return; }
+        if (layer.locked) { setStatus('Layer is locked', 'Unlock it in Selected layer before deleting it.', 'warning', 'lock'); return; }
+        if (!window.confirm('Delete “' + layer.name + '” from this draft?')) return;
+        config.layers = config.layers.filter(function (entry) { return entry.id !== layer.id; });
+        selectedId = 'background'; markDirty('Layer removed from the draft.'); renderAll(true);
+    }
+
+    function heroElement(doc) {
+        var hero = doc.getElementById('menuHero');
+        if (!hero) {
+            hero = doc.createElement('section'); hero.id = 'menuHero'; hero.className = 'pub-hero pub-hero--preview';
+            var main = doc.getElementById('pubMain');
+            if (main) main.parentNode.insertBefore(hero, main);
+        }
+        return hero;
+    }
+    function renderPreview() {
+        syncTopFields();
+        var doc;
+        try { doc = iframe.contentDocument || iframe.contentWindow.document; } catch (error) { return; }
+        if (!doc || !doc.body) return;
+        var hero = heroElement(doc);
+        var background = config.layers[0];
+        hero.style.setProperty('--hero-desktop-height', config.desktopHeight + 'px');
+        hero.style.setProperty('--hero-mobile-height', config.mobileHeight + 'px');
+        hero.style.setProperty('--hero-bg', background.color);
+        hero.style.setProperty('--hero-bg-image', background.imagePath ? "url('/" + background.imagePath + "')" : 'none');
+        hero.style.setProperty('--hero-overlay', background.overlayColor);
+        hero.style.setProperty('--hero-overlay-opacity', background.overlayOpacity);
+        hero.innerHTML = '<div class="pub-hero-overlay" aria-hidden="true"></div><div class="pub-hero-canvas"></div>';
+        var canvas = hero.querySelector('.pub-hero-canvas');
+        config.layers.slice(1).forEach(function (layer, index) {
+            if (!layer.visible) return;
+            var element = doc.createElement('div');
+            element.className = 'pub-hero-layer pub-hero-layer--' + layer.type;
+            element.dataset.heroLayer = layer.id; element.dataset.layerType = layer.type;
+            element.style.cssText = '--hx:' + layer.desktop.x + ';--hy:' + layer.desktop.y + ';--hw:' + layer.desktop.width + ';--hh:' + layer.desktop.height + ';--hmx:' + layer.mobile.x + ';--hmy:' + layer.mobile.y + ';--hmw:' + layer.mobile.width + ';--hmh:' + layer.mobile.height + ';--hopacity:' + layer.opacity + ';--hrotation:' + layer.rotation + 'deg;z-index:' + (index + 1) + ';' + (layer.id === selectedId ? 'outline:2px solid #E8A020;outline-offset:2px;' : '');
+            if (layer.type === 'text') { var text = doc.createElement('div'); text.className = 'pub-hero-text'; text.textContent = layer.content; text.style.cssText = "font-family:'" + layer.font + "',sans-serif;font-size:" + layer.fontSize + 'px;font-weight:' + layer.fontWeight + ';color:' + layer.color + ';text-align:' + layer.align + ';' + (layer.backgroundEnabled ? 'background:' + layer.backgroundColor : ''); element.appendChild(text); }
+            if (layer.type === 'shape') { var shape = doc.createElement('div'); shape.className = 'pub-hero-shape pub-hero-shape--' + layer.shape; shape.style.cssText = 'background:' + layer.fill + ';border:' + layer.borderWidth + 'px solid ' + layer.borderColor; element.appendChild(shape); }
+            if (layer.type === 'image' && layer.imagePath) { var image = doc.createElement('img'); image.className = 'pub-hero-image'; image.src = '/' + layer.imagePath; image.alt = layer.alt || ''; image.style.cssText = 'object-fit:' + layer.fit + ';border-radius:' + layer.radius + 'px'; element.appendChild(image); }
+            if (layer.type === 'countdown') { var timer = doc.createElement('div'); timer.className = 'pub-hero-countdown'; timer.style.cssText = "font-family:'" + layer.font + "',sans-serif;font-size:" + layer.fontSize + 'px;font-weight:' + layer.fontWeight + ';color:' + layer.color + ';background:' + layer.backgroundColor; timer.innerHTML = ['02','12','45','30'].map(function (part, i) { return '<span>' + part + (layer.showLabels ? '<small>' + ['days','hours','min','sec'][i] + '</small>' : '') + '</span>'; }).join(''); element.appendChild(timer); }
+            element.addEventListener('pointerdown', function (event) { startDrag(event, layer, element, hero); });
+            element.addEventListener('click', function (event) { event.stopPropagation(); selectedId = layer.id; renderLayerList(); renderEditor(); });
+            canvas.appendChild(element);
+        });
+    }
+
+    function startDrag(event, layer, element, hero) {
+        selectedId = layer.id;
+        if (layer.locked) { setStatus('Layer is locked', 'Unlock it in Selected layer before dragging.', 'warning', 'lock'); renderLayerList(); renderEditor(); return; }
+        event.preventDefault();
+        var rect = hero.getBoundingClientRect();
+        var position = layer[editMode];
+        var startX = event.clientX, startY = event.clientY, originalX = position.x, originalY = position.y;
+        element.setPointerCapture(event.pointerId);
+        function move(moveEvent) {
+            position.x = clamp(originalX + ((moveEvent.clientX - startX) / rect.width) * 100, 0, 100 - position.width);
+            position.y = clamp(originalY + ((moveEvent.clientY - startY) / rect.height) * 100, 0, 100 - position.height);
+            element.style.setProperty(editMode === 'desktop' ? '--hx' : '--hmx', position.x);
+            element.style.setProperty(editMode === 'desktop' ? '--hy' : '--hmy', position.y);
+        }
+        function finish() {
+            element.removeEventListener('pointermove', move); element.removeEventListener('pointerup', finish); element.removeEventListener('pointercancel', finish);
+            markDirty(layer.name + ' moved in the ' + editMode + ' layout.'); renderAll(false); validate(false);
+        }
+        element.addEventListener('pointermove', move); element.addEventListener('pointerup', finish); element.addEventListener('pointercancel', finish);
+    }
+
+    function renderAll(includePreview) {
+        renderLayerList(); renderEditor(); if (includePreview !== false) renderPreview();
+    }
+
+    function addLayer(type) {
+        if (config.layers.length >= 20) { setStatus('Layer limit reached', 'Delete an unlocked layer before adding another one.', 'warning', 'layers'); return; }
+        if (type === 'countdown' && config.layers.some(function (layer) { return layer.type === 'countdown'; })) { setStatus('Only one countdown is allowed', 'Delete the existing countdown before adding another one.', 'warning', 'timer'); return; }
+        if (type === 'image') { pendingImageTarget = 'new'; imageInput.click(); return; }
+        var layer = makeLayer(type); config.layers.push(layer); selectedId = layer.id;
+        markDirty(layer.name + ' added to the draft.'); renderAll(true); validate(false);
+    }
+
+    function uploadImage(file) {
+        if (!file) return;
+        uploadProgress.hidden = false; uploadProgress.textContent = 'Uploading image…';
+        var body = new FormData(); body.append('_token', endpoints.dataset.token); body.append('image', file);
+        fetch(endpoints.dataset.image, {method:'POST',body:body,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}})
+            .then(function (response) { return response.json().then(function (data) { if (!response.ok || !data.ok) throw new Error(data.message || 'Image upload failed.'); return data; }); })
+            .then(function (data) {
+                if (pendingImageTarget === 'background') config.layers[0].imagePath = data.path;
+                else if (pendingImageTarget === 'new') { var layer = makeLayer('image', data.path); config.layers.push(layer); selectedId = layer.id; }
+                else { var layer = config.layers.find(function (entry) { return entry.id === pendingImageTarget; }); if (layer) layer.imagePath = data.path; }
+                markDirty('Image uploaded. Save the draft so it remains connected to this hero.'); renderAll(true); validate(false);
+                uploadProgress.textContent = data.message;
+            })
+            .catch(function (error) { uploadProgress.textContent = error.message; setStatus('Image was not uploaded', error.message, 'error', 'error'); })
+            .finally(function () { imageInput.value = ''; pendingImageTarget = null; window.setTimeout(function () { uploadProgress.hidden = true; }, 4500); });
+    }
+
+    function request(action, button) {
+        syncTopFields();
+        var errors = action === 'publish' ? validate(true) : [];
+        if (errors.length) { setStatus('Hero cannot be published yet', errors[0], 'error', 'error'); return; }
+        button.disabled = true; var previous = button.textContent; button.textContent = action === 'publish' ? 'Publishing…' : 'Saving…';
+        fetch(endpoints.dataset[action], {method:'POST',body:JSON.stringify(config),headers:{'Content-Type':'application/json','Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-Token':endpoints.dataset.token}})
+            .then(function (response) { return response.json().then(function (data) { if (!response.ok || !data.ok) { var error = new Error(data.message || 'The action could not be completed.'); error.details = data.errors || []; throw error; } return data; }); })
+            .then(function (data) {
+                config = data.config || config; window.s2sHeroDirty = false;
+                if (action === 'publish') { published = true; hideButton.disabled = false; document.getElementById('heroActionNote').textContent = 'Hide removes the public hero immediately but keeps this draft.'; }
+                setStatus(action === 'publish' ? 'Hero published' : 'Hero draft saved', data.message, '', 'check_circle');
+                messageList([], action === 'publish' ? 'Published successfully.' : 'Draft saved successfully.');
+                renderAll(true);
+            })
+            .catch(function (error) { messageList(error.details && error.details.length ? error.details : [error.message]); setStatus('Action not completed', error.message, 'error', 'error'); })
+            .finally(function () { button.disabled = false; button.textContent = previous; });
+    }
+
+    document.getElementById('hero_startsAt').value = toLocalInput(config.startsAt);
+    document.getElementById('hero_expiresAt').value = toLocalInput(config.expiresAt);
+    ['hero_enabled','hero_startsAt','hero_expiresAt','hero_desktopHeight','hero_mobileHeight'].forEach(function (idValue) {
+        document.getElementById(idValue).addEventListener('change', function () { syncTopFields(); markDirty('Hero visibility, schedule, or canvas changed.'); renderPreview(); validate(false); });
+    });
+    document.querySelectorAll('[data-hero-mode]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            editMode = button.dataset.heroMode;
+            document.querySelectorAll('[data-hero-mode]').forEach(function (entry) { entry.classList.toggle('active', entry === button); });
+            var device = document.querySelector('[data-ds-width="' + (editMode === 'mobile' ? '390px' : '100%') + '"]');
+            if (device) device.click();
+            renderEditor(); renderPreview();
+            setStatus(editMode === 'mobile' ? 'Editing mobile layout' : 'Editing desktop layout', editMode === 'mobile' ? 'Layer positions now affect phones only.' : 'Layer positions now affect larger screens only.', '', editMode === 'mobile' ? 'smartphone' : 'desktop_windows');
+        });
+    });
+    document.querySelectorAll('[data-hero-add]').forEach(function (button) { button.addEventListener('click', function () { addLayer(button.dataset.heroAdd); }); });
+    imageInput.addEventListener('change', function () { uploadImage(imageInput.files[0]); });
+    saveButton.addEventListener('click', function () { request('draft', saveButton); });
+    publishButton.addEventListener('click', function () { request('publish', publishButton); });
+    hideButton.addEventListener('click', function () {
+        if (!published) { setStatus('Nothing to hide yet', 'Publish a hero first. Your current work is only a private draft.', 'warning', 'info'); return; }
+        if (!window.confirm('Hide the published hero from all customers now? Your draft will be kept.')) return;
+        hideButton.disabled = true;
+        fetch(endpoints.dataset.hide, {method:'POST',headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-Token':endpoints.dataset.token}})
+            .then(function (response) { return response.json().then(function (data) { if (!response.ok || !data.ok) throw new Error(data.message || 'The hero could not be hidden.'); return data; }); })
+            .then(function (data) { published = false; setStatus('Published hero hidden', data.message, '', 'visibility_off'); document.getElementById('heroActionNote').textContent = 'Publish again when this draft is ready. Hide is unavailable because nothing is public.'; })
+            .catch(function (error) { hideButton.disabled = false; setStatus('Hero was not hidden', error.message, 'error', 'error'); });
+    });
+    iframe.addEventListener('load', function () { window.setTimeout(renderPreview, 40); });
+
+    renderAll(false);
+    validate(false);
 })();
 </script>
 

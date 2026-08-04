@@ -271,6 +271,7 @@ final class OwnerMenuController extends AbstractController
             'builtInFonts' => MenuFontCatalogService::BUILT_IN_FONTS,
             'customFonts' => $fontCatalog->customFonts(),
             'heroConfig' => $heroConfig,
+            'heroConfigJson' => json_encode($heroConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR),
             'heroPublished' => $hero?->getPublishedConfig() !== null,
             'heroPublishedAt' => $hero?->getPublishedAt(),
         ]);

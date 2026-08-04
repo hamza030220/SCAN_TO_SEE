@@ -195,6 +195,17 @@ class ImageUploadServiceTest extends TestCase
         $this->assertDirectoryExists($this->testPublicDir . '/image/menu');
     }
 
+    public function testUploadHeroImageUsesIsolatedHeroDirectory(): void
+    {
+        $file = $this->createMockUploadedFile('offer.webp', 'image/webp', 1000, 'webp');
+
+        $path = $this->service->uploadHeroImage($file, 'summer-menu');
+
+        $this->assertStringStartsWith('image/hero/hero_summer_menu', $path);
+        $this->assertStringEndsWith('.webp', $path);
+        $this->assertDirectoryExists($this->testPublicDir . '/image/hero');
+    }
+
     // ── Slugify Tests ────────────────────────────────────────────────────────
 
     public function testSlugifyHandlesAccentedCharacters(): void
