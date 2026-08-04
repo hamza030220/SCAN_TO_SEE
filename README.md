@@ -408,12 +408,20 @@ on port 8000. A service that is already listening is kept instead of duplicated.
 # Show local status and the current public ngrok URL
 .\dev.cmd status
 
+# Rebuild changed CSS/JavaScript without restarting the running services
+.\dev.cmd assets
+
 # Stop the three services and close terminals opened by the launcher
 .\dev.cmd down
 
 # Validate what would start without opening terminals
 .\dev.cmd up -DryRun
 ```
+
+Run `\.dev.cmd assets` after changing files under `assets/` while the public
+server is already running. It clears the production asset cache, creates a new
+fingerprinted asset URL, and prevents testers' browsers from keeping an older
+stylesheet. A browser refresh is enough after the command finishes.
 
 `dev.cmd` uses `ExecutionPolicy Bypass` only for this project launcher. It does
 not change the Windows execution policy for the user or the computer.
