@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('up', 'down', 'status')]
+    [ValidateSet('up', 'down', 'status', 'assets')]
     [string] $Action = 'up',
     [switch] $DryRun,
     [switch] $Public
@@ -153,6 +153,16 @@ function Stop-PortProcess {
 }
 
 switch ($Action) {
+    'assets' {
+        Write-Host 'Refreshing compiled web assets...' -ForegroundColor Cyan
+        & php bin/console asset-map:compile --env=prod --no-debug
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Symfony assets could not be refreshed.'
+        }
+        Write-Host 'Assets refreshed. Reload the browser; restarting Symfony is not required.' -ForegroundColor Green
+        break
+    }
+
     'status' {
         Write-ServiceStatus
         break

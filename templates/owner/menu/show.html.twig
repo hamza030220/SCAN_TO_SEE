@@ -391,6 +391,8 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 .ds-tabs{display:grid;grid-template-columns:repeat(4,1fr);padding:0 10px 10px;gap:5px;}
 .ds-tab{display:flex;min-width:0;flex-direction:column;align-items:center;gap:3px;padding:8px 3px;border:1px solid transparent;border-radius:10px;background:transparent;color:#786c5e;font:700 .62rem 'DM Sans',sans-serif;cursor:pointer;}
 .ds-tab .material-symbols-outlined{font-size:18px;}.ds-tab.active{background:#fff;border-color:#ded7cd;color:#18120a;box-shadow:0 3px 10px rgba(36,25,10,.06);}
+.ds-preview-feedback{display:flex;align-items:center;gap:6px;margin:0 12px 10px;padding:7px 9px;border-radius:8px;background:#eaf7ee;color:#23643a;font-size:.66rem;font-weight:700;transition:background .18s,transform .18s;}
+.ds-preview-feedback .material-symbols-outlined{font-size:15px;}.ds-preview-feedback.pulse{background:#d8f2e1;transform:translateY(-1px);}
 .ds-section{display:none;margin:12px;padding:16px 16px 17px;border:1px solid #e2dbd1;border-radius:14px;background:#fff;box-shadow:0 5px 20px rgba(43,31,17,.035);}
 .ds-section.active{display:block;}
 .ds-section-title{font-family:'Space Grotesk',sans-serif;font-size:.71rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#806d59;margin:0 0 4px;}
@@ -461,6 +463,7 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
                     <button type="button" class="ds-tab" data-ds-tab="brand" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">palette</span>Brand</button>
                     <button type="button" class="ds-tab" data-ds-tab="components" role="tab" aria-selected="false"><span class="material-symbols-outlined" aria-hidden="true">view_agenda</span>Cards</button>
                 </nav>
+                <div class="ds-preview-feedback" id="ds_previewFeedback" role="status" aria-live="polite"><span class="material-symbols-outlined" aria-hidden="true">visibility</span><span>Live preview ready</span></div>
             </div>
             <form id="ds_form" action="{{ path('app_owner_menu_theme', {id: menu.id}) }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="_token" value="{{ csrf_token('theme-' ~ menu.id) }}">
@@ -801,6 +804,24 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         g('ds_dirtyState').className = 'ds-dirty-state unsaved';
         if (!saveBtn.disabled) saveBtn.textContent = 'Save changes';
     }
+    function showControlFeedback(target) {
+        var feedback = g('ds_previewFeedback');
+        var row = target.closest ? target.closest('.ds-row') : null;
+        var label = row ? row.querySelector('.ds-label') : null;
+        var name = label ? label.textContent.split('—')[0].trim() : 'Design';
+        var value = target.value || '';
+        if (target.matches && target.matches('input[type="radio"]')) {
+            var optionLabel = form.querySelector('label[for="' + target.id + '"]');
+            if (optionLabel) value = optionLabel.textContent.trim();
+        } else if (target.tagName === 'SELECT' && target.selectedOptions.length) {
+            value = target.selectedOptions[0].textContent.trim();
+        }
+        feedback.querySelector('span:last-child').textContent = 'Preview updated · ' + name + (value ? ': ' + value : '');
+        feedback.classList.remove('pulse');
+        void feedback.offsetWidth;
+        feedback.classList.add('pulse');
+        window.setTimeout(function () { feedback.classList.remove('pulse'); }, 500);
+    }
     function radVal(name) {
         var els = document.querySelectorAll('[name="' + name + '"]');
         for (var i = 0; i < els.length; i++) { if (els[i].checked) return els[i].value; }
@@ -997,12 +1018,16 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
 
     /* ── iframe load ────────────────────────────────────── */
     iframe.addEventListener('load', function () {
-        try { pdoc = iframe.contentDocument || iframe.contentWindow.document; push(); }
+        try {
+            pdoc = iframe.contentDocument || iframe.contentWindow.document;
+            push();
+            g('ds_previewFeedback').querySelector('span:last-child').textContent = 'Live preview connected';
+        }
         catch (e) { pdoc = null; }
     });
 
-    form.addEventListener('input', markDirty);
-    form.addEventListener('change', markDirty);
+    form.addEventListener('input', function (event) { markDirty(); showControlFeedback(event.target); });
+    form.addEventListener('change', function (event) { markDirty(); showControlFeedback(event.target); });
 
     var presets = {
         classic: { theme: 'light', layout: 'list', density: 'comfortable', cardStyle: 'flat', pillStyle: 'pill', imageShape: 'rounded', priceStyle: 'accent', font: 'DM Sans', fontScale: 1, cardRadius: 12, bg: '#F7F4EF', header: '#18120A', accent: '#E8A020', card: '#FFFFFF' },
