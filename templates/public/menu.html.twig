@@ -293,20 +293,26 @@
     var hero = document.getElementById('menuHero');
     if (!hero) return;
     var expiresAt = hero.dataset.heroExpiresAt;
-    var preview = hero.dataset.heroPreview === '1';
     var countdowns = Array.from(hero.querySelectorAll('[data-hero-countdown]'));
     if (!expiresAt) return;
     var deadline = Date.parse(expiresAt);
     if (!Number.isFinite(deadline)) return;
 
+    var interval = null;
+    var deadlineTimer = null;
+
+    function expireHero() {
+        if (interval !== null) window.clearInterval(interval);
+        if (deadlineTimer !== null) window.clearTimeout(deadlineTimer);
+        hero.hidden = true;
+        hero.setAttribute('aria-hidden', 'true');
+        hero.remove();
+    }
+
     function update() {
         var remaining = deadline - Date.now();
         if (remaining <= 0) {
-            if (preview) {
-                countdowns.forEach(function (timer) { timer.setAttribute('aria-label', 'Expired countdown'); });
-            } else {
-                hero.remove();
-            }
+            expireHero();
             return false;
         }
         var displayRemaining = Math.ceil(remaining / 1000) * 1000;
@@ -322,9 +328,21 @@
         });
         return true;
     }
-    if (update()) {
-        var interval = window.setInterval(function () { if (!update()) window.clearInterval(interval); }, 1000);
+
+    function scheduleDeadline() {
+        if (!hero.isConnected) return;
+        var delay = deadline - Date.now();
+        if (delay <= 0) { expireHero(); return; }
+        // Browsers cap timeout delays. Reschedule safely for very long campaigns.
+        deadlineTimer = window.setTimeout(scheduleDeadline, Math.min(delay + 25, 2147483647));
     }
+
+    if (update()) {
+        interval = window.setInterval(update, 1000);
+        scheduleDeadline();
+    }
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) update(); });
+    window.addEventListener('pageshow', update);
 })();
 </script>
 {% endif %}
