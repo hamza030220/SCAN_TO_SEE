@@ -143,7 +143,10 @@ class UserTest extends TestCase
         
         $user->setBackupCodes($codes);
 
-        $this->assertSame($codes, $user->getBackupCodes());
+        $storedCodes = $user->getBackupCodes();
+        $this->assertCount(3, $storedCodes);
+        $this->assertNotSame($codes, $storedCodes);
+        $this->assertTrue(password_verify('CODE1', $storedCodes[0]));
     }
 
     public function testIsBackupCodeReturnsTrueForValidCode(): void
@@ -170,9 +173,10 @@ class UserTest extends TestCase
         $user->invalidateBackupCode('CODE2');
 
         $codes = $user->getBackupCodes();
-        $this->assertNotContains('CODE2', $codes);
-        $this->assertContains('CODE1', $codes);
-        $this->assertContains('CODE3', $codes);
+        $this->assertCount(2, $codes);
+        $this->assertFalse($user->isBackupCode('CODE2'));
+        $this->assertTrue($user->isBackupCode('CODE1'));
+        $this->assertTrue($user->isBackupCode('CODE3'));
     }
 
     public function testSetAndGetPasswordResetToken(): void

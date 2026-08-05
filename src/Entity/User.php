@@ -135,20 +135,46 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TotpTwo
 
     public function isBackupCode(string $code): bool
     {
-        return in_array($code, $this->backupCodes ?? [], true);
+        foreach ($this->backupCodes ?? [] as $storedCode) {
+            if ($this->backupCodeMatches($code, $storedCode)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function invalidateBackupCode(string $code): void
     {
         $this->backupCodes = array_values(array_filter(
             $this->backupCodes ?? [],
-            fn(string $c) => $c !== $code
+            fn(string $storedCode) => !$this->backupCodeMatches($code, $storedCode)
         ));
     }
 
     public function getBackupCodes(): array { return $this->backupCodes ?? []; }
 
-    public function setBackupCodes(array $codes): static { $this->backupCodes = $codes; return $this; }
+    public function setBackupCodes(array $codes): static
+    {
+        $this->backupCodes = array_map(
+            static fn(string $code): string => password_hash($code, PASSWORD_DEFAULT),
+            array_values($codes),
+        );
+
+        return $this;
+    }
+
+    private function backupCodeMatches(string $candidate, string $storedCode): bool
+    {
+        if (password_get_info($storedCode)['algo'] !== null) {
+            return password_verify($candidate, $storedCode);
+        }
+
+        // Compatibility for codes created before hashing was introduced. The
+        // migration converts persisted legacy values; this also makes rolling
+        // deployments safe while old application instances are draining.
+        return hash_equals($storedCode, $candidate);
+    }
 
     // ── Password reset ────────────────────────────────────────────────────────
 
