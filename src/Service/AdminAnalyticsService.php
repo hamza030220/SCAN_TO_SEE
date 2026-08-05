@@ -82,7 +82,10 @@ final class AdminAnalyticsService
             ['since' => $since],
         );
         $series = [];
-        $max = max(1, ...array_map('intval', $rows ?: [1]));
+        // fetchAllKeyValue() indexes this array by ISO date. Spreading an
+        // associative array into max() is treated as named arguments on PHP 8.
+        $values = array_values(array_map('intval', $rows));
+        $max = max([1, ...$values]);
         for ($i = 13; $i >= 0; --$i) {
             $date = new \DateTimeImmutable("-{$i} days");
             $value = (int) ($rows[$date->format('Y-m-d')] ?? 0);
