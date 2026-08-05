@@ -21,15 +21,7 @@ final class TrainingDatasetService
 
     public function statistics(): array
     {
-        $row = $this->regions->createQueryBuilder('region')
-            ->select('COUNT(region.id) total')
-            ->addSelect('SUM(CASE WHEN region.reviewOutcome = :accepted THEN 1 ELSE 0 END) accepted')
-            ->addSelect('SUM(CASE WHEN region.reviewOutcome = :modified THEN 1 ELSE 0 END) modified')
-            ->addSelect('SUM(CASE WHEN region.reviewOutcome = :deleted THEN 1 ELSE 0 END) deleted')
-            ->addSelect('SUM(CASE WHEN region.excludedFromTraining = true THEN 1 ELSE 0 END) excluded')
-            ->addSelect('AVG(region.confidence) averageConfidence')
-            ->setParameter('accepted', 'accepted')->setParameter('modified', 'modified')->setParameter('deleted', 'deleted')
-            ->getQuery()->getSingleResult();
+        $row = $this->regions->trainingStatistics();
 
         return [
             'total' => (int) ($row['total'] ?? 0),
@@ -44,23 +36,12 @@ final class TrainingDatasetService
 
     public function findReviewPage(int $page, int $perPage = 40): array
     {
-        return $this->regions->createQueryBuilder('region')
-            ->addSelect('scan')->join('region.scan', 'scan')
-            ->orderBy('region.correctedAt', 'DESC')->addOrderBy('region.id', 'DESC')
-            ->setFirstResult(($page - 1) * $perPage)->setMaxResults($perPage)
-            ->getQuery()->getResult();
+        return $this->regions->findReviewPage($page, $perPage);
     }
 
     public function eligibleCount(): int
     {
-        return (int) $this->regions->createQueryBuilder('region')
-            ->select('COUNT(region.id)')->join('region.scan', 'scan')
-            ->andWhere('scan.status = :reviewed')
-            ->andWhere('region.reviewOutcome IN (:outcomes)')
-            ->andWhere('region.correctedText IS NOT NULL')->andWhere('region.correctedText != :empty')
-            ->andWhere('region.cropUrl IS NOT NULL')->andWhere('region.excludedFromTraining = false')
-            ->setParameter('reviewed', 'reviewed')->setParameter('outcomes', ['accepted', 'modified'])->setParameter('empty', '')
-            ->getQuery()->getSingleScalarResult();
+        return $this->regions->countTrainingEligible();
     }
 
     public function export(string $name): array
@@ -77,6 +58,7 @@ final class TrainingDatasetService
         }
 
         $rows = $this->eligibleRegions();
+        $splitByScan = $this->buildSplitMap($rows);
         $manifestPath = $directory . '/manifest.csv';
         $manifest = fopen($manifestPath, 'wb');
         if ($manifest === false) {
@@ -84,7 +66,10 @@ final class TrainingDatasetService
         }
         fputcsv($manifest, ['crop_path', 'text', 'split', 'field_type', 'model_version', 'scan_uuid', 'box_id', 'review_outcome']);
 
-        $summary = ['name' => $name, 'eligible' => count($rows), 'written' => 0, 'failed' => 0, 'train' => 0, 'val' => 0, 'test' => 0];
+        $summary = [
+            'name' => $name, 'eligible' => count($rows), 'written' => 0, 'failed' => 0,
+            'train' => 0, 'val' => 0, 'test' => 0, 'failureExamples' => [],
+        ];
         foreach ($rows as $region) {
             $scan = $region->getScan();
             if (!$scan) { continue; }
@@ -94,11 +79,19 @@ final class TrainingDatasetService
                 if (file_put_contents($directory . '/crops/' . $filename, $image) === false) {
                     throw new \RuntimeException('Local image write failed.');
                 }
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
                 ++$summary['failed'];
+                if (count($summary['failureExamples']) < 5) {
+                    $summary['failureExamples'][] = sprintf(
+                        '%s box %d: %s',
+                        $scan->getScanUuid(),
+                        $region->getBoxId(),
+                        mb_substr($e->getMessage(), 0, 300),
+                    );
+                }
                 continue;
             }
-            $split = $this->splitForScan($scan->getScanUuid());
+            $split = $splitByScan[$scan->getScanUuid()] ?? $this->splitForScan($scan->getScanUuid());
             fputcsv($manifest, ['crops/' . $filename, $region->getCorrectedText(), $split, $region->getRole(), $scan->getModelVersion(), $scan->getScanUuid(), $region->getBoxId(), $region->getReviewOutcome()]);
             ++$summary['written']; ++$summary[$split];
         }
@@ -131,12 +124,7 @@ final class TrainingDatasetService
 
     private function eligibleRegions(): array
     {
-        return $this->regions->createQueryBuilder('region')->addSelect('scan')->join('region.scan', 'scan')
-            ->andWhere('scan.status = :reviewed')->andWhere('region.reviewOutcome IN (:outcomes)')
-            ->andWhere('region.correctedText IS NOT NULL')->andWhere('region.correctedText != :empty')
-            ->andWhere('region.cropUrl IS NOT NULL')->andWhere('region.excludedFromTraining = false')
-            ->setParameter('reviewed', 'reviewed')->setParameter('outcomes', ['accepted', 'modified'])->setParameter('empty', '')
-            ->orderBy('scan.createdAt', 'ASC')->addOrderBy('region.boxId', 'ASC')->getQuery()->getResult();
+        return $this->regions->findTrainingEligible();
     }
 
     private function downloadCloudinaryImage(string $url): string
@@ -152,5 +140,34 @@ final class TrainingDatasetService
     {
         $bucket = hexdec(substr(hash('sha256', $uuid), 0, 8)) % 100;
         return $bucket < 80 ? 'train' : ($bucket < 90 ? 'val' : 'test');
+    }
+
+    /**
+     * Keep every crop from one scan in the same split. For small proof-of-concept
+     * datasets, reserve one complete scan for validation and one for testing when
+     * the normal 80/10/10 hash would otherwise leave a split empty.
+     *
+     * @param list<ScanRegion> $regions
+     * @return array<string, 'train'|'val'|'test'>
+     */
+    private function buildSplitMap(array $regions): array
+    {
+        $scanUuids = [];
+        foreach ($regions as $region) {
+            $scan = $region->getScan();
+            if ($scan) { $scanUuids[$scan->getScanUuid()] = true; }
+        }
+        $scanUuids = array_keys($scanUuids);
+        $map = [];
+        foreach ($scanUuids as $uuid) { $map[$uuid] = $this->splitForScan($uuid); }
+
+        if (count($scanUuids) < 3 || count(array_unique($map)) === 3) { return $map; }
+
+        usort($scanUuids, static fn(string $a, string $b): int => hash('sha256', $a) <=> hash('sha256', $b));
+        $map = array_fill_keys($scanUuids, 'train');
+        $map[$scanUuids[0]] = 'val';
+        $map[$scanUuids[1]] = 'test';
+
+        return $map;
     }
 }
