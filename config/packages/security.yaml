@@ -16,6 +16,7 @@ security:
             lazy: true
             provider: app_user_provider
             user_checker: App\Security\UserChecker
+            access_denied_handler: App\Security\TwoFactorAccessDeniedHandler
             form_login:
                 login_path: app_login
                 check_path: app_login
@@ -30,8 +31,11 @@ security:
                 auth_form_path: 2fa_login
                 check_path: 2fa_login_check
                 default_target_path: /dashboard
+                always_use_default_target_path: true
                 auth_code_parameter_name: _auth_code
                 trusted_parameter_name: _trusted
+                enable_csrf: true
+                csrf_token_id: two_factor
             logout:
                 path: app_logout
                 target: /

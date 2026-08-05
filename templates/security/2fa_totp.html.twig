@@ -150,6 +150,7 @@
     {% endif %}
 
     <form action="{{ path('2fa_login_check') }}" method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('two_factor') }}">
         <label for="_auth_code">Authenticator Code</label>
         <input
             type="text"

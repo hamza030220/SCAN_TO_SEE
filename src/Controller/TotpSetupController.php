@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/2fa/setup')]
@@ -61,13 +62,24 @@ class TotpSetupController extends AbstractController
     }
 
     #[Route('/confirm', name: 'app_2fa_setup_confirm', methods: ['POST'])]
-    public function confirm(Request $request): Response
+    public function confirm(Request $request, RateLimiterFactory $twoFactorSetupLimiter): Response
     {
         /** @var User $user */
         $user = $this->getUser();
 
         if ($user->isTotpAuthenticationEnabled()) {
             return $this->redirectToRoute('app_dashboard');
+        }
+
+        if (!$this->isCsrfTokenValid('totp-setup', $request->request->get('_token'))) {
+            $this->addFlash('2fa_error', 'Your security session expired. Reload the setup page and try again.');
+            return $this->redirectToRoute('app_2fa_setup');
+        }
+
+        $limit = $twoFactorSetupLimiter->create((string) $user->getId())->consume();
+        if (!$limit->isAccepted()) {
+            $this->addFlash('2fa_error', 'Too many incorrect attempts. Wait 15 minutes before trying again.');
+            return $this->redirectToRoute('app_2fa_setup');
         }
 
         $session = $request->getSession();

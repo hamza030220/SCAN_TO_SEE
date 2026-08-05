@@ -216,6 +216,7 @@
     <hr class="divider">
 
     <form action="{{ path('app_2fa_setup_confirm') }}" method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('totp-setup') }}">
         <div class="step-header">
             <span class="step-num">3</span>
             Confirm Setup
