@@ -190,20 +190,21 @@ switch ($Action) {
         }
         $env:OCR_CLEANUP_TOKEN = ($appSecretLine -split '=', 2)[1].Trim()
 
-        if ($Public) {
-            Write-Host 'Public sharing mode: Symfony browser debug is disabled; terminal logs remain visible.' -ForegroundColor Cyan
-            if (!$DryRun) {
-                $env:APP_ENV = 'prod'
-                $env:APP_DEBUG = '0'
+        # This command always starts ngrok, so Symfony must never expose the
+        # development exception pages or profiler through that public tunnel.
+        # Production errors are still written to the visible Symfony terminal.
+        Write-Host 'Safe sharing mode: browser debug is disabled; terminal logs remain visible.' -ForegroundColor Cyan
+        if (!$DryRun) {
+            $env:APP_ENV = 'prod'
+            $env:APP_DEBUG = '0'
 
-                & php bin/console cache:clear --env=prod --no-debug
-                if ($LASTEXITCODE -ne 0) {
-                    throw 'Could not prepare the Symfony production cache.'
-                }
-                & php bin/console asset-map:compile --env=prod --no-debug
-                if ($LASTEXITCODE -ne 0) {
-                    throw 'Could not compile Symfony production assets.'
-                }
+            & php bin/console cache:clear --env=prod --no-debug
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not prepare the Symfony production cache.'
+            }
+            & php bin/console asset-map:compile --env=prod --no-debug
+            if ($LASTEXITCODE -ne 0) {
+                throw 'Could not compile Symfony production assets.'
             }
         }
 
