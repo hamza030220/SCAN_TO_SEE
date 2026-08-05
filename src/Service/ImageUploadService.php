@@ -64,13 +64,22 @@ class ImageUploadService
      */
     public function delete(?string $webPath): void
     {
-        if (!$webPath) {
+        if (!$webPath || !preg_match('#^image/(business|items|menu|hero)/[a-zA-Z0-9._-]+$#D', $webPath)) {
             return;
         }
-        $full = $this->projectDir . '/public/' . $webPath;
-        if (is_file($full)) {
-            @unlink($full);
+
+        $imageRoot = realpath($this->projectDir . '/public/image');
+        $fullPath = realpath($this->projectDir . '/public/' . $webPath);
+        if ($imageRoot === false || $fullPath === false || !is_file($fullPath)) {
+            return;
         }
+
+        $rootPrefix = rtrim($imageRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($fullPath, $rootPrefix)) {
+            return;
+        }
+
+        @unlink($fullPath);
     }
 
     // ── Internals ─────────────────────────────────────────────────────────

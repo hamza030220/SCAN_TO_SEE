@@ -330,6 +330,26 @@ class ImageUploadServiceTest extends TestCase
         $this->assertTrue(true); // If we get here, no exception was thrown
     }
 
+    public function testDeleteRejectsPathTraversal(): void
+    {
+        $sentinel = $this->testProjectDir . '/keep-me.txt';
+        touch($sentinel);
+
+        $this->service->delete('image/business/../../../keep-me.txt');
+
+        $this->assertFileExists($sentinel);
+    }
+
+    public function testDeleteRejectsFilesOutsideManagedImageFolders(): void
+    {
+        $sentinel = $this->testPublicDir . '/keep-me.txt';
+        touch($sentinel);
+
+        $this->service->delete('keep-me.txt');
+
+        $this->assertFileExists($sentinel);
+    }
+
     // ── Edge Cases ───────────────────────────────────────────────────────────
 
     public function testUploadHandlesDifferentExtensions(): void
