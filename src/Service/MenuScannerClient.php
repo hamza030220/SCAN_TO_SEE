@@ -90,4 +90,19 @@ class MenuScannerClient
             return false;
         }
     }
+
+    public function reloadPromotedModel(): array
+    {
+        try {
+            $response = $this->httpClient->request('POST', rtrim($this->ocrPipelineUrl, '/') . '/admin/reload-model', [
+                'headers' => ['X-Cleanup-Token' => $this->cleanupToken], 'timeout' => 120,
+            ]);
+            if ($response->getStatusCode() !== 200) {
+                throw new \RuntimeException('FastAPI rejected the promoted checkpoint.');
+            }
+            return $response->toArray(false);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('The model pointer was prepared, but FastAPI could not reload it.', 0, $e);
+        }
+    }
 }

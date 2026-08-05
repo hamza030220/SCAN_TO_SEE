@@ -52,6 +52,18 @@ function Write-ServiceStatus {
     $schedulerColor = if ($schedulerRunning) { 'Green' } else { 'DarkGray' }
     Write-Host ('{0,-16} {1,-8} {2}' -f 'Scheduler', $schedulerLabel, 'daily at 08:00') -ForegroundColor $schedulerColor
 
+    $trainingWorkerRunning = $false
+    if (Test-Path -LiteralPath $StateFile) {
+        try {
+            $state = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
+            $trainingWorkerRunning = $null -ne $state.trainingWorkerTerminalPid -and
+                $null -ne (Get-Process -Id $state.trainingWorkerTerminalPid -ErrorAction SilentlyContinue)
+        } catch { $trainingWorkerRunning = $false }
+    }
+    $trainingLabel = if ($trainingWorkerRunning) { 'RUNNING' } else { 'STOPPED' }
+    $trainingColor = if ($trainingWorkerRunning) { 'Green' } else { 'DarkGray' }
+    Write-Host ('{0,-16} {1,-8} {2}' -f 'Training worker', $trainingLabel, 'admin queued jobs') -ForegroundColor $trainingColor
+
     if (Test-TcpPort -Port 4040) {
         try {
             $response = Invoke-RestMethod 'http://127.0.0.1:4040/api/tunnels' -TimeoutSec 2
@@ -210,6 +222,7 @@ switch ($Action) {
 
         $existingPids = @()
         $existingSchedulerPid = $null
+        $existingTrainingWorkerPid = $null
         if (Test-Path -LiteralPath $StateFile) {
             try {
                 $existingState = Get-Content -LiteralPath $StateFile -Raw | ConvertFrom-Json
@@ -220,9 +233,14 @@ switch ($Action) {
                     (Get-Process -Id $existingState.schedulerTerminalPid -ErrorAction SilentlyContinue)) {
                     $existingSchedulerPid = [int] $existingState.schedulerTerminalPid
                 }
+                if ($existingState.trainingWorkerTerminalPid -and
+                    (Get-Process -Id $existingState.trainingWorkerTerminalPid -ErrorAction SilentlyContinue)) {
+                    $existingTrainingWorkerPid = [int] $existingState.trainingWorkerTerminalPid
+                }
             } catch {
                 $existingPids = @()
                 $existingSchedulerPid = $null
+                $existingTrainingWorkerPid = $null
             }
         }
 
@@ -235,6 +253,11 @@ switch ($Action) {
             -Script 'tools\dev\Run-Scheduler.ps1' `
             -ExistingPid $existingSchedulerPid
         $terminalPids += $schedulerTerminalPid
+        $trainingWorkerTerminalPid = Start-VisibleWorker `
+            -Name 'AI training' `
+            -Script 'tools\dev\Run-TrainingWorker.ps1' `
+            -ExistingPid $existingTrainingWorkerPid
+        $terminalPids += $trainingWorkerTerminalPid
         $terminalPids = @($terminalPids | Where-Object { $_ })
 
         if (!$DryRun) {
@@ -248,6 +271,7 @@ switch ($Action) {
                 startedAt = (Get-Date).ToString('o')
                 terminalPids = $terminalPids
                 schedulerTerminalPid = $schedulerTerminalPid
+                trainingWorkerTerminalPid = $trainingWorkerTerminalPid
             } | ConvertTo-Json | Set-Content -LiteralPath $StateFile -Encoding UTF8
         }
 
