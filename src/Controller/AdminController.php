@@ -10,6 +10,7 @@ use App\Repository\MenuRepository;
 use App\Repository\UserRepository;
 use App\Service\AccountDeletionService;
 use App\Service\AdminAuditService;
+use App\Service\AdminAnalyticsService;
 use Doctrine\ORM\EntityManagerInterface;
 use Scheb\TwoFactorBundle\Security\TwoFactor\Provider\Totp\TotpAuthenticatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -28,6 +29,7 @@ final class AdminController extends AbstractController
         UserRepository     $users,
         BusinessRepository $businesses,
         MenuRepository     $menus,
+        AdminAnalyticsService $analytics,
     ): Response {
         $allUsers      = $users->findAll();
         $totalOwners   = count(array_filter($allUsers, fn(User $u) => $u->getRole() === 'owner'));
@@ -41,6 +43,7 @@ final class AdminController extends AbstractController
             'totalBusinesses' => count($businesses->findAll()),
             'totalMenus'    => count($menus->findAll()),
             'recentOwners'  => $users->findBy(['role' => 'owner'], ['createdAt' => 'DESC'], 5),
+            'analytics' => $analytics->overview(),
         ]);
     }
 

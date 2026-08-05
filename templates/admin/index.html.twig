@@ -1,70 +1,61 @@
 {% extends 'admin/layout.html.twig' %}
 
 {% block title %}Dashboard — S2S Admin{% endblock %}
-{% block page_title %}Dashboard{% endblock %}
+{% block page_title %}Operations overview{% endblock %}
 
 {% block content %}
+<style>
+.overview-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin-bottom:24px}.overview-head h1{font-family:'Space Grotesk',sans-serif;font-size:1.65rem}.overview-head p{margin-top:5px;color:var(--adm-muted);font-size:.86rem}.overview-live{display:flex;align-items:center;gap:7px;color:#047857;font-size:.76rem;font-weight:700}.overview-live::before{content:'';width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 4px #d1fae5}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}.kpi{padding:20px;background:#fff;border:1px solid var(--adm-border);border-radius:12px}.kpi-top{display:flex;justify-content:space-between;align-items:center}.kpi-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;color:#b45309;background:#fff5df}.kpi-icon svg{width:18px;height:18px}.kpi-label{color:var(--adm-muted);font-size:.69rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}.kpi strong{display:block;margin:12px 0 5px;font:700 1.8rem/1 'Space Grotesk',sans-serif}.kpi small{color:var(--adm-muted);font-size:.73rem}
+.dashboard-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:20px}.chart-panel,.health-panel{padding:22px;background:#fff;border:1px solid var(--adm-border);border-radius:12px}.panel-title-row{display:flex;justify-content:space-between;align-items:start;gap:16px}.panel-title-row h2{font:700 1rem 'Space Grotesk',sans-serif}.panel-title-row p{margin-top:4px;color:var(--adm-muted);font-size:.75rem}.chart{display:flex;align-items:end;gap:7px;height:190px;margin-top:24px;padding-top:12px;border-bottom:1px solid var(--adm-border)}.chart-col{height:100%;flex:1;display:flex;align-items:end;position:relative}.chart-bar{width:100%;min-height:4px;background:linear-gradient(180deg,#e84040,#9f1239);border-radius:5px 5px 0 0;transition:opacity .15s}.chart-col:hover .chart-bar{opacity:.72}.chart-tip{display:none;position:absolute;bottom:calc(var(--height) + 6px);left:50%;transform:translateX(-50%);padding:4px 7px;color:#fff;background:#18120a;border-radius:5px;font-size:.65rem;white-space:nowrap}.chart-col:hover .chart-tip{display:block}.chart-labels{display:flex;justify-content:space-between;margin-top:8px;color:var(--adm-muted);font-size:.65rem}
+.split-list{display:grid;gap:14px;margin-top:22px}.split-row{display:grid;grid-template-columns:90px 1fr 34px;align-items:center;gap:10px;font-size:.77rem}.split-track{height:7px;border-radius:99px;background:#f1e9df;overflow:hidden}.split-fill{height:100%;border-radius:inherit;background:var(--adm-accent)}.split-row strong{text-align:right}.quick-links{display:grid;gap:10px;margin-top:22px}.quick-link{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;color:var(--adm-ink);background:#faf7f2;border:1px solid var(--adm-border);border-radius:8px;text-decoration:none;font-size:.8rem;font-weight:700}.quick-link:hover{border-color:#d1bfa9}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:1fr 1fr}.dashboard-grid{grid-template-columns:1fr}.data-grid{grid-template-columns:1fr}}@media(max-width:620px){.overview-head{align-items:start;flex-direction:column}.kpi-grid{grid-template-columns:1fr}.chart{gap:4px}}
+</style>
 
-{# ── Stat cards ──────────────────────────────────────────────────────── #}
-<div class="admin-stats">
-    <div class="admin-stat-card">
-        <div class="stat-label">Total Owners</div>
-        <div class="stat-value">{{ totalOwners }}</div>
-        <div class="stat-sub">{{ activeOwners }} active</div>
-    </div>
-    <div class="admin-stat-card">
-        <div class="stat-label">Businesses</div>
-        <div class="stat-value">{{ totalBusinesses }}</div>
-    </div>
-    <div class="admin-stat-card">
-        <div class="stat-label">Menus</div>
-        <div class="stat-value">{{ totalMenus }}</div>
-    </div>
-    <div class="admin-stat-card">
-        <div class="stat-label">Admins</div>
-        <div class="stat-value">{{ totalAdmins }}</div>
-    </div>
-</div>
+<header class="overview-head">
+    <div><h1>What needs your attention today</h1><p>Growth, subscriptions, menus, and AI quality from the last fourteen days.</p></div>
+    <span class="overview-live">Database connected</span>
+</header>
 
-{# ── Recent owner sign-ups ────────────────────────────────────────────── #}
-<div class="admin-panel">
-    <div class="admin-panel-head">
-        <h2>Recent owner sign-ups</h2>
-        <a href="{{ path('app_admin_owners') }}" style="font-size:.8rem;color:var(--adm-muted)">View all →</a>
-    </div>
-    {% if recentOwners is empty %}
-        <div class="admin-empty">No owner accounts yet.</div>
-    {% else %}
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for owner in recentOwners %}
-                    <tr>
-                        <td style="font-weight:600">{{ owner.email }}</td>
-                        <td style="color:var(--adm-muted)">{{ owner.fullName ?? '—' }}</td>
-                        <td>
-                            <span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">
-                                {{ owner.isActive ? 'Active' : 'Inactive' }}
-                            </span>
-                        </td>
-                        <td style="color:var(--adm-muted);font-size:.8rem">{{ owner.createdAt|date('M d, Y') }}</td>
-                        <td style="text-align:right">
-                            <a href="{{ path('app_admin_owner_show', {id: owner.id}) }}" class="admin-action">View</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
-</div>
+<section class="kpi-grid" aria-label="Key performance indicators">
+    {% set kpis = [
+        ['Owners', analytics.owners.total, analytics.owners.trials ~ ' currently testing', 'users'],
+        ['Paid conversion', analytics.conversionRate ~ '%', (analytics.subscriptions.active|default(0)) ~ ' active subscriptions', 'trend'],
+        ['Published menus', analytics.menus.published|default(0), (analytics.menus.draft|default(0)) ~ ' drafts', 'menu'],
+        ['AI scans', analytics.scans.total, analytics.scans.week ~ ' in the last 7 days', 'scan']
+    ] %}
+    {% for item in kpis %}
+    <article class="kpi"><div class="kpi-top"><span class="kpi-label">{{ item[0] }}</span><span class="kpi-icon" aria-hidden="true">
+        {% if item[3] == 'users' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        {% elseif item[3] == 'trend' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+        {% elseif item[3] == 'menu' %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg>
+        {% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V3h4M17 3h4v4M21 17v4h-4M7 21H3v-4"/><rect x="7" y="7" width="10" height="10" rx="2"/></svg>{% endif %}
+    </span></div><strong>{{ item[1] }}</strong><small>{{ item[2] }}</small></article>
+    {% endfor %}
+</section>
 
+<section class="dashboard-grid">
+    <article class="chart-panel"><div class="panel-title-row"><div><h2>Owner registrations</h2><p>New owner accounts per day</p></div><strong>{{ analytics.owners.verified }} verified</strong></div>
+        <div class="chart">{% for point in analytics.ownerTrend %}<div class="chart-col"><span class="chart-tip" style="--height:{{ point.height }}%">{{ point.date }} · {{ point.value }}</span><i class="chart-bar" style="height:{{ point.height }}%"></i></div>{% endfor %}</div>
+        <div class="chart-labels"><span>{{ (analytics.ownerTrend|first).date }}</span><span>{{ (analytics.ownerTrend|last).date }}</span></div>
+    </article>
+    <article class="health-panel"><div class="panel-title-row"><div><h2>Subscription mix</h2><p>Active plans</p></div></div>
+        {% set planTotal = (analytics.plans.basic|default(0)) + (analytics.plans.premium|default(0)) + (analytics.plans.pro|default(0)) %}
+        <div class="split-list">{% for name in ['basic','premium','pro'] %}{% set value=attribute(analytics.plans,name)|default(0) %}<div class="split-row"><span>{{ name|capitalize }}</span><div class="split-track"><i class="split-fill" style="width:{{ planTotal ? (value / planTotal * 100) : 0 }}%"></i></div><strong>{{ value }}</strong></div>{% endfor %}</div>
+        <div class="quick-links"><a class="quick-link" href="{{ path('app_admin_owners') }}"><span>Review owners</span><span>→</span></a><a class="quick-link" href="{{ path('app_admin_audit') }}"><span>Security audit</span><span>→</span></a></div>
+    </article>
+</section>
+
+<section class="data-grid">
+    <article class="chart-panel"><div class="panel-title-row"><div><h2>AI dataset readiness</h2><p>Human-reviewed OCR regions</p></div><strong>{{ analytics.regions.averageConfidence }}% confidence</strong></div>
+        <div class="split-list">
+            {% for name,value in {'Accepted':analytics.regions.accepted,'Modified':analytics.regions.modified,'Deleted':analytics.regions.deleted,'Excluded':analytics.regions.excluded} %}
+            <div class="split-row"><span>{{ name }}</span><div class="split-track"><i class="split-fill" style="width:{{ analytics.regions.total ? (value / analytics.regions.total * 100) : 0 }}%"></i></div><strong>{{ value }}</strong></div>
+            {% endfor %}
+        </div>
+    </article>
+    <article class="admin-panel" style="margin:0"><div class="admin-panel-head"><h2>Recent owner sign-ups</h2><a href="{{ path('app_admin_owners') }}" class="admin-action">View all →</a></div>
+        {% if recentOwners is empty %}<div class="admin-empty">No owner accounts yet.</div>{% else %}<div class="admin-table-scroll"><table class="admin-table"><tbody>{% for owner in recentOwners %}<tr><td><strong>{{ owner.email }}</strong><small style="display:block;color:var(--adm-muted)">{{ owner.createdAt|date('M d, Y') }}</small></td><td><span class="{{ owner.isActive ? 'badge-active' : 'badge-inactive' }}">{{ owner.isActive ? 'Active' : 'Inactive' }}</span></td><td style="text-align:right"><a href="{{ path('app_admin_owner_show',{id:owner.id}) }}" class="admin-action">View</a></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+    </article>
+</section>
 {% endblock %}
-
