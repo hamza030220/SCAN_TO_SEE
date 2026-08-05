@@ -43,6 +43,8 @@ security:
                 secret: '%kernel.secret%'
                 lifetime: 604800
                 remember_me_parameter: remember_me
+                httponly: true
+                samesite: lax
 
     access_control:
         - { path: ^/m/,        roles: PUBLIC_ACCESS }
