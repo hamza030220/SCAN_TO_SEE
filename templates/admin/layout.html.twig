@@ -90,6 +90,7 @@
         .admin-nav a:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
         .admin-nav a.active { background: rgba(232,64,64,.18); color: #f87171; }
         .admin-nav .nav-icon { font-size: 1rem; opacity: .8; width: 18px; text-align: center; }
+        .admin-nav .nav-icon svg { display:block; width:17px; height:17px; }
         .admin-nav .nav-sep {
             font-size: .65rem;
             font-weight: 700;
@@ -331,19 +332,24 @@
             <div class="nav-sep">Overview</div>
             <a href="{{ path('app_admin') }}"
                {% if route == 'app_admin' %}class="active"{% endif %}>
-                <span class="nav-icon">⬛</span> Dashboard
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span> Dashboard
             </a>
 
             <div class="nav-sep">Users</div>
             <a href="{{ path('app_admin_owners') }}"
                {% if route starts with 'app_admin_owner' %}class="active"{% endif %}>
-                <span class="nav-icon">👤</span> Owners
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></span> Owners
+            </a>
+
+            <div class="nav-sep">Artificial intelligence</div>
+            <a href="{{ path('app_admin_ai') }}" {% if route starts with 'app_admin_ai' %}class="active"{% endif %}>
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 9h6v6H9zM9 1v4M15 1v4M9 19v4M15 19v4M1 9h4M19 9h4M1 15h4M19 15h4"/></svg></span> AI control center
             </a>
 
             <div class="nav-sep">Security</div>
             <a href="{{ path('app_admin_audit') }}"
                {% if route == 'app_admin_audit' %}class="active"{% endif %}>
-                <span class="nav-icon">AL</span> Audit log
+                <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></span> Audit log
             </a>
         </nav>
         <div class="admin-sidebar-foot">
