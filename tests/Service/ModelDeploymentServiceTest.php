@@ -68,6 +68,17 @@ final class ModelDeploymentServiceTest extends TestCase
         }
     }
 
+    public function testCurrentCheckpointIgnoresPointerOutsideModelStorage(): void
+    {
+        $outside = $this->root . '/outside';
+        mkdir($outside, 0775, true);
+        file_put_contents($this->modelsRoot . '/active_model.json', json_encode(['checkpoint' => $outside], JSON_THROW_ON_ERROR));
+
+        $service = new ModelDeploymentService($this->webRoot, $this->createMock(MenuScannerClient::class));
+
+        self::assertStringEndsWith('/models/trocr_menu_v1_digits_v3/checkpoints/checkpoint-765', str_replace('\\', '/', $service->currentCheckpoint()));
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) { return; }

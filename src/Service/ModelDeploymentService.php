@@ -22,7 +22,12 @@ final class ModelDeploymentService
         if (is_file($pointer)) {
             try {
                 $value = json_decode((string) file_get_contents($pointer), true, 512, JSON_THROW_ON_ERROR)['checkpoint'] ?? null;
-                if (is_string($value) && is_dir($value)) { return $value; }
+                $candidate = is_string($value) ? realpath($value) : false;
+                $modelsRoot = realpath($this->scannerRoot . '/models');
+                if ($candidate !== false && $modelsRoot !== false && is_dir($candidate)
+                    && str_starts_with($candidate, rtrim($modelsRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
+                    return $candidate;
+                }
             } catch (\Throwable) {}
         }
         return $this->scannerRoot . '/models/trocr_menu_v1_digits_v3/checkpoints/checkpoint-765';
@@ -55,7 +60,10 @@ final class ModelDeploymentService
         $previous = is_file($pointer) ? file_get_contents($pointer) : null;
         $payload = json_encode(['checkpoint' => $candidate, 'training_job' => $jobId, 'promoted_at' => (new \DateTimeImmutable())->format(DATE_ATOM)], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
         $temporary = $pointer . '.tmp';
-        file_put_contents($temporary, $payload); rename($temporary, $pointer);
+        if (file_put_contents($temporary, $payload) === false || !rename($temporary, $pointer)) {
+            @unlink($temporary);
+            throw new \RuntimeException('The active-model pointer could not be updated safely.');
+        }
         try {
             return $this->scannerClient->reloadPromotedModel();
         } catch (\Throwable $e) {
