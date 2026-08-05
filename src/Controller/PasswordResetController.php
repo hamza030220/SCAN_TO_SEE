@@ -13,6 +13,7 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 
 class PasswordResetController extends AbstractController
 {
@@ -27,16 +28,27 @@ class PasswordResetController extends AbstractController
         UserRepository $userRepo,
         EntityManagerInterface $em,
         MailerInterface $mailer,
+        RateLimiterFactory $passwordResetRequestLimiter,
     ): Response {
         if ($request->isMethod('POST')) {
-            $emailAddress = trim((string) $request->request->get('email', ''));
+            if (!$this->isCsrfTokenValid('forgot-password', (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Your form expired. Please try again.');
 
-            $user = $userRepo->findOneBy(['email' => $emailAddress, 'role' => 'owner']);
+                return $this->redirectToRoute('app_forgot_password');
+            }
+
+            $emailAddress = mb_strtolower(trim((string) $request->request->get('email', '')));
+            $limitKey = sprintf('%s:%s', $request->getClientIp() ?? 'unknown', hash('sha256', $emailAddress));
+            $allowed = $passwordResetRequestLimiter->create($limitKey)->consume()->isAccepted();
+
+            $user = $allowed ? $userRepo->findOneBy(['email' => $emailAddress, 'role' => 'owner']) : null;
 
             if ($user && $user->isActive()) {
                 $token = bin2hex(random_bytes(32));
 
-                $user->setPasswordResetToken($token);
+                // Only a one-way digest is persisted. A database leak cannot turn
+                // an unused reset token into an account takeover.
+                $user->setPasswordResetToken(hash('sha256', $token));
                 $user->setPasswordResetTokenExpiresAt(new \DateTimeImmutable('+30 minutes'));
                 $em->flush();
 
@@ -83,8 +95,16 @@ class PasswordResetController extends AbstractController
         UserRepository $userRepo,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $hasher,
+        RateLimiterFactory $passwordResetSubmitLimiter,
     ): Response {
-        $user = $userRepo->findOneBy(['passwordResetToken' => $token]);
+        $tokenHash = hash('sha256', $token);
+        $user = $userRepo->findOneBy(['passwordResetToken' => $tokenHash]);
+
+        // Transitional support for reset links issued before token hashing was
+        // deployed. These links expire after 30 minutes and are cleared on use.
+        if (!$user) {
+            $user = $userRepo->findOneBy(['passwordResetToken' => $token]);
+        }
 
         // Invalid or expired token → redirect back with an error
         if (!$user || $user->getPasswordResetTokenExpiresAt() < new \DateTimeImmutable()) {
@@ -93,11 +113,28 @@ class PasswordResetController extends AbstractController
         }
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('reset-password', (string) $request->request->get('_token'))) {
+                $this->addFlash('error', 'Your form expired. Please try again.');
+
+                return $this->redirectToRoute('app_reset_password', ['token' => $token]);
+            }
+
+            $limitKey = sprintf('%s:%s', $request->getClientIp() ?? 'unknown', $tokenHash);
+            if (!$passwordResetSubmitLimiter->create($limitKey)->consume()->isAccepted()) {
+                $this->addFlash('error', 'Too many attempts. Please wait a few minutes and try again.');
+
+                return $this->redirectToRoute('app_reset_password', ['token' => $token]);
+            }
+
             $password = (string) $request->request->get('password', '');
             $confirm  = (string) $request->request->get('confirm', '');
 
-            if (strlen($password) < 8) {
-                $this->addFlash('error', 'Password must be at least 8 characters.');
+            if (strlen($password) < 8
+                || !preg_match('/[A-Z]/', $password)
+                || !preg_match('/\d/', $password)
+                || !preg_match('/[^A-Za-z0-9]/', $password)
+            ) {
+                $this->addFlash('error', 'Password must contain at least 8 characters, an uppercase letter, a number, and a special character.');
             } elseif ($password !== $confirm) {
                 $this->addFlash('error', 'Passwords do not match.');
             } else {
