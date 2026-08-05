@@ -38,7 +38,10 @@
                     <a class="{{ currentRoute == 'app_about' ? 'nav-active' : '' }}" href="{{ path('app_about') }}">About</a>
                     <a class="{{ currentRoute == 'app_ai_scanner' ? 'nav-active' : '' }}" href="{{ path('app_ai_scanner') }}">AI Scanner</a>
                     <a class="{{ currentRoute == 'app_menu_designer' ? 'nav-active' : '' }}" href="{{ path('app_menu_designer') }}">Designer</a>
-                    <a class="{{ currentRoute == 'app_pricing' ? 'nav-active' : '' }}" href="{{ path('app_pricing') }}">Pricing</a>
+                    <a class="nav-pricing-link {{ currentRoute == 'app_pricing' ? 'nav-active' : '' }}" href="{{ path('app_pricing') }}">
+                        Pricing
+                        <span class="nav-offer-tag">Free</span>
+                    </a>
                 </div>
                 <div class="nav-end">
                     {% if app.user %}

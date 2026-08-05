@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}S2S Pricing — Scan to See{% endblock %}
+{% block meta_description %}Try Scan to See free for five days with one draft menu, one published menu, and three AI menu scans, then choose the plan that fits your venue.{% endblock %}
 
 {% block body %}
 
@@ -8,12 +9,29 @@
         <div class="shell">
             <span class="eyebrow">Pricing</span>
             <h1>Choose the plan that fits your operation.</h1>
-            <p>Every plan is available with monthly or discounted yearly billing. Menu and business limits are shown clearly below.</p>
+            <p>Start free for five days, explore the complete menu workflow, and choose a paid plan only when you are ready to continue.</p>
         </div>
     </section>
 
     <section class="s-pricing">
         <div class="shell">
+            <article class="trial-offer" data-reveal>
+                <div class="trial-offer-copy">
+                    <span class="trial-offer-label">Free · No payment required</span>
+                    <h2>Five days to build, scan, publish, and decide.</h2>
+                    <p>Create a real menu and see how Scan to See fits your venue before choosing a subscription. Your trial starts after you verify your email.</p>
+                </div>
+                <ul class="trial-benefits" aria-label="Free trial benefits">
+                    <li><span class="material-symbols-outlined" aria-hidden="true">edit_note</span><strong>1 draft menu</strong><small>Build and refine your content</small></li>
+                    <li><span class="material-symbols-outlined" aria-hidden="true">public</span><strong>1 published menu</strong><small>Test the live guest experience</small></li>
+                    <li><span class="material-symbols-outlined" aria-hidden="true">document_scanner</span><strong>3 AI scans</strong><small>Try assisted menu extraction</small></li>
+                </ul>
+                <div class="trial-offer-action">
+                    <a class="btn btn-primary btn-icon" href="{{ path('app_register') }}">Start your free trial <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></a>
+                    <small>After five days, choose a plan to keep using the owner workspace and published menu.</small>
+                </div>
+            </article>
+
             <div class="pricing-cards">
                 {% for plan in plans %}
                     {% set isFeatured = plan.featured|default(false) %}

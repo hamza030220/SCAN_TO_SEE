@@ -122,6 +122,14 @@ h3 { font-size: 1.18rem; letter-spacing: -.01em; }
 .nav-center a            { padding: 8px 14px; font-size: .93rem; font-weight: 500; color: var(--muted); transition: color 130ms; }
 .nav-center a:hover,
 .nav-center a.nav-active { color: var(--ink); }
+.nav-pricing-link { display: inline-flex; align-items: center; gap: 7px; }
+.nav-offer-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 20px; padding: 2px 7px;
+  border: 1px solid rgba(154,94,0,.25); border-radius: 999px;
+  color: #7a4b00; background: #fff3d4;
+  font-size: .62rem; font-weight: 800; line-height: 1; letter-spacing: .06em; text-transform: uppercase;
+}
 
 .nav-end     { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .nav-login   { font-size: .93rem; font-weight: 500; color: var(--muted); padding: 8px 2px; transition: color 130ms; }
@@ -309,6 +317,35 @@ a.footer-link:hover { color: #fff; }
 
 /* ---- 17. Pricing page --------------------------------- */
 .s-pricing { background: var(--page); padding: 72px 0 96px; }
+.trial-offer {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 1.1fr 1fr auto; gap: 38px; align-items: center;
+  padding: 38px 40px;
+  color: #fff; background: var(--deep);
+  border: 1px solid rgba(232,160,32,.35); border-radius: var(--r);
+  box-shadow: 0 22px 52px rgba(24,18,10,.13);
+}
+.trial-offer::after {
+  content: ''; position: absolute; right: -80px; top: -105px;
+  width: 210px; height: 210px; border: 28px solid rgba(232,160,32,.1); border-radius: 50%;
+  pointer-events: none;
+}
+.trial-offer-copy,.trial-benefits,.trial-offer-action { position: relative; z-index: 1; }
+.trial-offer-label {
+  display: inline-flex; padding: 6px 10px; margin-bottom: 14px;
+  color: var(--deep); background: var(--amber); border-radius: 999px;
+  font-size: .67rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.trial-offer h2 { color: #fff; font-size: clamp(1.55rem,2.5vw,2.2rem); }
+.trial-offer-copy p { max-width: 540px; margin-top: 11px; color: rgba(255,255,255,.62); font-size: .9rem; }
+.trial-benefits { display: grid; gap: 13px; margin: 0; padding: 0; list-style: none; }
+.trial-benefits li { display: grid; grid-template-columns: 30px 1fr; column-gap: 10px; align-items: center; }
+.trial-benefits .material-symbols-outlined { grid-row: 1 / 3; color: var(--amber); font-size: 24px; }
+.trial-benefits strong { color: #fff; font-size: .88rem; }
+.trial-benefits small { color: rgba(255,255,255,.48); font-size: .72rem; }
+.trial-offer-action { display: grid; gap: 10px; width: min(100%,250px); }
+.trial-offer-action .btn { white-space: nowrap; }
+.trial-offer-action > small { color: rgba(255,255,255,.45); font-size: .68rem; line-height: 1.5; }
 .pricing-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; max-width: 1120px; margin: 52px auto 0; align-items: center; }
 .pricing-card { position: relative; border: 1.5px solid var(--line); border-radius: var(--r); padding: 40px 32px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 24px; background: var(--page); }
 .pricing-card.is-featured { z-index: 1; border: 2px solid var(--amber); background: linear-gradient(145deg, #FFF9E9 0%, #F6D58F 100%); box-shadow: 0 26px 60px rgba(232, 160, 32, .24); transform: scale(1.085); }
@@ -362,6 +399,8 @@ a.footer-link:hover { color: #fff; }
 /* ---- 19. Responsive — 1024 --------------------------- */
 @media (max-width: 1024px) {
   .venues-grid { grid-template-columns: repeat(2,1fr); }
+  .trial-offer { grid-template-columns: 1fr 1fr; }
+  .trial-offer-action { grid-column: 1 / -1; width: 100%; grid-template-columns: auto 1fr; align-items: center; }
   .pricing-cards { gap: 14px; }
   .pricing-card { padding: 36px 24px; }
   .pricing-card.is-featured { transform: scale(1.045); }
@@ -412,6 +451,9 @@ a.footer-link:hover { color: #fff; }
   .auth-right { padding: 40px 32px; }
 
   /* Pricing */
+  .trial-offer { grid-template-columns: 1fr; gap: 28px; padding: 34px 30px; }
+  .trial-offer-action { grid-column: auto; grid-template-columns: 1fr; }
+  .trial-offer-action .btn { width: 100%; }
   .pricing-cards  { grid-template-columns: 1fr; max-width: 480px; }
   .pricing-card { padding: 40px 32px; }
   .pricing-card.is-featured { transform: none; }
