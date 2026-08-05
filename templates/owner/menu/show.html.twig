@@ -59,9 +59,9 @@
             <span><strong>QR &amp; share</strong><small>Print and distribute</small></span>
         </a>
         <button type="button" id="scannerOnboardingBtn"
-                {% if not menu.canUseScanner() %}disabled aria-disabled="true" title="Menu Scanner is only available for an empty menu."{% endif %}>
+                {% if not menu.canUseScanner() or aiMaintenance %}disabled aria-disabled="true" title="{{ aiMaintenance ? aiMaintenanceMessage : 'Menu Scanner is only available for an empty menu.' }}"{% endif %}>
             <span class="material-symbols-outlined" aria-hidden="true">document_scanner</span>
-            <span><strong>AI scanner <em>Beta</em></strong><small>{{ menu.canUseScanner() ? 'Import an empty menu' : 'Available on empty menus' }}</small></span>
+            <span><strong>AI scanner <em>Beta</em></strong><small>{{ aiMaintenance ? 'Temporarily in maintenance' : (menu.canUseScanner() ? 'Import an empty menu' : 'Available on empty menus') }}</small></span>
         </button>
     </nav>
 
@@ -82,6 +82,11 @@
 {% if not menu.canUseScanner() %}
     <div class="owner-flash owner-flash--info" role="status">
         Menu Scanner is available only while a menu is empty. This menu already contains content, so scanning is disabled to protect your existing work.
+    </div>
+{% endif %}
+{% if aiMaintenance %}
+    <div class="owner-flash owner-flash--info" role="status">
+        <strong>AI Scanner maintenance:</strong> {{ aiMaintenanceMessage }}
     </div>
 {% endif %}
 

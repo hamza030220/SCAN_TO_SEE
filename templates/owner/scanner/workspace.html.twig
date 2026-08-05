@@ -109,6 +109,7 @@
 
   {# === CENTRAL PANEL === #}
   <div class="wsCenter">
+    {% if aiMaintenance %}<div class="wsWarningBanner" role="status" style="margin:16px 20px 0"><div class="wsWarningLine"><strong>AI Scanner maintenance</strong></div><div class="wsWarningLine">{{ aiMaintenanceMessage }}</div></div>{% endif %}
 
     {# Drop Zone #}
     <div id="wsDropZone" class="wsDropZone">
@@ -143,7 +144,7 @@
         </label>
         <button type="button" id="wsScanBtn" class="wsScanBtn"
                 disabled aria-disabled="true"
-                {% if not scannerAllowed %}title="Menu Scanner is only available for an empty menu."{% else %}title="Accept the AI Scanner data terms to continue."{% endif %}>
+                {% if aiMaintenance %}title="{{ aiMaintenanceMessage }}"{% elseif not scannerAllowed %}title="Menu Scanner is only available for an empty menu."{% else %}title="Accept the AI Scanner data terms to continue."{% endif %}>
           <svg id="wsScanIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
             <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
@@ -224,6 +225,8 @@ var SCAN_URL = '{{ path("app_owner_scanner_scan") }}';
 var SAVE_URL = '{{ path("app_owner_scanner_save") }}';
 var MENU_ID  = {{ menu ? menu.id : 'null' }};
 var SCAN_ALLOWED = {{ scannerAllowed ? 'true' : 'false' }};
+var SCAN_MAINTENANCE = {{ aiMaintenance ? 'true' : 'false' }};
+var SCAN_MAINTENANCE_MESSAGE = {{ aiMaintenanceMessage|json_encode|raw }};
 var SCAN_CSRF = '{{ csrf_token("scanner-scan") }}';
 var SAVE_CSRF = '{{ csrf_token("scanner-save") }}';
 
@@ -258,7 +261,7 @@ function syncScanButton(){
   var enabled=SCAN_ALLOWED&&dataTerms.checked;
   scanBtn.disabled=!enabled;
   scanBtn.setAttribute('aria-disabled',enabled?'false':'true');
-  scanBtn.title=SCAN_ALLOWED?(enabled?'Scan this empty menu':'Accept the AI Scanner data terms to continue.'):'Menu Scanner is only available for an empty menu.';
+  scanBtn.title=SCAN_MAINTENANCE?SCAN_MAINTENANCE_MESSAGE:(SCAN_ALLOWED?(enabled?'Scan this empty menu':'Accept the AI Scanner data terms to continue.'):'Menu Scanner is only available for an empty menu.');
 }
 dataTerms.addEventListener('change',syncScanButton);
 syncScanButton();

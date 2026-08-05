@@ -20,6 +20,7 @@ use App\Service\ItemCustomizationService;
 use App\Service\EntitlementService;
 use App\Service\ScanCaptureService;
 use App\Service\SubscriptionService;
+use App\Service\AiMaintenanceService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -258,7 +259,7 @@ final class OwnerMenuController extends AbstractController
     }
 
     #[Route('/owner/menus/{id}', name: 'app_owner_menu_show', requirements: ['id' => '\d+'])]
-    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuFontCatalogService $fontCatalog, MenuHeroConfigService $heroConfigService): Response
+    public function menuShow(int $id, BusinessRepository $businessRepo, MenuRepository $menuRepo, MenuFontCatalogService $fontCatalog, MenuHeroConfigService $heroConfigService, AiMaintenanceService $aiMaintenance): Response
     {
         $menu = $this->getOwnedMenu($id, $menuRepo, $businessRepo);
         if (!$menu) throw $this->createNotFoundException();
@@ -274,6 +275,8 @@ final class OwnerMenuController extends AbstractController
             'heroConfigJson' => json_encode($heroConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR),
             'heroPublished' => $hero?->getPublishedConfig() !== null,
             'heroPublishedAt' => $hero?->getPublishedAt(),
+            'aiMaintenance' => $aiMaintenance->isActive(),
+            'aiMaintenanceMessage' => $aiMaintenance->message(),
         ]);
     }
 
@@ -848,13 +851,16 @@ final class OwnerMenuController extends AbstractController
         MenuRepository    $menuRepo,
         BusinessRepository $businessRepo,
         EntitlementService $entitlements,
+        AiMaintenanceService $aiMaintenance,
     ): Response {
         $menuId = $request->query->getInt('menu');
         $menu   = $menuId ? $this->getOwnedMenu($menuId, $menuRepo, $businessRepo) : null;
 
         return $this->render('owner/scanner/workspace.html.twig', [
             'menu' => $menu,
-            'scannerAllowed' => $menu?->canUseScanner() ?? false,
+            'scannerAllowed' => ($menu?->canUseScanner() ?? false) && !$aiMaintenance->isActive(),
+            'aiMaintenance' => $aiMaintenance->isActive(),
+            'aiMaintenanceMessage' => $aiMaintenance->message(),
             'trialAiRemaining' => $entitlements->remainingTrialAiUses($this->getUser()),
             'trialAiUsed' => $entitlements->isTrialAccess($this->getUser())
                 ? $this->getUser()->getTrialAiUses()
@@ -879,10 +885,14 @@ final class OwnerMenuController extends AbstractController
         MenuRepository $menuRepo,
         BusinessRepository $businessRepo,
         EntitlementService $entitlements,
+        AiMaintenanceService $aiMaintenance,
     ): JsonResponse
     {
         if (!$this->isCsrfTokenValid('scanner-scan', $request->request->get('_token'))) {
             return $this->json(['error' => 'Invalid security token. Refresh the page and try again.'], 403);
+        }
+        if ($aiMaintenance->isActive()) {
+            return $this->json(['error' => $aiMaintenance->message(), 'maintenance' => true], 503);
         }
         if ($request->request->get('data_terms_accepted') !== '1') {
             return $this->json(['error' => 'Accept the AI Scanner data terms before scanning.'], 422);
