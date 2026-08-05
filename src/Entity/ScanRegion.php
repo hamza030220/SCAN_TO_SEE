@@ -60,6 +60,12 @@ class ScanRegion
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $correctedAt = null;
 
+    #[ORM\Column(options: ['default' => false])]
+    private bool $excludedFromTraining = false;
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $exclusionReason = null;
+
     public function getId(): ?int { return $this->id; }
     public function getScan(): ?ScanCapture { return $this->scan; }
     public function setScan(ScanCapture $value): static { $this->scan = $value; return $this; }
@@ -91,4 +97,8 @@ class ScanRegion
     public function setReviewOutcome(?string $value): static { $this->reviewOutcome = $value; return $this; }
     public function getCorrectedAt(): ?\DateTimeImmutable { return $this->correctedAt; }
     public function setCorrectedAt(?\DateTimeImmutable $value): static { $this->correctedAt = $value; return $this; }
+    public function isExcludedFromTraining(): bool { return $this->excludedFromTraining; }
+    public function setExcludedFromTraining(bool $value): static { $this->excludedFromTraining = $value; return $this; }
+    public function getExclusionReason(): ?string { return $this->exclusionReason; }
+    public function setExclusionReason(?string $value): static { $this->exclusionReason = $value; return $this; }
 }
