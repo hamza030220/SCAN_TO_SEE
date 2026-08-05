@@ -55,4 +55,5 @@ node_modules/
 ###> Internal planning docs (not for repo) ###
 symfony-integration-plan.md
 *.integration-plan.md
+SECURITY_AUDIT_PRIVATE.md
 ###< Internal planning docs ###
