@@ -1,19 +1,73 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Your trial has ended — S2S{% endblock %}
+{% set paidAccount = subscription is not null %}
+{% block title %}Access paused — S2S{% endblock %}
+{% block meta_description %}Your Scan to See workspace is preserved and can be restored by activating a plan.{% endblock %}
 
 {% block body %}
-<section class="trial-gate">
-    <div class="trial-gate-card" role="dialog" aria-modal="true" aria-labelledby="trial-gate-title">
-        <span class="material-symbols-outlined trial-gate-icon" aria-hidden="true">workspace_premium</span>
-        <span class="eyebrow">Five-day trial complete</span>
-        <h1 id="trial-gate-title">Your work is safe and ready when you are.</h1>
-        <p>Your dashboard, editor, AI Scanner, and public menus are paused. Choose a plan to restore access without rebuilding anything.</p>
-        <div class="trial-gate-actions">
-            <a class="btn btn-primary btn-full" href="{{ path('app_owner_subscription') }}">Choose a plan and continue</a>
-            <a class="btn btn-outline btn-full" href="{{ path('app_home') }}">Return to the home page</a>
+<section class="access-pause-page">
+    <div class="access-pause-orb access-pause-orb--one" aria-hidden="true"></div>
+    <div class="access-pause-orb access-pause-orb--two" aria-hidden="true"></div>
+
+    <div class="shell access-pause-layout">
+        <div class="access-pause-copy">
+            <div class="access-pause-status">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/>
+                </svg>
+                Access paused
+            </div>
+            <span class="eyebrow">{{ paidAccount ? subscription.getPlanLabel() ~ ' subscription' : 'Five-day free trial' }}</span>
+            <h1>Your menus are paused.<br><span>Your work is not gone.</span></h1>
+            <p class="access-pause-lede">
+                {% if paidAccount %}
+                    Your paid access has ended. Your menu content, designs, businesses and permanent QR links are preserved exactly as you left them.
+                {% else %}
+                    Your free trial has ended. Everything you created is safely preserved and ready to return when you choose a plan.
+                {% endif %}
+            </p>
+
+            <div class="access-pause-actions">
+                <a class="btn btn-primary" href="{{ path('app_owner_subscription') }}">
+                    Compare plans
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <a class="btn access-pause-home" href="{{ path('app_home') }}">Return home</a>
+            </div>
+
+            <p class="access-pause-reassurance">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                Reactivating access restores published menus without rebuilding them.
+            </p>
+            <button class="access-pause-delete" type="button" data-account-delete-open>Prefer not to continue? Delete my account</button>
         </div>
-        <button class="trial-delete-link" type="button" data-account-delete-open>Delete my account</button>
+
+        <aside class="access-pause-card" aria-label="Workspace status">
+            <div class="access-pause-card-head">
+                <div>
+                    <span>Workspace status</span>
+                    <h2>Protected and waiting</h2>
+                </div>
+                <svg class="access-pause-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3 5 6v5c0 4.8 2.9 8.1 7 10 4.1-1.9 7-5.2 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </div>
+
+            <div class="access-pause-list">
+                <div><span>Public QR menus</span><strong class="is-paused"><i></i>Paused</strong></div>
+                <div><span>Dashboard and editor</span><strong class="is-paused"><i></i>Paused</strong></div>
+                <div><span>Menus and businesses</span><strong class="is-safe"><i></i>Preserved</strong></div>
+                <div><span>Designs and QR links</span><strong class="is-safe"><i></i>Preserved</strong></div>
+            </div>
+
+            <div class="access-pause-plan">
+                <span>Last access</span>
+                <strong>{{ paidAccount ? subscription.getPlanLabel() ~ ' · ' ~ subscription.billingPeriod|capitalize : 'Free trial · Basic limits' }}</strong>
+                {% if paidAccount and subscription.currentPeriodEnd %}
+                    <small>Ended {{ subscription.currentPeriodEnd|date('F j, Y') }}</small>
+                {% elseif user.trialEndsAt %}
+                    <small>Ended {{ user.trialEndsAt|date('F j, Y') }}</small>
+                {% endif %}
+            </div>
+        </aside>
     </div>
 </section>
 {% include 'owner/_account_delete_modal.html.twig' %}

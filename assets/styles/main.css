@@ -2093,6 +2093,86 @@ body.owner-body {
 .safety-grid p { color: var(--muted); font-size: .89rem; }
 
 /* Legal pages */
+/* ---- Access paused gateway ----------------------------- */
+.access-pause-page {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 72px);
+  overflow: hidden;
+  padding: clamp(72px, 9vw, 122px) 0;
+  color: #fff;
+  background:
+    radial-gradient(circle at 8% 5%, rgba(232,160,32,.13), transparent 28rem),
+    linear-gradient(135deg, #18120a 0%, #21170d 52%, #120d08 100%);
+}
+.access-pause-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  opacity: .14;
+  background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 88%);
+  mask-image: linear-gradient(to bottom, #000, transparent 88%);
+}
+.access-pause-orb { position: absolute; z-index: -1; border-radius: 50%; filter: blur(1px); pointer-events: none; }
+.access-pause-orb--one { width: 290px; height: 290px; top: -175px; right: 11%; border: 1px solid rgba(232,160,32,.22); box-shadow: 0 0 100px rgba(232,160,32,.08); }
+.access-pause-orb--two { width: 420px; height: 420px; bottom: -340px; left: 22%; border: 1px solid rgba(255,255,255,.08); }
+.access-pause-layout { display: grid; grid-template-columns: minmax(0,1.08fr) minmax(360px,.72fr); align-items: center; gap: clamp(48px,8vw,112px); }
+.access-pause-copy { max-width: 660px; }
+.access-pause-status { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 30px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.74); background: rgba(255,255,255,.055); font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.access-pause-status svg { width: 17px; height: 17px; color: var(--amber); }
+.access-pause-copy .eyebrow { margin-bottom: 15px; }
+.access-pause-copy h1 { max-width: 680px; font-size: clamp(3rem,6.2vw,6.1rem); line-height: .96; color: #fff; }
+.access-pause-copy h1 span { color: rgba(255,255,255,.42); }
+.access-pause-lede { max-width: 610px; margin-top: 27px; color: rgba(255,255,255,.67); font-size: clamp(1rem,1.5vw,1.16rem); line-height: 1.75; }
+.access-pause-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.access-pause-actions .btn { min-width: 178px; }
+.access-pause-actions svg { width: 18px; height: 18px; }
+.access-pause-home { color: #fff; border-color: rgba(255,255,255,.27); background: rgba(255,255,255,.04); }
+.access-pause-home:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.08); }
+.access-pause-reassurance { display: flex; align-items: flex-start; gap: 9px; margin-top: 24px; color: rgba(255,255,255,.48); font-size: .8rem; }
+.access-pause-reassurance svg { width: 17px; flex: 0 0 17px; color: #81c7a2; }
+.access-pause-delete { margin-top: 24px; padding: 0 0 3px; border-bottom: 1px solid rgba(255,255,255,.24); color: rgba(255,255,255,.43); font-size: .76rem; }
+.access-pause-delete:hover { color: #fff; border-color: rgba(255,255,255,.7); }
+.access-pause-card { position: relative; overflow: hidden; padding: 30px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.075); box-shadow: 0 32px 90px rgba(0,0,0,.34); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+.access-pause-card::after { content: ''; position: absolute; width: 170px; height: 3px; top: 0; left: 30px; background: linear-gradient(90deg,var(--amber),transparent); }
+.access-pause-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,.1); }
+.access-pause-card-head span, .access-pause-plan span { display: block; color: rgba(255,255,255,.43); font-size: .67rem; font-weight: 600; letter-spacing: .11em; text-transform: uppercase; }
+.access-pause-card-head h2 { margin-top: 7px; color: #fff; font-size: 1.35rem; }
+.access-pause-shield { width: 38px; height: 38px; padding: 8px; color: var(--amber); border: 1px solid rgba(232,160,32,.28); background: rgba(232,160,32,.08); }
+.access-pause-list { padding: 10px 0; }
+.access-pause-list > div { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px 0; border-bottom: 1px solid rgba(255,255,255,.075); }
+.access-pause-list span { color: rgba(255,255,255,.68); font-size: .85rem; }
+.access-pause-list strong { display: inline-flex; align-items: center; gap: 8px; font-size: .73rem; font-weight: 600; }
+.access-pause-list i { display: block; width: 7px; height: 7px; border-radius: 50%; }
+.access-pause-list .is-paused { color: #e5b183; }
+.access-pause-list .is-paused i { background: #d68147; box-shadow: 0 0 0 4px rgba(214,129,71,.12); }
+.access-pause-list .is-safe { color: #9ed2b6; }
+.access-pause-list .is-safe i { background: #68af8b; box-shadow: 0 0 0 4px rgba(104,175,139,.12); }
+.access-pause-plan { margin-top: 18px; padding: 17px; border-left: 2px solid var(--amber); background: rgba(0,0,0,.16); }
+.access-pause-plan strong { display: block; margin-top: 6px; color: #fff; font-family: 'Space Grotesk',sans-serif; font-size: .94rem; }
+.access-pause-plan small { display: block; margin-top: 4px; color: rgba(255,255,255,.42); font-size: .72rem; }
+
+@media (max-width: 880px) {
+  .access-pause-page { padding: 62px 0 74px; }
+  .access-pause-layout { grid-template-columns: 1fr; gap: 46px; }
+  .access-pause-copy { max-width: 720px; }
+  .access-pause-card { width: min(100%,600px); }
+}
+@media (max-width: 560px) {
+  .access-pause-page { min-height: auto; padding: 44px 0 58px; }
+  .access-pause-page .shell { width: min(100% - 32px,1100px); }
+  .access-pause-status { margin-bottom: 24px; }
+  .access-pause-copy h1 { font-size: clamp(2.65rem,13vw,4rem); }
+  .access-pause-lede { margin-top: 21px; font-size: .96rem; }
+  .access-pause-actions { display: grid; grid-template-columns: 1fr; }
+  .access-pause-actions .btn { width: 100%; }
+  .access-pause-card { padding: 23px 20px; }
+  .access-pause-list > div { align-items: flex-start; }
+}
+
 .legal-hero { padding: 75px 0; color: #fff; background: var(--deep); }
 .legal-hero-inner { display: flex; align-items: end; justify-content: space-between; gap: 30px; }
 .legal-hero h1 { margin-top: 12px; font-size: clamp(2.8rem,5vw,4.8rem); }
