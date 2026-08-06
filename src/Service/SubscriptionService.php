@@ -13,6 +13,8 @@ use Stripe\StripeClient;
 
 class SubscriptionService
 {
+    public const PAYMENT_GRACE_DAYS = 3;
+
     public function __construct(
         private readonly SubscriptionRepository $subscriptionRepo,
         private readonly MenuRepository         $menuRepo,
@@ -455,7 +457,9 @@ class SubscriptionService
         $sub = $this->subscriptionRepo->findOneBy(['stripeSubscriptionId' => $stripeSub->id]);
         if (!$sub) return;
 
-        $sub->setStatus(Subscription::STATUS_CANCELLED);
+        $sub->setStatus(Subscription::STATUS_CANCELLED)
+            ->setCancelAtPeriodEnd(false)
+            ->setPaymentGraceEndsAt(null);
         $this->em->flush();
     }
 
@@ -472,6 +476,9 @@ class SubscriptionService
         }
 
         $sub->setStatus(Subscription::STATUS_PAST_DUE);
+        if ($sub->getPaymentGraceEndsAt() === null) {
+            $sub->setPaymentGraceEndsAt(new \DateTimeImmutable(sprintf('+%d days', self::PAYMENT_GRACE_DAYS)));
+        }
         $this->em->flush();
     }
 
@@ -516,10 +523,20 @@ class SubscriptionService
         $sub->setStatus(match ($stripeStatus) {
             'active' => Subscription::STATUS_ACTIVE,
             'canceled' => Subscription::STATUS_CANCELLED,
-            'past_due', 'unpaid' => Subscription::STATUS_PAST_DUE,
+            'past_due' => Subscription::STATUS_PAST_DUE,
+            'unpaid' => Subscription::STATUS_EXPIRED,
             'incomplete_expired' => Subscription::STATUS_EXPIRED,
             default => Subscription::STATUS_PENDING,
         });
+
+        $sub->setCancelAtPeriodEnd((bool) ($data['cancel_at_period_end'] ?? false));
+        if ($stripeStatus === 'active') {
+            $sub->setPaymentGraceEndsAt(null);
+        } elseif ($stripeStatus === 'past_due' && $sub->getPaymentGraceEndsAt() === null) {
+            $sub->setPaymentGraceEndsAt(new \DateTimeImmutable(sprintf('+%d days', self::PAYMENT_GRACE_DAYS)));
+        } elseif (in_array($stripeStatus, ['canceled', 'unpaid', 'incomplete_expired'], true)) {
+            $sub->setPaymentGraceEndsAt(null);
+        }
 
         $periodEnd = $data['items']['data'][0]['current_period_end']
             ?? $data['current_period_end']
@@ -637,6 +654,38 @@ class SubscriptionService
         if (!$sub->getStripeSubscriptionId()) return;
         $client = new StripeClient($this->stripeSecretKey);
         $client->subscriptions->cancel($sub->getStripeSubscriptionId());
+    }
+
+    /** Stop renewal without taking away time the customer already paid for. */
+    public function scheduleCancellation(Subscription $sub): void
+    {
+        if (!$sub->getStripeSubscriptionId() || $sub->getStatus() !== Subscription::STATUS_ACTIVE || !$sub->isActive()) {
+            throw new \LogicException('An active Stripe subscription is required.');
+        }
+
+        $client = new StripeClient($this->stripeSecretKey);
+        $stripeSub = $client->subscriptions->update($sub->getStripeSubscriptionId(), [
+            'cancel_at_period_end' => true,
+        ]);
+        $this->synchronizeFromStripe($sub, $stripeSub);
+        $sub->setCancelAtPeriodEnd(true);
+        $this->em->flush();
+    }
+
+    /** Restore automatic renewal before a scheduled cancellation takes effect. */
+    public function resumeSubscription(Subscription $sub): void
+    {
+        if (!$sub->getStripeSubscriptionId() || $sub->getStatus() !== Subscription::STATUS_ACTIVE || !$sub->isActive() || !$sub->isCancelAtPeriodEnd()) {
+            throw new \LogicException('No scheduled cancellation can be resumed.');
+        }
+
+        $client = new StripeClient($this->stripeSecretKey);
+        $stripeSub = $client->subscriptions->update($sub->getStripeSubscriptionId(), [
+            'cancel_at_period_end' => false,
+        ]);
+        $this->synchronizeFromStripe($sub, $stripeSub);
+        $sub->setCancelAtPeriodEnd(false);
+        $this->em->flush();
     }
 
     // ── Enforcement check ─────────────────────────────────────────────────────

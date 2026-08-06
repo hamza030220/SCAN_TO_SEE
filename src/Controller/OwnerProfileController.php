@@ -213,13 +213,27 @@ final class OwnerProfileController extends AbstractController
         }
 
         // Cancel subscription
-        if ($sub && ($sub->isActive() || $sub->getStatus() === 'pending')) {
-            $service->cancelStripeSubscription($sub);
-            $sub->setStatus(\App\Entity\Subscription::STATUS_CANCELLED);
-            $em->flush();
-            $this->addFlash('success', 'Subscription cancelled successfully. Your menu data has been preserved.');
+        if ($sub && $sub->getStatus() === \App\Entity\Subscription::STATUS_ACTIVE && $sub->isActive() && !$sub->isCancelAtPeriodEnd()) {
+            try {
+                $service->scheduleCancellation($sub);
+                $this->addFlash('success', sprintf(
+                    'Renewal cancelled. Your subscription and QR menus stay active until %s.',
+                    $sub->getCurrentPeriodEnd()?->format('F j, Y') ?? 'the end of your paid period',
+                ));
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Stripe could not schedule the cancellation. Your subscription remains unchanged.');
+            }
+        } elseif ($sub && $sub->getStatus() === \App\Entity\Subscription::STATUS_PENDING) {
+            try {
+                $service->cancelStripeSubscription($sub);
+                $sub->setStatus(\App\Entity\Subscription::STATUS_CANCELLED);
+                $em->flush();
+                $this->addFlash('success', 'The pending subscription was cancelled.');
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Stripe could not cancel the pending subscription.');
+            }
         } else {
-            $this->addFlash('error', 'No active subscription to cancel.');
+            $this->addFlash('error', 'No renewable subscription was found.');
         }
 
         return $this->redirectToRoute('app_owner_account');

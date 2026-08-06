@@ -728,6 +728,49 @@ class SubscriptionServiceTest extends TestCase
         $this->assertSame($periodEnd, $subscription->getCurrentPeriodEnd()?->getTimestamp());
     }
 
+    public function testStripeSynchronizationPreservesAccessForScheduledCancellation(): void
+    {
+        $subscription = new Subscription();
+        $stripeSubscription = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_scheduled',
+            'status' => 'active',
+            'cancel_at_period_end' => true,
+            'current_period_end' => time() + 86400,
+            'items' => ['object' => 'list', 'data' => []],
+        ]);
+
+        $this->service->synchronizeFromStripe($subscription, $stripeSubscription);
+
+        $this->assertTrue($subscription->isCancelAtPeriodEnd());
+        $this->assertTrue($subscription->isActive());
+    }
+
+    public function testPastDueSynchronizationStartsGraceAndPaidRecoveryClearsIt(): void
+    {
+        $subscription = new Subscription();
+        $pastDue = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_retry', 'status' => 'past_due',
+            'current_period_end' => time() - 60,
+            'items' => ['object' => 'list', 'data' => []],
+        ]);
+        $active = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_retry', 'status' => 'active',
+            'current_period_end' => time() + 2592000,
+            'items' => ['object' => 'list', 'data' => []],
+        ]);
+
+        $this->service->synchronizeFromStripe($subscription, $pastDue);
+        $graceEnd = $subscription->getPaymentGraceEndsAt();
+        $this->assertTrue($subscription->isInPaymentGrace());
+
+        $this->service->synchronizeFromStripe($subscription, $pastDue);
+        $this->assertSame($graceEnd, $subscription->getPaymentGraceEndsAt(), 'Repeated webhooks must not extend grace.');
+
+        $this->service->synchronizeFromStripe($subscription, $active);
+        $this->assertSame(Subscription::STATUS_ACTIVE, $subscription->getStatus());
+        $this->assertNull($subscription->getPaymentGraceEndsAt());
+    }
+
     public function testInvoiceSubscriptionLookupSupportsCurrentAndLegacyStripeShapes(): void
     {
         $method = new \ReflectionMethod(SubscriptionService::class, 'getInvoiceSubscriptionId');

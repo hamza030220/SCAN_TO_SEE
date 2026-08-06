@@ -84,7 +84,6 @@ class SubscriptionController extends AbstractController
         Request $request,
         SubscriptionService $service,
         SubscriptionRepository $subRepo,
-        EntityManagerInterface $em,
     ): Response {
         $sessionId = $request->query->get('session_id');
 
@@ -332,11 +331,43 @@ class SubscriptionController extends AbstractController
         $user = $this->getUser();
         $sub  = $subRepo->findOneBy(['owner' => $user]);
 
-        if ($sub && $sub->isActive()) {
-            $service->cancelStripeSubscription($sub);
-            $sub->setStatus(Subscription::STATUS_CANCELLED);
-            $em->flush();
-            $this->addFlash('success', 'Subscription cancelled. Your menu data has been preserved.');
+        if ($sub && $sub->getStatus() === Subscription::STATUS_ACTIVE && $sub->isActive() && !$sub->isCancelAtPeriodEnd()) {
+            try {
+                $service->scheduleCancellation($sub);
+                $this->addFlash('success', sprintf(
+                    'Automatic renewal stopped. Your plan and public menus remain active until %s.',
+                    $sub->getCurrentPeriodEnd()?->format('F j, Y') ?? 'the end of the paid period',
+                ));
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Stripe could not schedule the cancellation. Your subscription remains unchanged; please try again.');
+            }
+        } else {
+            $this->addFlash('error', 'No renewable subscription was found.');
+        }
+
+        return $this->redirectToRoute('app_owner_subscription');
+    }
+
+    #[Route('/resume', name: 'app_owner_subscription_resume', methods: ['POST'])]
+    public function resume(
+        Request $request,
+        SubscriptionService $service,
+        SubscriptionRepository $subRepo,
+    ): Response {
+        if (!$this->isCsrfTokenValid('resume-subscription', $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page before restoring renewal.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $sub = $subRepo->findOneBy(['owner' => $user]);
+        try {
+            if (!$sub) { throw new \LogicException(); }
+            $service->resumeSubscription($sub);
+            $this->addFlash('success', 'Automatic renewal restored. Your subscription will continue normally.');
+        } catch (\Throwable) {
+            $this->addFlash('error', 'Stripe could not restore renewal. No billing setting was changed; please try again.');
         }
 
         return $this->redirectToRoute('app_owner_subscription');

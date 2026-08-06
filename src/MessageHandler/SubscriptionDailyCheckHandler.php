@@ -60,6 +60,9 @@ class SubscriptionDailyCheckHandler
         foreach ($this->subRepo->findExpiredActive() as $sub) {
             $sub->setStatus(Subscription::STATUS_EXPIRED);
         }
+        foreach ($this->subRepo->findExpiredGracePeriods() as $sub) {
+            $sub->setStatus(Subscription::STATUS_EXPIRED)->setPaymentGraceEndsAt(null);
+        }
 
         $this->em->flush();
     }

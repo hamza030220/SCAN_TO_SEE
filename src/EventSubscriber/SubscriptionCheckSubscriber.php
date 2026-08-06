@@ -23,6 +23,7 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
         'app_owner_subscription_change',
         'app_owner_subscription_downgrade',
         'app_owner_subscription_cancel',
+        'app_owner_subscription_resume',
         'app_owner_account_delete',
         'app_stripe_webhook',
         'app_trial_expired',

@@ -88,6 +88,14 @@ class Subscription
     #[ORM\Column]
     private bool $expiryReminderSent = false;
 
+    /** Stripe will stop renewal after the already-paid period ends. */
+    #[ORM\Column]
+    private bool $cancelAtPeriodEnd = false;
+
+    /** Temporary paid access while Stripe retries a failed renewal payment. */
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $paymentGraceEndsAt = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -100,9 +108,19 @@ class Subscription
 
     public function isActive(): bool
     {
-        return $this->status === self::STATUS_ACTIVE
-            && $this->currentPeriodEnd !== null
-            && $this->currentPeriodEnd > new \DateTimeImmutable();
+        $now = new \DateTimeImmutable();
+
+        return ($this->status === self::STATUS_ACTIVE
+                && $this->currentPeriodEnd !== null
+                && $this->currentPeriodEnd > $now)
+            || $this->isInPaymentGrace($now);
+    }
+
+    public function isInPaymentGrace(?\DateTimeImmutable $now = null): bool
+    {
+        return $this->status === self::STATUS_PAST_DUE
+            && $this->paymentGraceEndsAt !== null
+            && $this->paymentGraceEndsAt > ($now ?? new \DateTimeImmutable());
     }
 
     public function isExpiredOrCancelled(): bool
@@ -179,6 +197,10 @@ class Subscription
 
     public function isExpiryReminderSent(): bool { return $this->expiryReminderSent; }
     public function setExpiryReminderSent(bool $sent): static { $this->expiryReminderSent = $sent; return $this; }
+    public function isCancelAtPeriodEnd(): bool { return $this->cancelAtPeriodEnd; }
+    public function setCancelAtPeriodEnd(bool $value): static { $this->cancelAtPeriodEnd = $value; return $this; }
+    public function getPaymentGraceEndsAt(): ?\DateTimeImmutable { return $this->paymentGraceEndsAt; }
+    public function setPaymentGraceEndsAt(?\DateTimeImmutable $value): static { $this->paymentGraceEndsAt = $value; return $this; }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 }

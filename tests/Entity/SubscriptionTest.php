@@ -58,6 +58,32 @@ class SubscriptionTest extends TestCase
         $this->assertFalse($subscription->isActive());
     }
 
+    public function testScheduledCancellationKeepsPaidPeriodActive(): void
+    {
+        $subscription = (new Subscription())
+            ->setStatus(Subscription::STATUS_ACTIVE)
+            ->setCurrentPeriodEnd(new \DateTimeImmutable('+10 days'))
+            ->setCancelAtPeriodEnd(true);
+
+        $this->assertTrue($subscription->isActive());
+        $this->assertTrue($subscription->isCancelAtPeriodEnd());
+    }
+
+    public function testPastDueSubscriptionHasAccessOnlyDuringGracePeriod(): void
+    {
+        $subscription = (new Subscription())
+            ->setStatus(Subscription::STATUS_PAST_DUE)
+            ->setCurrentPeriodEnd(new \DateTimeImmutable('-1 hour'))
+            ->setPaymentGraceEndsAt(new \DateTimeImmutable('+3 days'));
+
+        $this->assertTrue($subscription->isInPaymentGrace());
+        $this->assertTrue($subscription->isActive());
+
+        $subscription->setPaymentGraceEndsAt(new \DateTimeImmutable('-1 second'));
+        $this->assertFalse($subscription->isInPaymentGrace());
+        $this->assertFalse($subscription->isActive());
+    }
+
     public function testGetPublishedMenuLimitReturnsCorrectValue(): void
     {
         $subscription = new Subscription();

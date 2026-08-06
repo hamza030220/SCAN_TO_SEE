@@ -23,6 +23,7 @@ class SubscriptionRepository extends ServiceEntityRepository
             ->where('s.status = :active')
             ->andWhere('s.currentPeriodEnd >= :from')
             ->andWhere('s.currentPeriodEnd <= :to')
+            ->andWhere('s.cancelAtPeriodEnd = true')
             ->andWhere('s.expiryReminderSent = false')
             ->setParameter('active', Subscription::STATUS_ACTIVE)
             ->setParameter('from', $from)
@@ -38,6 +39,19 @@ class SubscriptionRepository extends ServiceEntityRepository
             ->where('s.status = :active')
             ->andWhere('s.currentPeriodEnd < :now')
             ->setParameter('active', Subscription::STATUS_ACTIVE)
+            ->setParameter('now', new \DateTimeImmutable())
+            ->getQuery()
+            ->getResult();
+    }
+
+    /** Find payment-retry grace periods that have now elapsed. */
+    public function findExpiredGracePeriods(): array
+    {
+        return $this->createQueryBuilder('s')
+            ->where('s.status = :pastDue')
+            ->andWhere('s.paymentGraceEndsAt IS NOT NULL')
+            ->andWhere('s.paymentGraceEndsAt < :now')
+            ->setParameter('pastDue', Subscription::STATUS_PAST_DUE)
             ->setParameter('now', new \DateTimeImmutable())
             ->getQuery()
             ->getResult();
