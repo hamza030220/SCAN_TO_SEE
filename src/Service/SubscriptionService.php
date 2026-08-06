@@ -561,7 +561,10 @@ class SubscriptionService
             $pendingIsDue = $sub->hasPendingDowngrade()
                 && ($sub->getPendingPlanEffectiveAt() <= new \DateTimeImmutable()
                     || ($date instanceof \DateTimeImmutable
-                        && $date > $sub->getPendingPlanEffectiveAt()));
+                        // MySQL stores this datetime without a timezone. Allow
+                        // for timezone re-hydration drift; a genuine renewal
+                        // advances the period by weeks, not a few hours.
+                        && $date > $sub->getPendingPlanEffectiveAt()->modify('+1 day')));
             $matchesPending = $sub->hasPendingDowngrade()
                 && $sub->getPendingPlan() === $planPeriod['plan']
                 && $sub->getPendingBillingPeriod() === $planPeriod['period'];

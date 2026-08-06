@@ -777,6 +777,30 @@ class SubscriptionServiceTest extends TestCase
         $this->assertTrue($subscription->hasPendingDowngrade());
     }
 
+    public function testTimezoneDriftDoesNotActivateScheduledDowngradeEarly(): void
+    {
+        $effectiveAt = new \DateTimeImmutable('+20 days');
+        $subscription = (new Subscription())
+            ->setPlan(Subscription::PLAN_PRO)
+            ->setBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlan(Subscription::PLAN_PREMIUM)
+            ->setPendingBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlanEffectiveAt($effectiveAt);
+        $stripeSubscription = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_timezone', 'status' => 'active',
+            'items' => ['object' => 'list', 'data' => [[
+                'id' => 'si_test', 'object' => 'subscription_item',
+                'current_period_end' => $effectiveAt->modify('+2 hours')->getTimestamp(),
+                'price' => ['id' => 'price_premium_monthly', 'object' => 'price'],
+            ]]],
+        ]);
+
+        $this->service->synchronizeFromStripe($subscription, $stripeSubscription);
+
+        $this->assertSame(Subscription::PLAN_PRO, $subscription->getPlan());
+        $this->assertTrue($subscription->hasPendingDowngrade());
+    }
+
     public function testStripeSynchronizationActivatesScheduledDowngradeWhenDue(): void
     {
         $subscription = (new Subscription())
