@@ -103,10 +103,10 @@ final class SiteController extends AbstractController
             'plans' => [
                 [
                     'name' => Subscription::LABELS[Subscription::PLAN_BASIC],
-                    'period' => 'For one business',
+                    'period' => 'For essential menus',
                     'monthly' => Subscription::PRICES[Subscription::PLAN_BASIC][Subscription::PERIOD_MONTHLY],
                     'yearly' => Subscription::PRICES[Subscription::PLAN_BASIC][Subscription::PERIOD_YEARLY],
-                    'description' => 'The essentials for a single venue.',
+                    'description' => 'Essential menu capacity across your businesses.',
                     'items' => ['1 published menu', '1 draft menu', 'Permanent QR codes', 'Live menu updates'],
                 ],
                 [

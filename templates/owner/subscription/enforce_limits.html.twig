@@ -256,8 +256,7 @@ body {
     {# ── Alert banner ────────────────────────────────────────────────────── #}
     <div class="enf-banner">
         <h1 class="enf-banner-title">
-            <span>Notice</span>
-            Action Required: Select Menus to Keep
+            Action required: choose your active menus
         </h1>
         <p class="enf-banner-text">
             Your <strong>{{ planLabel }}</strong> plan allows
@@ -273,8 +272,8 @@ body {
             {% else %}
                 <strong>unlimited drafts</strong>
             {% endif %}.
-            Please select which menus to keep in active slots. Unselected menus
-            will be archived, not deleted, and can be restored when a slot is available.
+            Please select which menus to keep in active slots. Your choices may span different businesses.
+            Unselected menus will be archived, not deleted. Public QR menus remain paused until this selection is complete.
         </p>
     </div>
 
@@ -373,6 +372,7 @@ body {
 
 <script>
 (function() {
+    let isSubmitting = false;
     const publishedRequired = {{ publishedLimit is not null ? min(publishedLimit, publishedCount) : 0 }};
     const draftRequired = {{ draftLimit is not null ? min(draftLimit, draftCount) : 0 }};
 
@@ -430,9 +430,15 @@ body {
     // Initial state
     updateUI();
 
-    // Prevent accidental navigation
+    document.getElementById('enforcementForm').addEventListener('submit', function() {
+        isSubmitting = true;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving selection...';
+    });
+
+    // Prevent accidental navigation while a valid, unsaved selection exists.
     window.addEventListener('beforeunload', function(e) {
-        if (!submitBtn.disabled) {
+        if (!isSubmitting && !submitBtn.disabled) {
             e.preventDefault();
             e.returnValue = '';
         }

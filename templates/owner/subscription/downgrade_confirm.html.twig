@@ -186,7 +186,8 @@ body {
     <div class="down-card">
         <h1 class="down-title">Confirm Plan Downgrade</h1>
         <p class="down-subtitle">
-            You're about to change from <strong>{{ currentSub.planLabel }}</strong> to <strong>{{ newPlanLabel }}</strong>.
+            Schedule a change from <strong>{{ currentSub.planLabel }}</strong> to <strong>{{ newPlanLabel }}</strong>
+            for {{ currentSub.currentPeriodEnd|date('F j, Y') }}. You keep every current-plan feature until then.
         </p>
 
         <div class="down-comparison">
@@ -222,22 +223,16 @@ body {
         {% if willNeedEnforcement %}
             <div class="down-warning">
                 <p>
-                    <strong>Action required:</strong> You currently have more menus than the {{ newPlanLabel }} plan allows.
-                    After confirming, you'll be asked to select which menus to keep. 
-                    Unselected menus will be archived without deleting their data.
+                    <strong>Selection required when the downgrade begins:</strong> You currently have more menus than {{ newPlanLabel }} allows.
+                    On {{ currentSub.currentPeriodEnd|date('F j, Y') }}, the workspace will guide you to choose the active menus.
+                    Until that selection is confirmed, public menus pause. Unselected menus are archived, never deleted.
                 </p>
             </div>
         {% endif %}
 
-        {% if businessLimitExceeded %}
-            <div class="down-warning">
-                <p>
-                    <strong>Business limit reached:</strong>
-                    this plan supports {{ newBusinessLimit }} business, while your account has {{ businessCount }}.
-                    Remove the extra businesses before confirming this downgrade.
-                </p>
-            </div>
-        {% endif %}
+        <div class="down-warning">
+            <p><strong>Your businesses stay intact.</strong> Menu limits apply across the whole account, so the menus you keep may belong to different businesses.</p>
+        </div>
 
         <form method="post" action="{{ path('app_owner_subscription_downgrade', {plan: newPlan, period: newPeriod}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token('downgrade') }}">
@@ -246,12 +241,8 @@ body {
                 <a href="{{ path('app_owner_subscription') }}" class="btn btn-secondary">
                     Cancel
                 </a>
-                <button type="submit" class="btn btn-primary" {{ businessLimitExceeded ? 'disabled' }}>
-                    {% if willNeedEnforcement %}
-                        Continue to Menu Selection
-                    {% else %}
-                        Confirm Downgrade
-                    {% endif %}
+                <button type="submit" class="btn btn-primary">
+                    Schedule Downgrade
                 </button>
             </div>
         </form>

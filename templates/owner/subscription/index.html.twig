@@ -439,6 +439,15 @@ body {
                 <div class="sub-banner sub-banner--warn">
                     Automatic renewal is cancelled. Your <strong>{{ sub.getPlanLabel() }}</strong> plan and public menus remain active until <strong>{{ sub.currentPeriodEnd|date('d M Y') }}</strong>.
                 </div>
+            {% elseif sub.hasPendingDowngrade() %}
+                <div class="sub-banner sub-banner--warn">
+                    Your <strong>{{ sub.getPlanLabel() }}</strong> plan stays active until <strong>{{ sub.pendingPlanEffectiveAt|date('d M Y') }}</strong>.
+                    It will then change to <strong>{{ labels[sub.pendingPlan] }}</strong>. If you exceed the new limits, you will choose the active menus and the rest will be archived safely.
+                    <form method="post" action="{{ path('app_owner_subscription_downgrade_cancel') }}" style="margin-top:12px">
+                        <input type="hidden" name="_token" value="{{ csrf_token('cancel-downgrade') }}">
+                        <button type="submit" class="btn-cancel">Keep {{ sub.getPlanLabel() }}</button>
+                    </form>
+                </div>
             {% endif %}
             <div class="sub-current">
                 <div class="sub-current-info">
@@ -537,7 +546,7 @@ body {
                     </li>
                     <li>Permanent QR codes</li>
                     <li>Live menu updates</li>
-                    {% if plan != 'basic' %}<li>Multiple businesses</li>{% endif %}
+                    <li>Menus across multiple businesses</li>
                     {% if plan == 'pro' %}<li>Priority support</li>{% endif %}
                 </ul>
 
@@ -586,7 +595,7 @@ body {
         </details>
         <details>
             <summary>Can I downgrade my plan?</summary>
-            <p>Yes. If you have more menus than the new plan allows, you choose which ones remain available. The rest are archived, not deleted.</p>
+            <p>Yes. Your current plan remains active through its paid period. When the lower plan begins, you choose its active menus across any of your businesses. Everything else is archived, not deleted.</p>
         </details>
         <details>
             <summary>Do prices include VAT?</summary>

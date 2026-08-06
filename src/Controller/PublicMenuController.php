@@ -44,7 +44,7 @@ class PublicMenuController extends AbstractController
             throw $this->createNotFoundException('Business not found.');
         }
 
-        if (!$entitlements->hasAccess($business->getOwner())) {
+        if (!$entitlements->hasAccess($business->getOwner()) || $business->getOwner()->isEnforcementRequired()) {
             return $this->withNoCache($this->render('public/no_menu.html.twig', [
                 'business' => $business,
             ]));
@@ -97,7 +97,7 @@ class PublicMenuController extends AbstractController
         $isOwnerPreview = $request->query->getBoolean('preview')
             && $viewer instanceof \App\Entity\User
             && ($viewer->getRole() === 'admin' || $viewer->getId() === $business->getOwner()?->getId());
-        if (!$entitlements->hasAccess($business->getOwner())) {
+        if (!$entitlements->hasAccess($business->getOwner()) || $business->getOwner()->isEnforcementRequired()) {
             return $this->withNoCache($this->render('public/no_menu.html.twig', [
                 'business' => $business,
             ]));

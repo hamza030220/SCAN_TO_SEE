@@ -559,7 +559,9 @@ class SubscriptionService
         $planPeriod = $this->findPlanPeriodForPriceId(is_string($priceId) ? $priceId : null);
         if ($planPeriod !== null) {
             $pendingIsDue = $sub->hasPendingDowngrade()
-                && $sub->getPendingPlanEffectiveAt() <= new \DateTimeImmutable();
+                && ($sub->getPendingPlanEffectiveAt() <= new \DateTimeImmutable()
+                    || ($date instanceof \DateTimeImmutable
+                        && $date > $sub->getPendingPlanEffectiveAt()));
             $matchesPending = $sub->hasPendingDowngrade()
                 && $sub->getPendingPlan() === $planPeriod['plan']
                 && $sub->getPendingBillingPeriod() === $planPeriod['period'];

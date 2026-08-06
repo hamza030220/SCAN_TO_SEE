@@ -14,6 +14,8 @@ use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
@@ -53,5 +55,33 @@ final class AccountGuardSubscriberTest extends TestCase
 
         self::assertTrue($event->hasResponse());
         self::assertSame('/trial-expired', $event->getResponse()?->headers->get('Location'));
+    }
+
+    public function testOwnerWithUnresolvedLimitsCannotBypassSelectionThroughDashboard(): void
+    {
+        $owner = (new User())
+            ->setEmail('owner@example.com')
+            ->setRole('owner')
+            ->setEnforcementRequired(true);
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($owner);
+        $storage = $this->createMock(TokenStorageInterface::class);
+        $storage->method('getToken')->willReturn($token);
+        $router = $this->createMock(RouterInterface::class);
+        $router->expects(self::once())->method('generate')
+            ->with('app_owner_subscription_enforce_limits')
+            ->willReturn('/owner/subscription/enforce-limits');
+        $request = Request::create('/dashboard');
+        $request->attributes->set('_route', 'app_dashboard');
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        $event = new RequestEvent(
+            $this->createMock(HttpKernelInterface::class),
+            $request,
+            HttpKernelInterface::MAIN_REQUEST,
+        );
+
+        (new LimitEnforcementSubscriber($storage, $router))->onKernelRequest($event);
+
+        self::assertSame('/owner/subscription/enforce-limits', $event->getResponse()?->headers->get('Location'));
     }
 }

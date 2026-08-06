@@ -21,6 +21,7 @@ class LimitEnforcementSubscriber implements EventSubscriberInterface
         'app_owner_subscription_enforce_limits',      // GET enforcement page
         'app_owner_subscription_enforce_limits_post', // POST enforcement submission
         'app_owner_subscription',                     // View subscription page
+        'app_owner_account_delete',                   // Preserve account control
         'app_logout',
     ];
 
@@ -43,8 +44,8 @@ class LimitEnforcementSubscriber implements EventSubscriberInterface
         $request = $event->getRequest();
         $route   = $request->attributes->get('_route', '');
 
-        // Only enforce on /owner/* routes
-        if (!str_starts_with($route, 'app_owner')) {
+        // The main dashboard is outside the app_owner route-name prefix.
+        if (!str_starts_with($route, 'app_owner') && $route !== 'app_dashboard') {
             return;
         }
 

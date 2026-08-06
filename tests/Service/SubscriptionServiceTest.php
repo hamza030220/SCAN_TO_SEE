@@ -800,6 +800,29 @@ class SubscriptionServiceTest extends TestCase
         $this->assertFalse($subscription->hasPendingDowngrade());
     }
 
+    public function testAdvancedStripePeriodActivatesDowngradeAcrossBoundaryRace(): void
+    {
+        $subscription = (new Subscription())
+            ->setPlan(Subscription::PLAN_PRO)
+            ->setBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlan(Subscription::PLAN_BASIC)
+            ->setPendingBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlanEffectiveAt(new \DateTimeImmutable('+1 minute'));
+        $stripeSubscription = \Stripe\Subscription::constructFrom([
+            'id' => 'sub_boundary', 'status' => 'active',
+            'items' => ['object' => 'list', 'data' => [[
+                'id' => 'si_test', 'object' => 'subscription_item',
+                'current_period_end' => time() + 2592000,
+                'price' => ['id' => 'price_basic_monthly', 'object' => 'price'],
+            ]]],
+        ]);
+
+        $this->service->synchronizeFromStripe($subscription, $stripeSubscription);
+
+        $this->assertSame(Subscription::PLAN_BASIC, $subscription->getPlan());
+        $this->assertFalse($subscription->hasPendingDowngrade());
+    }
+
     public function testPastDueSynchronizationStartsGraceAndPaidRecoveryClearsIt(): void
     {
         $subscription = new Subscription();
