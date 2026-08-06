@@ -4,7 +4,7 @@
 {% block page_title %}{{ item ? 'Edit Item' : 'Add Item' }}{% endblock %}
 
 {% block content %}
-<div class="owner-panel" style="max-width:520px">
+<div class="owner-panel item-form-panel">
     <div class="owner-panel-head">
         <h2>{{ item ? 'Edit: ' ~ item.name : 'Add item' }}</h2>
         <a href="{{ path('app_owner_menu_show', {id: menu.id}) }}" style="font-size:.82rem;color:var(--muted)">← {{ menu.name }}</a>
@@ -16,15 +16,16 @@
         {% if error %}
             <div class="owner-flash owner-flash--error" style="margin-bottom:16px">{{ error }}</div>
         {% endif %}
-        <form class="owner-form" method="post" enctype="multipart/form-data">
-            <div class="form-field">
+        <form class="owner-form item-editor-form" method="post" enctype="multipart/form-data">
+            <div class="item-form-basics">
+            <div class="form-field item-field-name">
                 <label for="name">Item name</label>
                 <input id="name" name="name" type="text"
                        placeholder="Iced Latte"
                        value="{{ item ? item.name : '' }}"
                        required>
             </div>
-            <div class="form-field">
+            <div class="form-field item-field-short-description">
                 <label for="short_description">
                     Short description
                     <span style="color:var(--muted);font-weight:400">(optional)</span>
@@ -33,18 +34,25 @@
                        placeholder="Oat milk option available"
                        value="{{ item ? (item.shortDescription ?? '') : '' }}">
             </div>
-            <div class="form-field">
+            <div class="form-field item-field-price">
                 <label for="price">Price <span style="color:var(--muted);font-weight:400">({{ menu.currency }})</span></label>
                 <input id="price" name="price" type="number" step="0.01" min="0"
                        placeholder="8.50"
                        value="{{ item ? item.price : '' }}"
                        required>
             </div>
-            <div class="form-field">
+            <div class="form-field item-field-details">
                 <label for="details">Detailed description <span style="color:var(--muted);font-weight:400">(optional)</span></label>
                 <textarea id="details" name="details" rows="4" maxlength="2000" placeholder="Ingredients, preparation, or anything customers should know">{{ item ? (item.details ?? '') : '' }}</textarea>
             </div>
+            <div class="form-field item-field-order">
+                <label for="sort_order">Sort order</label>
+                <input id="sort_order" name="sort_order" type="number" min="0"
+                       value="{{ item ? item.sortOrder : 0 }}">
+            </div>
+            </div>
 
+            <div class="item-form-options">
             <details class="item-advanced" open>
                 <summary><span class="material-symbols-outlined" aria-hidden="true">sell</span> Labels &amp; dietary information</summary>
                 <div class="item-advanced__body">
@@ -87,19 +95,17 @@
                     <button type="button" class="variant-add" data-add-variant><span class="material-symbols-outlined" aria-hidden="true">add</span> Add variant</button>
                 </div>
             </details>
-            <div class="form-field">
-                <label for="sort_order">Sort order</label>
-                <input id="sort_order" name="sort_order" type="number" min="0"
-                       value="{{ item ? item.sortOrder : 0 }}">
             </div>
-            <label style="display:flex;align-items:center;gap:10px;font-size:.88rem;cursor:pointer">
+
+            <div class="item-form-media">
+            <label class="item-availability-toggle">
                 <input type="checkbox" name="is_available" value="1"
                        {{ not item or item.isAvailable ? 'checked' : '' }}>
-                Available to customers
+                <span><strong>Available to customers</strong><small>Visible as an available choice on the public menu.</small></span>
             </label>
 
             {# ── Item image upload ────────────────────────────────────── #}
-            <div class="form-field" style="margin-top:16px">
+            <div class="form-field item-photo-field">
                 <label>Photo <span style="color:var(--muted);font-weight:400">(JPG / PNG / WEBP · max 2 MB)</span></label>
                 <div class="img-upload-widget">
                     <div class="img-upload-preview" id="item-preview-wrap">
@@ -129,8 +135,9 @@
                            onchange="s2sImagePreview(this,'item-preview','item-placeholder')">
                 </div>
             </div>
+            </div>
 
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <div class="item-form-actions">
                 <button class="btn btn-primary" type="submit">
                     {{ item ? 'Save changes' : 'Add item' }}
                 </button>

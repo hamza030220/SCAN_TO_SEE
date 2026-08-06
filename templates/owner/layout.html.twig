@@ -34,6 +34,10 @@
             width: 100%;
             position: relative;
             overflow: hidden;
+            max-height: calc(100vh - 48px);
+            max-height: calc(100dvh - 48px);
+            display: flex;
+            flex-direction: column;
             box-shadow: 0 32px 80px rgba(0,0,0,.38), 0 2px 8px rgba(0,0,0,.12);
             animation: _mSlide .22s cubic-bezier(.22,.68,0,1.2) both;
         }
@@ -50,6 +54,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            flex: 0 0 auto;
         }
         .s2s-modal-title {
             font-family: 'Space Grotesk', sans-serif;
@@ -80,7 +85,11 @@
         /* ── Modal body (wraps the injected .owner-panel) ───────────── */
         .s2s-modal-body {
             padding: 28px 26px 26px;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
+        .s2s-modal-inner--item { max-width: min(980px, calc(100vw - 32px)); }
 
         /* ── Reset owner-panel styles when inside modal ─────────────── */
         .s2s-modal-inner .owner-panel {
@@ -142,6 +151,14 @@
             margin-top: 22px;
             padding-top: 18px;
             border-top: 1px solid #f0e9de;
+        }
+
+        @media (max-width: 700px) {
+            .s2s-modal { align-items: flex-start; padding: 8px; }
+            .s2s-modal-inner,
+            .s2s-modal-inner--item { max-width: 100%; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); }
+            .s2s-modal-header { padding: 14px 16px; }
+            .s2s-modal-body { padding: 18px 14px 20px; }
         }
 
         /* ── Loading / error state ──────────────────────────────────── */
@@ -311,6 +328,7 @@
                 body.innerHTML = entry.panelHTML;
 
                 inner.innerHTML = '';
+                inner.classList.toggle('s2s-modal-inner--item', !!body.querySelector('.item-form-panel'));
                 inner.appendChild(header);
                 inner.appendChild(body);
 
