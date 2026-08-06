@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Subscription;
 use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
+use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,8 @@ class SubscriptionEnforcementController extends AbstractController
     public function show(
         SubscriptionRepository $subRepo,
         MenuRepository $menuRepo,
+        SubscriptionService $subscriptionService,
+        EntityManagerInterface $em,
     ): Response {
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
@@ -32,6 +35,17 @@ class SubscriptionEnforcementController extends AbstractController
         $subscription = $subRepo->findOneBy(['owner' => $user]);
         if (!$subscription) {
             $this->addFlash('error', 'No subscription found.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
+        // Never archive menus merely because a stale/manual flag was set.
+        // The active plan and live menu counts are the authority.
+        if (!$subscriptionService->refreshLimitEnforcement($user, $subscription->getPlan())) {
+            $em->flush();
+            $this->addFlash('info', sprintf(
+                'No menu selection is required for your current %s plan.',
+                $subscription->getPlanLabel(),
+            ));
             return $this->redirectToRoute('app_owner_subscription');
         }
 
@@ -80,6 +94,7 @@ class SubscriptionEnforcementController extends AbstractController
         MenuRepository $menuRepo,
         EntityManagerInterface $em,
         LoggerInterface $logger,
+        SubscriptionService $subscriptionService,
     ): Response {
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
@@ -100,13 +115,22 @@ class SubscriptionEnforcementController extends AbstractController
             return $this->redirectToRoute('app_owner_subscription');
         }
 
+        if (!$subscriptionService->refreshLimitEnforcement($user, $subscription->getPlan())) {
+            $em->flush();
+            $this->addFlash('info', sprintf(
+                'No menus were changed because your current %s plan is already within its limits.',
+                $subscription->getPlanLabel(),
+            ));
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
         $plan = $subscription->getPlan();
         $publishedLimit = Subscription::LIMITS[$plan]['published'];
         $draftLimit     = Subscription::LIMITS[$plan]['draft'];
 
         // Get selected menu IDs
-        $selectedPublished = array_map('intval', $request->request->all('keep_published') ?: []);
-        $selectedDraft     = array_map('intval', $request->request->all('keep_draft') ?: []);
+        $selectedPublished = array_values(array_unique(array_map('intval', $request->request->all('keep_published') ?: [])));
+        $selectedDraft     = array_values(array_unique(array_map('intval', $request->request->all('keep_draft') ?: [])));
 
         // Fetch current menus
         $allPublished = $menuRepo->createQueryBuilder('m')
@@ -186,7 +210,7 @@ class SubscriptionEnforcementController extends AbstractController
             $archivedMenus = [];
 
             foreach ($allPublished as $menu) {
-                if (!in_array($menu->getId(), $selectedPublished, true)) {
+                if ($publishedLimit !== null && !in_array($menu->getId(), $selectedPublished, true)) {
                     $archivedMenus[] = sprintf('%s (published)', $menu->getName());
                     $menu->setStatus(\App\Entity\Menu::STATUS_ARCHIVED);
                     $menu->setUpdatedAt(new \DateTimeImmutable());
@@ -195,7 +219,7 @@ class SubscriptionEnforcementController extends AbstractController
             }
 
             foreach ($allDraft as $menu) {
-                if (!in_array($menu->getId(), $selectedDraft, true)) {
+                if ($draftLimit !== null && !in_array($menu->getId(), $selectedDraft, true)) {
                     $archivedMenus[] = sprintf('%s (draft)', $menu->getName());
                     $menu->setStatus(\App\Entity\Menu::STATUS_ARCHIVED);
                     $menu->setUpdatedAt(new \DateTimeImmutable());
@@ -232,7 +256,9 @@ class SubscriptionEnforcementController extends AbstractController
             return $this->redirectToRoute('app_owner');
 
         } catch (\Throwable $e) {
-            $em->rollback();
+            if ($em->getConnection()->isTransactionActive()) {
+                $em->rollback();
+            }
 
             $logger->error('Subscription limit enforcement failed', [
                 'user_id'   => $user->getId(),

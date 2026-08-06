@@ -318,12 +318,14 @@ final class OwnerMenuController extends AbstractController
                 $this->addFlash('warning', 'Before publishing: ' . implode(' ', $issues));
                 return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
             }
+        }
 
-            $limit = $subscriptionService->autoSwapMenuStatus($this->getUser(), $menu->getId(), $menu->getStatus(), $status);
-            if (!$limit['allowed']) {
-                $this->addFlash('info', $limit['message'] ?? 'Your plan has no free published menu slot.');
-                return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
-            }
+        // Both directions consume a plan slot. In particular, moving a
+        // published menu back to draft must not bypass the draft allowance.
+        $limit = $subscriptionService->autoSwapMenuStatus($this->getUser(), $menu->getId(), $menu->getStatus(), $status);
+        if (!$limit['allowed']) {
+            $this->addFlash('info', $limit['message'] ?? 'Your plan has no free menu slot for this status.');
+            return $this->redirectToRoute('app_owner_menu_show', ['id' => $id]);
         }
 
         $menu->setStatus($status);

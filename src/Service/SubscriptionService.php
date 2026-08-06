@@ -468,7 +468,9 @@ class SubscriptionService
 
         $sub->setStatus(Subscription::STATUS_CANCELLED)
             ->setCancelAtPeriodEnd(false)
-            ->setPaymentGraceEndsAt(null);
+            ->setPaymentGraceEndsAt(null)
+            ->clearPendingDowngrade();
+        $sub->getOwner()?->setEnforcementRequired(false);
         $this->em->flush();
     }
 
@@ -485,6 +487,13 @@ class SubscriptionService
         }
 
         $sub->setStatus(Subscription::STATUS_PAST_DUE);
+        if ($sub->hasPendingDowngrade()
+            && $sub->getPendingPlanEffectiveAt() <= new \DateTimeImmutable()) {
+            $sub->setPlan($sub->getPendingPlan())
+                ->setBillingPeriod($sub->getPendingBillingPeriod())
+                ->clearPendingDowngrade();
+            $this->refreshLimitEnforcement($sub->getOwner(), $sub->getPlan());
+        }
         if ($sub->getPaymentGraceEndsAt() === null) {
             $sub->setPaymentGraceEndsAt(new \DateTimeImmutable(sprintf('+%d days', self::PAYMENT_GRACE_DAYS)));
         }
@@ -617,8 +626,14 @@ class SubscriptionService
 
         $sub = $this->getSubscription($user)
             ?? throw new \LogicException('No subscription found for user.');
-        if (!$sub->isActive() || !$sub->getStripeSubscriptionId()) {
+        if ($sub->getStatus() !== Subscription::STATUS_ACTIVE || !$sub->isActive() || !$sub->getStripeSubscriptionId()) {
             throw new \LogicException('An active Stripe subscription is required.');
+        }
+        if ($sub->isCancelAtPeriodEnd()) {
+            throw new \LogicException('Restore automatic renewal before changing plans.');
+        }
+        if ($sub->hasPendingDowngrade()) {
+            throw new \LogicException('Cancel the scheduled downgrade before choosing another plan.');
         }
 
         $oldRank = $sub->getPlanRank();
@@ -662,6 +677,18 @@ class SubscriptionService
         if ($newRank >= $sub->getPlanRank()) {
             throw new \LogicException('Selected plan is not a downgrade.');
         }
+        if ($sub->getStatus() !== Subscription::STATUS_ACTIVE || !$sub->isActive() || !$sub->getStripeSubscriptionId()) {
+            throw new \LogicException('An active Stripe subscription is required.');
+        }
+        if ($sub->isCancelAtPeriodEnd()) {
+            throw new \LogicException('Restore automatic renewal before scheduling a downgrade.');
+        }
+        if ($sub->hasPendingDowngrade()) {
+            throw new \LogicException('Cancel the existing scheduled downgrade before choosing another plan.');
+        }
+        if ($user->isEnforcementRequired()) {
+            throw new \LogicException('Complete the current menu selection before changing plans.');
+        }
 
         $effectiveAt = $sub->getCurrentPeriodEnd()
             ?? throw new \LogicException('The current paid period has no end date.');
@@ -678,11 +705,20 @@ class SubscriptionService
         $sub->setPendingPlan($newPlan)
             ->setPendingBillingPeriod($newPeriod)
             ->setPendingPlanEffectiveAt($effectiveAt);
+        // Persist first: Stripe may deliver subscription.updated before this
+        // HTTP request returns. The webhook must already see the pending state.
+        $this->em->flush();
 
-        $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
-            'items' => [['id' => $itemId, 'price' => $newPriceId]],
-            'proration_behavior' => 'none',
-        ]);
+        try {
+            $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
+                'items' => [['id' => $itemId, 'price' => $newPriceId]],
+                'proration_behavior' => 'none',
+            ]);
+        } catch (\Throwable $e) {
+            $sub->clearPendingDowngrade();
+            $this->em->flush();
+            throw $e;
+        }
         $this->synchronizeFromStripe($sub, $updatedStripeSub);
         $this->em->flush();
     }
@@ -691,6 +727,9 @@ class SubscriptionService
     {
         if (!$sub->isActive() || !$sub->hasPendingDowngrade() || !$sub->getStripeSubscriptionId()) {
             throw new \LogicException('No scheduled downgrade can be cancelled.');
+        }
+        if ($sub->isCancelAtPeriodEnd()) {
+            throw new \LogicException('Restore automatic renewal before changing the scheduled plan.');
         }
 
         $priceId = $this->stripePriceIds[$sub->getPlan()][$sub->getBillingPeriod()]
@@ -735,6 +774,9 @@ class SubscriptionService
         if (!$sub->getStripeSubscriptionId() || $sub->getStatus() !== Subscription::STATUS_ACTIVE || !$sub->isActive()) {
             throw new \LogicException('An active Stripe subscription is required.');
         }
+        if ($sub->hasPendingDowngrade()) {
+            throw new \LogicException('Cancel the scheduled downgrade before stopping renewal.');
+        }
 
         $client = new StripeClient($this->stripeSecretKey);
         $stripeSub = $client->subscriptions->update($sub->getStripeSubscriptionId(), [
@@ -766,15 +808,21 @@ class SubscriptionService
     /**
      * Check if the user exceeds the new plan's limits and set enforcement flag if needed.
      */
-    private function checkAndSetEnforcement(User $user, string $newPlan): void
+    public function refreshLimitEnforcement(User $user, ?string $plan = null): bool
     {
-        $publishedLimit = Subscription::LIMITS[$newPlan]['published'] ?? null;
-        $draftLimit     = Subscription::LIMITS[$newPlan]['draft'] ?? null;
+        $plan ??= $this->getSubscription($user)?->getPlan();
+        if ($plan === null || !in_array($plan, Subscription::PLANS, true)) {
+            $user->setEnforcementRequired(false);
+            return false;
+        }
+
+        $publishedLimit = Subscription::LIMITS[$plan]['published'] ?? null;
+        $draftLimit     = Subscription::LIMITS[$plan]['draft'] ?? null;
 
         // Pro plan: unlimited, no enforcement needed
         if ($publishedLimit === null && $draftLimit === null) {
             $user->setEnforcementRequired(false);
-            return;
+            return false;
         }
 
         $publishedCount = $this->countPublishedMenus($user);
@@ -783,10 +831,13 @@ class SubscriptionService
         $exceededPublished = $publishedLimit !== null && $publishedCount > $publishedLimit;
         $exceededDraft     = $draftLimit !== null && $draftCount > $draftLimit;
 
-        if ($exceededPublished || $exceededDraft) {
-            $user->setEnforcementRequired(true);
-        } else {
-            $user->setEnforcementRequired(false);
-        }
+        $required = $exceededPublished || $exceededDraft;
+        $user->setEnforcementRequired($required);
+        return $required;
+    }
+
+    private function checkAndSetEnforcement(User $user, string $newPlan): void
+    {
+        $this->refreshLimitEnforcement($user, $newPlan);
     }
 }

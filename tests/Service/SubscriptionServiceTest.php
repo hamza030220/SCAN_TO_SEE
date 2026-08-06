@@ -645,6 +645,93 @@ class SubscriptionServiceTest extends TestCase
         $this->assertTrue($this->service->canCreateBusiness($user, 10));
     }
 
+    public function testUnlimitedProPlanClearsStaleEnforcementWithoutArchiving(): void
+    {
+        $user = $this->createUser()->setEnforcementRequired(true);
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PRO, Subscription::STATUS_ACTIVE);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+        $this->menuRepo->expects($this->never())->method('createQueryBuilder');
+
+        $required = $this->service->refreshLimitEnforcement($user);
+
+        $this->assertFalse($required);
+        $this->assertFalse($user->isEnforcementRequired());
+    }
+
+    public function testPremiumPlanRequiresSelectionWhenEitherStrictLimitIsExceeded(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PREMIUM, Subscription::STATUS_ACTIVE);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+        $this->menuRepo->method('createQueryBuilder')->willReturnOnConsecutiveCalls(
+            $this->createMockQueryBuilder(4),
+            $this->createMockQueryBuilder(3),
+        );
+
+        $required = $this->service->refreshLimitEnforcement($user);
+
+        $this->assertTrue($required);
+        $this->assertTrue($user->isEnforcementRequired());
+    }
+
+    public function testBasicPlanClearsEnforcementWhenUsageFitsOnePlusOne(): void
+    {
+        $user = $this->createUser()->setEnforcementRequired(true);
+        $subscription = $this->createSubscription($user, Subscription::PLAN_BASIC, Subscription::STATUS_ACTIVE);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+        $this->menuRepo->method('createQueryBuilder')->willReturnOnConsecutiveCalls(
+            $this->createMockQueryBuilder(1),
+            $this->createMockQueryBuilder(1),
+        );
+
+        $required = $this->service->refreshLimitEnforcement($user);
+
+        $this->assertFalse($required);
+        $this->assertFalse($user->isEnforcementRequired());
+    }
+
+    public function testDowngradeCannotOverlapScheduledCancellation(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PRO, Subscription::STATUS_ACTIVE)
+            ->setStripeSubscriptionId('sub_test')
+            ->setCancelAtPeriodEnd(true);
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Restore automatic renewal');
+        $this->service->applyDowngrade($user, Subscription::PLAN_PREMIUM, Subscription::PERIOD_MONTHLY);
+    }
+
+    public function testRenewalCancellationCannotOverlapPendingDowngrade(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PRO, Subscription::STATUS_ACTIVE)
+            ->setStripeSubscriptionId('sub_test')
+            ->setPendingPlan(Subscription::PLAN_PREMIUM)
+            ->setPendingBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlanEffectiveAt(new \DateTimeImmutable('+30 days'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Cancel the scheduled downgrade');
+        $this->service->scheduleCancellation($subscription);
+    }
+
+    public function testPlanChangeCannotBypassPendingDowngrade(): void
+    {
+        $user = $this->createUser();
+        $subscription = $this->createSubscription($user, Subscription::PLAN_PREMIUM, Subscription::STATUS_ACTIVE)
+            ->setStripeSubscriptionId('sub_test')
+            ->setPendingPlan(Subscription::PLAN_BASIC)
+            ->setPendingBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlanEffectiveAt(new \DateTimeImmutable('+30 days'));
+        $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Cancel the scheduled downgrade');
+        $this->service->changeActiveSubscription($user, Subscription::PLAN_PRO, Subscription::PERIOD_MONTHLY);
+    }
+
     public function testTrialStillAllowsOnlyOneBusiness(): void
     {
         $user = $this->createUser()->setTrialEndsAt(new \DateTimeImmutable('+5 days'));

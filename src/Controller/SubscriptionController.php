@@ -3,8 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Subscription;
-use App\Repository\BusinessRepository;
-use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\SubscriptionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -84,6 +82,7 @@ class SubscriptionController extends AbstractController
         Request $request,
         SubscriptionService $service,
         SubscriptionRepository $subRepo,
+        EntityManagerInterface $em,
     ): Response {
         $sessionId = $request->query->get('session_id');
 
@@ -122,8 +121,18 @@ class SubscriptionController extends AbstractController
             $sub->setPlan($plan);
             $sub->setBillingPeriod($period);
             $sub->setStatus(Subscription::STATUS_PENDING);
-            $sub->setStripeCustomerId($stripeSession->customer ?: null);
-            $sub->setStripeSubscriptionId($stripeSession->subscription);
+            $customerId = is_string($stripeSession->customer)
+                ? $stripeSession->customer
+                : ($stripeSession->customer->id ?? null);
+            $subscriptionId = is_string($stripeSession->subscription)
+                ? $stripeSession->subscription
+                : ($stripeSession->subscription->id ?? null);
+            if (!$subscriptionId) {
+                $this->addFlash('error', 'Stripe did not return a subscription reference.');
+                return $this->redirectToRoute('app_owner_subscription');
+            }
+            $sub->setStripeCustomerId($customerId);
+            $sub->setStripeSubscriptionId($subscriptionId);
             $em->persist($sub);
             $em->flush();
         }
@@ -179,7 +188,7 @@ class SubscriptionController extends AbstractController
         /** @var \App\Entity\User $user */
         $user = $this->getUser();
         $current = $service->getSubscription($user);
-        if (!$current?->isActive()) {
+        if ($current?->getStatus() !== Subscription::STATUS_ACTIVE || !$current->isActive()) {
             $this->addFlash('warning', 'An active subscription is required to change plans.');
             return $this->redirectToRoute('app_owner_subscription');
         }
@@ -200,6 +209,8 @@ class SubscriptionController extends AbstractController
         try {
             $service->changeActiveSubscription($user, $plan, $period);
             $this->addFlash('success', 'Your subscription has been updated.');
+        } catch (\LogicException $e) {
+            $this->addFlash('warning', $e->getMessage());
         } catch (\Throwable $e) {
             $this->addFlash('error', 'Stripe could not update the subscription. No local plan change was applied.');
         }
@@ -216,15 +227,21 @@ class SubscriptionController extends AbstractController
         Request $request,
         SubscriptionService $service,
         SubscriptionRepository $subRepo,
-        MenuRepository $menuRepo,
-        BusinessRepository $businessRepo,
     ): Response {
         /** @var \App\Entity\User $user */
         $user      = $this->getUser();
         $currentSub = $subRepo->findOneBy(['owner' => $user]);
 
-        if (!$currentSub || !$currentSub->isActive()) {
+        if (!$currentSub || $currentSub->getStatus() !== Subscription::STATUS_ACTIVE || !$currentSub->isActive()) {
             $this->addFlash('info', 'Please select a subscription plan to continue.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+        if ($currentSub->isCancelAtPeriodEnd()) {
+            $this->addFlash('warning', 'Restore automatic renewal before scheduling a downgrade.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+        if ($currentSub->hasPendingDowngrade()) {
+            $this->addFlash('info', 'Cancel the existing scheduled downgrade before choosing another plan.');
             return $this->redirectToRoute('app_owner_subscription');
         }
 
@@ -242,10 +259,6 @@ class SubscriptionController extends AbstractController
             return $this->redirectToRoute('app_owner_subscription');
         }
 
-        $newBusinessLimit = null;
-        $businessCount = $businessRepo->count(['owner' => $user]);
-        $businessLimitExceeded = false;
-
         // For downgrades, use the new enforcement flow
         // Apply the downgrade and let the enforcement subscriber handle menu selection
         if ($request->isMethod('POST')) {
@@ -255,6 +268,9 @@ class SubscriptionController extends AbstractController
             }
             try {
                 $service->applyDowngrade($user, $plan, $period, []);
+            } catch (\LogicException $e) {
+                $this->addFlash('warning', $e->getMessage());
+                return $this->redirectToRoute('app_owner_subscription');
             } catch (\Throwable $e) {
                 $this->addFlash('error', 'Stripe could not apply the downgrade. Your current plan is unchanged.');
                 return $this->redirectToRoute('app_owner_subscription');
@@ -289,9 +305,6 @@ class SubscriptionController extends AbstractController
             'publishedCount'      => $publishedCount,
             'draftCount'          => $draftCount,
             'willNeedEnforcement' => $willNeedEnforcement,
-            'newBusinessLimit'    => $newBusinessLimit,
-            'businessCount'       => $businessCount,
-            'businessLimitExceeded' => $businessLimitExceeded,
         ]);
     }
 
@@ -302,7 +315,6 @@ class SubscriptionController extends AbstractController
         Request $request,
         SubscriptionService $service,
         SubscriptionRepository $subRepo,
-        EntityManagerInterface $em,
     ): Response {
         if (!$this->isCsrfTokenValid('cancel-subscription', $request->request->get('_token'))) {
             $this->addFlash('error', 'Your security session expired. Refresh the page before cancelling the subscription.');
@@ -320,13 +332,14 @@ class SubscriptionController extends AbstractController
                     'Automatic renewal stopped. Your plan and public menus remain active until %s.',
                     $sub->getCurrentPeriodEnd()?->format('F j, Y') ?? 'the end of the paid period',
                 ));
+            } catch (\LogicException $e) {
+                $this->addFlash('warning', $e->getMessage());
             } catch (\Throwable) {
                 $this->addFlash('error', 'Stripe could not schedule the cancellation. Your subscription remains unchanged; please try again.');
             }
         } else {
             $this->addFlash('error', 'No renewable subscription was found.');
         }
-
         return $this->redirectToRoute('app_owner_subscription');
     }
 

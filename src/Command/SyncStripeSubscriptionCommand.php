@@ -47,7 +47,11 @@ class SyncStripeSubscriptionCommand extends Command
 
             try {
                 $stripeSub = $client->subscriptions->retrieve($sub->getStripeSubscriptionId());
+                $oldPlan = $sub->getPlan();
                 $this->subscriptionService->synchronizeFromStripe($sub, $stripeSub);
+                if ($oldPlan !== $sub->getPlan()) {
+                    $this->subscriptionService->refreshLimitEnforcement($sub->getOwner(), $sub->getPlan());
+                }
                 $periodEnd = $sub->getCurrentPeriodEnd();
 
                 $io->success(sprintf(
