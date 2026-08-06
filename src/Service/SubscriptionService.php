@@ -76,7 +76,7 @@ class SubscriptionService
             'limits' => [
                 'published' => $plan !== null ? (Subscription::LIMITS[$plan]['published'] ?? null) : 0,
                 'draft' => $plan !== null ? (Subscription::LIMITS[$plan]['draft'] ?? null) : 0,
-                'businesses' => $plan !== null ? (Subscription::BUSINESS_LIMITS[$plan] ?? null) : 0,
+                'businesses' => $plan !== null ? $this->businessLimitFor($user, $plan) : 0,
             ],
             'usage' => [
                 'published' => $this->countPublishedMenus($user),
@@ -126,7 +126,7 @@ class SubscriptionService
         $label = $this->entitlements->isTrialAccess($user)
             ? 'Free trial'
             : (Subscription::LABELS[$plan] ?? ucfirst($plan));
-        $limit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
+        $limit = $this->businessLimitFor($user, $plan);
         return sprintf(
             'Your %s includes %s. You currently use %d. Edit an existing business or compare plans to add more.',
             $label,
@@ -287,8 +287,17 @@ class SubscriptionService
             return false;
         }
 
-        $limit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
+        $limit = $this->businessLimitFor($user, $plan);
         return $limit === null || $currentBusinessCount < $limit;
+    }
+
+    private function businessLimitFor(User $user, string $plan): ?int
+    {
+        if ($this->entitlements->isTrialAccess($user)) {
+            return Subscription::TRIAL_BUSINESS_LIMIT;
+        }
+
+        return Subscription::BUSINESS_LIMITS[$plan] ?? null;
     }
 
     /** @deprecated Use canSetMenuStatus() instead */

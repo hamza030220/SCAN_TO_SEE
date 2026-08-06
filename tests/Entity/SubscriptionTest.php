@@ -209,7 +209,7 @@ class SubscriptionTest extends TestCase
         $subscription = new Subscription();
 
         $subscription->setPlan(Subscription::PLAN_BASIC);
-        $this->assertSame(1, $subscription->getBusinessLimit());
+        $this->assertNull($subscription->getBusinessLimit());
 
         $subscription->setPlan(Subscription::PLAN_PREMIUM);
         $this->assertNull($subscription->getBusinessLimit());

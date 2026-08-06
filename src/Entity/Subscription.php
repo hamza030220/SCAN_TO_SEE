@@ -35,10 +35,12 @@ class Subscription
     ];
 
     public const BUSINESS_LIMITS = [
-        self::PLAN_BASIC => 1,
+        self::PLAN_BASIC => null,
         self::PLAN_PREMIUM => null,
         self::PLAN_PRO => null,
     ];
+
+    public const TRIAL_BUSINESS_LIMIT = 1;
 
     // ── Prices in EUR cents ───────────────────────────────────────────────────
     public const PRICES = [

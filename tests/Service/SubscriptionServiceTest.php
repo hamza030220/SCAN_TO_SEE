@@ -627,7 +627,7 @@ class SubscriptionServiceTest extends TestCase
         $this->assertFalse($this->service->canSetMenuStatus($user, 'draft', 'unknown'));
     }
 
-    public function testBusinessLimitUsesActivePlan(): void
+    public function testPaidPlansDoNotLimitStoredBusinesses(): void
     {
         $user = $this->createUser();
         $subscription = $this->createSubscription(
@@ -639,10 +639,19 @@ class SubscriptionServiceTest extends TestCase
         $this->subscriptionRepo->method('findOneBy')->willReturn($subscription);
 
         $this->assertTrue($this->service->canCreateBusiness($user, 0));
-        $this->assertFalse($this->service->canCreateBusiness($user, 1));
+        $this->assertTrue($this->service->canCreateBusiness($user, 10));
 
         $subscription->setPlan(Subscription::PLAN_PREMIUM);
         $this->assertTrue($this->service->canCreateBusiness($user, 10));
+    }
+
+    public function testTrialStillAllowsOnlyOneBusiness(): void
+    {
+        $user = $this->createUser()->setTrialEndsAt(new \DateTimeImmutable('+5 days'));
+        $this->subscriptionRepo->method('findOneBy')->willReturn(null);
+
+        $this->assertTrue($this->service->canCreateBusiness($user, 0));
+        $this->assertFalse($this->service->canCreateBusiness($user, 1));
     }
 
     public function testTrialAccessContextExplainsLimitsAndAiQuota(): void
