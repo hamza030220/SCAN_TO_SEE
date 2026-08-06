@@ -40,4 +40,33 @@ final class SecurityHeadersSubscriberTest extends TestCase
         self::assertFalse($response->headers->has('Strict-Transport-Security'));
         self::assertStringNotContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
+
+    public function testItAllowsOnlyTheOwnerMenuPreviewToBeFramedByTheSameOrigin(): void
+    {
+        $request = Request::create('https://example.test/m/cafe/breakfast?preview=1');
+        $request->attributes->set('_route', 'app_public_menu_view');
+        $response = new Response('preview');
+        $kernel = $this->createMock(HttpKernelInterface::class);
+        $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+
+        (new SecurityHeadersSubscriber('prod'))->onKernelResponse($event);
+
+        self::assertSame('SAMEORIGIN', $response->headers->get('X-Frame-Options'));
+        self::assertStringContainsString("frame-ancestors 'self'", (string) $response->headers->get('Content-Security-Policy'));
+        self::assertStringNotContainsString("frame-ancestors 'none'", (string) $response->headers->get('Content-Security-Policy'));
+    }
+
+    public function testItStillBlocksFramingForTheNormalPublicMenu(): void
+    {
+        $request = Request::create('https://example.test/m/cafe/breakfast');
+        $request->attributes->set('_route', 'app_public_menu_view');
+        $response = new Response('public menu');
+        $kernel = $this->createMock(HttpKernelInterface::class);
+        $event = new ResponseEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $response);
+
+        (new SecurityHeadersSubscriber('prod'))->onKernelResponse($event);
+
+        self::assertSame('DENY', $response->headers->get('X-Frame-Options'));
+        self::assertStringContainsString("frame-ancestors 'none'", (string) $response->headers->get('Content-Security-Policy'));
+    }
 }

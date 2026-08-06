@@ -29,12 +29,16 @@ final class SecurityHeadersSubscriber implements EventSubscriberInterface
         $response = $event->getResponse();
         $headers = $response->headers;
 
+        $isOwnerMenuPreview = $request->attributes->get('_route') === 'app_public_menu_view'
+            && $request->query->getBoolean('preview');
+
         $headers->set('X-Content-Type-Options', 'nosniff');
-        $headers->set('X-Frame-Options', 'DENY');
+        $headers->set('X-Frame-Options', $isOwnerMenuPreview ? 'SAMEORIGIN' : 'DENY');
         $headers->set('Referrer-Policy', 'no-referrer');
         $headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
         $headers->set('Cross-Origin-Opener-Policy', 'same-origin');
-        $headers->set('Content-Security-Policy', "base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'");
+        $frameAncestors = $isOwnerMenuPreview ? "'self'" : "'none'";
+        $headers->set('Content-Security-Policy', "base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'");
 
         if ($this->kernelEnvironment === 'prod' && $request->isSecure()) {
             $headers->set('Strict-Transport-Security', 'max-age=31536000');
