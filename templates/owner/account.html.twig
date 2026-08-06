@@ -121,7 +121,15 @@
                 <tr>
                     <td style="font-weight:600">Status</td>
                     <td>
-                        {% if sub.status == 'pending' %}
+                        {% if sub.isInPaymentGrace() %}
+                            <span style="display:inline-block; padding:3px 10px; background:#fff7ed; color:#9a3412; border-radius:6px; font-size:.8rem; font-weight:600;">
+                                Payment retry grace
+                            </span>
+                        {% elseif sub.cancelAtPeriodEnd %}
+                            <span style="display:inline-block; padding:3px 10px; background:#fffbeb; color:#92400e; border-radius:6px; font-size:.8rem; font-weight:600;">
+                                Active · renewal cancelled
+                            </span>
+                        {% elseif sub.status == 'pending' %}
                             <span style="display:inline-block; padding:3px 10px; background:#fffbeb; color:#92400e; border-radius:6px; font-size:.8rem; font-weight:600;">
                                 Confirming payment
                             </span>
@@ -134,8 +142,8 @@
                 </tr>
                 {% if sub.currentPeriodEnd %}
                     <tr>
-                        <td style="font-weight:600">Renewal Date</td>
-                        <td style="color:var(--adm-muted)">{{ sub.currentPeriodEnd|date('F j, Y') }}</td>
+                        <td style="font-weight:600">{{ sub.cancelAtPeriodEnd ? 'Access Ends' : (sub.isInPaymentGrace() ? 'Grace Period Ends' : 'Renewal Date') }}</td>
+                        <td style="color:var(--adm-muted)">{{ (sub.isInPaymentGrace() ? sub.paymentGraceEndsAt : sub.currentPeriodEnd)|date('F j, Y') }}</td>
                     </tr>
                     {% set daysLeft = sub.getDaysUntilExpiry() %}
                     {% if daysLeft is not null and daysLeft <= 7 %}
@@ -162,9 +170,13 @@
         </table>
 
         <div class="owner-panel-footer">
-            <button class="btn btn-danger-outline btn-sm" onclick="showCancelModal()">
-                Cancel Subscription
-            </button>
+            {% if sub.cancelAtPeriodEnd %}
+                <span style="color:var(--adm-muted);font-size:.86rem">You keep full access through the paid period. Restore renewal from Manage.</span>
+            {% elseif not sub.isInPaymentGrace() %}
+                <button class="btn btn-danger-outline btn-sm" onclick="showCancelModal()">Cancel renewal</button>
+            {% else %}
+                <span style="color:var(--adm-muted);font-size:.86rem">Update your payment method before the grace period ends to keep menus online.</span>
+            {% endif %}
         </div>
 
     {% else %}
@@ -195,7 +207,7 @@
 
 {% include 'owner/_account_delete_modal.html.twig' %}
 
-{% if sub and (sub.isActive() or sub.status == 'pending') %}
+{% if sub and (sub.status == 'active' or sub.status == 'pending') and not sub.cancelAtPeriodEnd %}
 {# ── Cancel Subscription Modal ─────────────────────────────────────────── #}
 <div class="cancel-modal" id="cancelModal">
     <div class="cancel-modal-inner">
@@ -205,8 +217,7 @@
         </div>
         <div class="cancel-modal-body">
             <p style="margin:0 0 20px; color:var(--adm-muted); line-height:1.6; font-size:.9rem">
-                This will <strong>immediately cancel</strong> your subscription. 
-                All your menus will be set to <strong>draft</strong> and your QR codes will stop working.
+                This stops <strong>automatic renewal</strong>. You keep your current plan, editor access, public menus, and working QR codes until the end of the period you already paid for. Your menu data remains preserved afterward.
             </p>
 
             <form method="post" action="{{ path('app_owner_account_cancel_sub') }}" id="cancelForm">

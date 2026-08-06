@@ -431,9 +431,13 @@ body {
     {% elseif sub %}
         {% if sub.isActive() %}
             {% set daysLeft = sub.getDaysUntilExpiry() %}
-            {% if daysLeft is not null and daysLeft <= 7 %}
+            {% if sub.isInPaymentGrace() %}
                 <div class="sub-banner sub-banner--warn">
-                    Your <strong>{{ sub.getPlanLabel() }}</strong> subscription expires in <strong>{{ daysLeft }} day{{ daysLeft != 1 ? 's' }}</strong>. Renew below to keep your menus live.
+                    We could not collect your renewal payment. Your menus remain online during a short grace period until <strong>{{ sub.paymentGraceEndsAt|date('d M Y') }} at {{ sub.paymentGraceEndsAt|date('H:i') }}</strong>. Please update your Stripe payment method before then.
+                </div>
+            {% elseif sub.cancelAtPeriodEnd %}
+                <div class="sub-banner sub-banner--warn">
+                    Automatic renewal is cancelled. Your <strong>{{ sub.getPlanLabel() }}</strong> plan and public menus remain active until <strong>{{ sub.currentPeriodEnd|date('d M Y') }}</strong>.
                 </div>
             {% endif %}
             <div class="sub-current">
@@ -442,15 +446,26 @@ body {
                     <div>
                         <p class="sub-current-label">Current plan · {{ sub.billingPeriod|capitalize }}</p>
                         {% if sub.currentPeriodEnd %}
-                            <p class="sub-current-exp">Renews on {{ sub.currentPeriodEnd|date('d M Y') }}</p>
+                            <p class="sub-current-exp">
+                                {% if sub.isInPaymentGrace() %}Payment retry grace ends {{ sub.paymentGraceEndsAt|date('d M Y') }}
+                                {% elseif sub.cancelAtPeriodEnd %}Access ends {{ sub.currentPeriodEnd|date('d M Y') }}
+                                {% else %}Renews on {{ sub.currentPeriodEnd|date('d M Y') }}{% endif %}
+                            </p>
                         {% endif %}
                     </div>
                 </div>
-                <form method="post" action="{{ path('app_owner_subscription_cancel') }}"
-                      onsubmit="return confirm('Cancel your subscription? Your menu data will be preserved, but public menu access will stop until you renew.')">
-                    <input type="hidden" name="_token" value="{{ csrf_token('cancel-subscription') }}">
-                    <button type="submit" class="btn-cancel">Cancel subscription</button>
-                </form>
+                {% if sub.cancelAtPeriodEnd %}
+                    <form method="post" action="{{ path('app_owner_subscription_resume') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('resume-subscription') }}">
+                        <button type="submit" class="btn-cancel">Restore renewal</button>
+                    </form>
+                {% elseif not sub.isInPaymentGrace() %}
+                    <form method="post" action="{{ path('app_owner_subscription_cancel') }}"
+                          onsubmit="return confirm('Stop automatic renewal? Your subscription and public menus will remain active until the end of the paid period.')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('cancel-subscription') }}">
+                        <button type="submit" class="btn-cancel">Cancel renewal</button>
+                    </form>
+                {% endif %}
             </div>
         {% elseif sub.status == 'pending' %}
             <div class="sub-banner sub-banner--info">
@@ -458,7 +473,7 @@ body {
             </div>
         {% elseif sub.status == 'past_due' %}
             <div class="sub-banner sub-banner--err">
-                Stripe could not collect the latest payment. Update the payment method in Stripe before access can resume.
+                The payment retry grace period has ended. Public menus are paused until payment succeeds or you choose a new plan.
             </div>
         {% else %}
             <div class="sub-banner sub-banner--err">
