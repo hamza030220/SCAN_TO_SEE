@@ -1525,6 +1525,16 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         var doc;
         try { doc = iframe.contentDocument || iframe.contentWindow.document; } catch (error) { return; }
         if (!doc || !doc.body) return;
+
+        var heroTab = document.querySelector('[data-ds-tab="hero"]');
+        var editingHero = heroTab && heroTab.classList.contains('active');
+        var hasVisibleContent = config.layers.slice(1).some(function (layer) { return layer.visible; });
+        if (!editingHero && !hasVisibleContent) {
+            var emptyHero = doc.getElementById('menuHero');
+            if (emptyHero) emptyHero.remove();
+            return;
+        }
+
         var hero = heroElement(doc);
         hero.dataset.editorMode = editMode;
         var background = config.layers[0];
@@ -1707,6 +1717,9 @@ body.ds-page-locked{position:fixed;width:100%;overflow:hidden;}
         });
     });
     document.querySelectorAll('[data-hero-add]').forEach(function (button) { button.addEventListener('click', function () { addLayer(button.dataset.heroAdd); }); });
+    document.querySelectorAll('[data-ds-tab]').forEach(function (button) {
+        button.addEventListener('click', function () { renderPreview(); });
+    });
     document.getElementById('heroScheduleCountdown').addEventListener('click', function () {
         var existing = config.layers.find(function (layer) { return layer.type === 'countdown'; });
         if (existing) { selectedId = existing.id; renderAll(true); setStatus('Countdown selected', 'Use the center handle to move it and the corner handles to resize it.', '', 'timer'); return; }
