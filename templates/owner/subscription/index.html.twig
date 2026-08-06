@@ -71,6 +71,8 @@ body {
 
 /* ── Main container ───────────────────────────────────────────────────── */
 .sub-container {
+    width: 100%;
+    box-sizing: border-box;
     max-width: 1080px;
     margin: 0 auto;
     padding: 40px 24px 60px;
@@ -203,11 +205,15 @@ body {
 /* ── Plan cards ───────────────────────────────────────────────────────── */
 .sub-plans {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
     margin-bottom: 48px;
+    align-items: stretch;
 }
 .sub-plan-card {
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
     background: rgba(255,255,255,.03);
     border: 1.5px solid rgba(255,255,255,.08);
     border-radius: 16px;
@@ -306,6 +312,10 @@ body {
     line-height: 1.5;
 }
 .sub-change-form { width: 100%; margin: 0; }
+.sub-plan-action {
+    width: 100%;
+    min-width: 0;
+}
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 .btn {
@@ -321,7 +331,19 @@ body {
     text-align: center;
     border: none;
 }
-.btn-full { display: block; width: 100%; }
+.btn-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding-inline: 16px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
 .btn-primary {
     background: rgba(255,255,255,.08);
     border: 1.5px solid rgba(255,255,255,.15);
@@ -395,6 +417,42 @@ body {
     color: rgba(245,240,232,.55);
     margin: 10px 0 0;
     line-height: 1.7;
+}
+
+@media (max-width: 920px) {
+    .sub-plans {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sub-plan-card.is-featured {
+        order: -1;
+    }
+}
+
+@media (max-width: 620px) {
+    .sub-container {
+        padding: 30px 16px 48px;
+    }
+    .sub-header {
+        padding-inline: 16px;
+    }
+    .sub-plans {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+    }
+    .sub-plan-card {
+        padding: 28px 20px;
+    }
+    .sub-current,
+    .sub-current-info {
+        align-items: flex-start;
+    }
+    .sub-current > form,
+    .sub-current > form .btn-cancel {
+        width: 100%;
+    }
+    .sub-period-toggle {
+        flex-wrap: wrap;
+    }
 }
 </style>
 
