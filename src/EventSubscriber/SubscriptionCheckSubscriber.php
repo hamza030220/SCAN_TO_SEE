@@ -38,7 +38,9 @@ class SubscriptionCheckSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        return [KernelEvents::REQUEST => ['onKernelRequest', 10]];
+        // The firewall loads the authenticated user at priority 8. Running
+        // before it leaves TokenStorage empty and silently bypasses this guard.
+        return [KernelEvents::REQUEST => ['onKernelRequest', 5]];
     }
 
     public function onKernelRequest(RequestEvent $event): void

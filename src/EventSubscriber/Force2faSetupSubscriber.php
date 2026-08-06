@@ -28,7 +28,8 @@ class Force2faSetupSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 7],
+            // Firewall runs at 8; inactive-account protection runs at 7.
+            KernelEvents::REQUEST => ['onKernelRequest', 6],
         ];
     }
 

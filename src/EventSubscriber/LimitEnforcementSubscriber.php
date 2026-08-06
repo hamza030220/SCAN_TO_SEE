@@ -13,7 +13,7 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  * Enforces that owners who exceed their subscription limits complete the enforcement flow
  * before accessing any dashboard features.
  * 
- * This subscriber runs with priority 9, after SubscriptionCheckSubscriber (priority 10).
+ * Runs after authentication, account, 2FA, and subscription guards.
  */
 class LimitEnforcementSubscriber implements EventSubscriberInterface
 {
@@ -31,8 +31,7 @@ class LimitEnforcementSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        // Priority 9: Run after SubscriptionCheckSubscriber (priority 10)
-        return [KernelEvents::REQUEST => ['onKernelRequest', 9]];
+        return [KernelEvents::REQUEST => ['onKernelRequest', 4]];
     }
 
     public function onKernelRequest(RequestEvent $event): void

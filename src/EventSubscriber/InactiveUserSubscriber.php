@@ -23,7 +23,9 @@ class InactiveUserSubscriber implements EventSubscriberInterface
 
     public static function getSubscribedEvents(): array
     {
-        return [KernelEvents::REQUEST => ['onKernelRequest', 8]];
+        // Must run after Symfony's firewall (priority 8), once the session
+        // token has been loaded, and before the other account guards.
+        return [KernelEvents::REQUEST => ['onKernelRequest', 7]];
     }
 
     public function onKernelRequest(RequestEvent $event): void
