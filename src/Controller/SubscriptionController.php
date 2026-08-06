@@ -207,8 +207,15 @@ class SubscriptionController extends AbstractController
         }
 
         try {
-            $service->changeActiveSubscription($user, $plan, $period);
-            $this->addFlash('success', 'Your subscription has been updated.');
+            $result = $service->changeActiveSubscription($user, $plan, $period);
+            if ($result['applied']) {
+                $this->addFlash('success', 'Payment succeeded and your subscription has been upgraded.');
+            } elseif ($result['paymentUrl'] !== null) {
+                $this->addFlash('info', 'Complete the secure Stripe payment to activate the upgrade. Your current plan remains active until payment succeeds.');
+                return $this->redirect($result['paymentUrl'], Response::HTTP_SEE_OTHER);
+            } else {
+                $this->addFlash('warning', 'The upgrade payment was not completed. Your current plan remains unchanged; check your payment method and try again.');
+            }
         } catch (\LogicException $e) {
             $this->addFlash('warning', $e->getMessage());
         } catch (\Throwable $e) {

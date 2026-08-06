@@ -10,6 +10,7 @@ use App\Repository\MenuRepository;
 use App\Repository\SubscriptionRepository;
 use App\Service\SubscriptionService;
 use App\Service\EntitlementService;
+use App\Service\StripeUpgradePaymentVerifier;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -71,6 +72,7 @@ class SubscriptionServiceTest extends TestCase
             $this->menuRepo,
             $this->em,
             $this->entitlements,
+            new StripeUpgradePaymentVerifier(),
             'sk_test_fake', // Stripe secret key
             'whsec_fake',   // Webhook secret
             [               // Price IDs

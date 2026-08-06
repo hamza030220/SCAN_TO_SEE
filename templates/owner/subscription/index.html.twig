@@ -475,6 +475,14 @@ body {
     <h1 class="sub-page-title">Choose Your Plan</h1>
     <p class="sub-page-subtitle">Start publishing beautiful digital menus in minutes</p>
 
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="sub-banner sub-banner--{{ type == 'error' ? 'err' : (type == 'warning' ? 'warn' : 'info') }}" role="status">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
     {# ── Current status banner ──────────────────────────────────────────── #}
     {% if trialActive %}
         <div class="sub-current">
@@ -724,6 +732,22 @@ body {
 
             updatePricing();
             updateActions();
+        });
+    });
+
+    forms.forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            var samePlan = form.dataset.plan === form.dataset.currentPlan;
+            var message = samePlan
+                ? 'Stripe will immediately invoice any amount due for this billing-period change. Continue?'
+                : 'Stripe will immediately invoice the prorated upgrade amount. The new plan activates only after payment succeeds. Continue?';
+            if (!window.confirm(message)) {
+                event.preventDefault();
+                return;
+            }
+            var button = form.querySelector('.sub-change-btn');
+            button.disabled = true;
+            button.textContent = 'Processing secure payment...';
         });
     });
 

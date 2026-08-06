@@ -20,6 +20,7 @@ class SubscriptionService
         private readonly MenuRepository         $menuRepo,
         private readonly EntityManagerInterface $em,
         private readonly EntitlementService     $entitlements,
+        private readonly StripeUpgradePaymentVerifier $upgradePayments,
         private readonly string                 $stripeSecretKey,
         private readonly string                 $stripeWebhookSecret,
         private readonly array                  $stripePriceIds, // map plan+period → price ID
@@ -611,12 +612,14 @@ class SubscriptionService
 
     // ── Downgrade ─────────────────────────────────────────────────────────────
 
+    /**
+     * @return array{applied: bool, paymentUrl: ?string}
+     */
     public function changeActiveSubscription(
         User $user,
         string $newPlan,
         string $newPeriod,
-        string $prorationBehavior = 'create_prorations',
-    ): void {
+    ): array {
         if (!in_array($newPlan, Subscription::PLANS, true)) {
             throw new \InvalidArgumentException('Invalid subscription plan.');
         }
@@ -637,7 +640,12 @@ class SubscriptionService
         }
 
         $oldRank = $sub->getPlanRank();
+        $oldPlan = $sub->getPlan();
+        $oldPeriod = $sub->getBillingPeriod();
         $newRank = (new Subscription())->setPlan($newPlan)->getPlanRank();
+        if ($newRank < $oldRank) {
+            throw new \LogicException('Use the scheduled downgrade flow for a lower plan.');
+        }
         $newPriceId = $this->stripePriceIds[$newPlan][$newPeriod]
             ?? throw new \InvalidArgumentException("No Stripe price for {$newPlan}/{$newPeriod}");
 
@@ -650,23 +658,57 @@ class SubscriptionService
 
         $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
             'items' => [['id' => $itemId, 'price' => $newPriceId]],
-            'proration_behavior' => $prorationBehavior,
+            // Upgrades must be paid now. Stripe keeps the old subscription
+            // values when the invoice cannot be paid or needs authentication.
+            'proration_behavior' => 'always_invoice',
+            'payment_behavior' => 'pending_if_incomplete',
+            'expand' => ['latest_invoice'],
         ]);
 
-        $this->synchronizeFromStripe($sub, $updatedStripeSub);
-        // Keep the selected values even when an older Stripe API response does
-        // not expand the price object.
-        $sub->setPlan($newPlan);
-        $sub->setBillingPeriod($newPeriod);
-        $sub->clearPendingDowngrade();
+        $paymentApplied = $this->upgradePayments->upgradeWasPaid($updatedStripeSub, $newPriceId);
 
-        if ($newRank < $oldRank) {
-            $this->checkAndSetEnforcement($user, $newPlan);
-        } elseif ($newRank > $oldRank) {
+        $this->synchronizeFromStripe($sub, $updatedStripeSub);
+
+        if (!$paymentApplied) {
+            // synchronizeFromStripe() also processes status and billing dates,
+            // but unpaid upgrades must never alter local entitlements.
+            $sub->setPlan($oldPlan)
+                ->setBillingPeriod($oldPeriod);
+            $this->em->flush();
+
+            return [
+                'applied' => false,
+                'paymentUrl' => $this->stripeHostedInvoiceUrl($stripeClient, $updatedStripeSub),
+            ];
+        }
+
+        $sub->setPlan($newPlan)
+            ->setBillingPeriod($newPeriod)
+            ->clearPendingDowngrade();
+
+        if ($newRank > $oldRank) {
             $user->setEnforcementRequired(false);
         }
 
         $this->em->flush();
+
+        return ['applied' => true, 'paymentUrl' => null];
+    }
+
+    private function stripeHostedInvoiceUrl(
+        StripeClient $stripeClient,
+        \Stripe\Subscription $stripeSubscription,
+    ): ?string {
+        $invoice = $stripeSubscription->latest_invoice ?? null;
+        if (is_string($invoice) && $invoice !== '') {
+            try {
+                $invoice = $stripeClient->invoices->retrieve($invoice);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        return $this->upgradePayments->trustedHostedInvoiceUrl($invoice);
     }
 
     public function applyDowngrade(User $user, string $newPlan, string $newPeriod, array $keepMenuIds = []): void
