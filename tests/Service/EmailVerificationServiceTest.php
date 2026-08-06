@@ -32,6 +32,7 @@ final class EmailVerificationServiceTest extends TestCase
         $em->expects(self::once())->method('flush');
 
         $entitlements = $this->createMock(EntitlementService::class);
+        $entitlements->expects(self::once())->method('hasSubscriptionRecord')->with($user)->willReturn(false);
         $entitlements->expects(self::once())
             ->method('startTrial')
             ->with($user)
@@ -55,5 +56,28 @@ final class EmailVerificationServiceTest extends TestCase
         self::assertSame(0, $user->getTrialAiUses());
         self::assertNull($user->getEmailVerificationTokenHash());
         self::assertNull($user->getEmailVerificationExpiresAt());
+    }
+
+    public function testVerificationDoesNotGrantTrialWhenSubscriptionHistoryExists(): void
+    {
+        $token = 'paid-owner-token';
+        $user = (new User())->setEmail('paid@example.com')
+            ->setEmailVerificationTokenHash(hash('sha256', $token))
+            ->setEmailVerificationExpiresAt(new \DateTimeImmutable('+1 hour'));
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('findOneBy')->willReturn($user);
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getRepository')->with(User::class)->willReturn($repository);
+        $entitlements = $this->createMock(EntitlementService::class);
+        $entitlements->expects(self::once())->method('hasSubscriptionRecord')->with($user)->willReturn(true);
+        $entitlements->expects(self::never())->method('startTrial');
+        $service = new EmailVerificationService(
+            $em, $this->createMock(MailerInterface::class), $this->createMock(RouterInterface::class),
+            $entitlements, 'no-reply@example.com',
+        );
+
+        self::assertSame($user, $service->verify($token));
+        self::assertTrue($user->isEmailVerified());
+        self::assertNull($user->getTrialEndsAt());
     }
 }

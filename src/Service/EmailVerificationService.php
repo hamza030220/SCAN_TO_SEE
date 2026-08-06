@@ -55,7 +55,10 @@ class EmailVerificationService
             ->setEmailVerifiedAt(new \DateTimeImmutable())
             ->setEmailVerificationTokenHash(null)
             ->setEmailVerificationExpiresAt(null);
-        if ($user->getTrialEndsAt() === null) {
+        // Email verification grants the one-time trial only to a genuinely
+        // unpaid account. Existing, cancelled, past-due, or expired Stripe
+        // records must never create a second access path.
+        if ($user->getTrialEndsAt() === null && !$this->entitlements->hasSubscriptionRecord($user)) {
             $this->entitlements->startTrial($user);
         }
         $this->em->flush();

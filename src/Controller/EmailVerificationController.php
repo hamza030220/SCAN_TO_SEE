@@ -21,13 +21,13 @@ class EmailVerificationController extends AbstractController
             $this->addFlash('error', 'This verification link is invalid or has expired.');
             return $this->redirectToRoute('app_login');
         }
-        $this->addFlash(
-            'success',
-            sprintf(
+        $message = $user->getTrialEndsAt() !== null
+            ? sprintf(
                 'Email verified. Your five-day free trial is active until %s.',
                 $user->getTrialEndsAt()?->format('F j, Y \a\t H:i') ?? 'the displayed trial end date',
-            ),
-        );
+            )
+            : 'Email verified successfully. Sign in to continue.';
+        $this->addFlash('success', $message);
         return $this->redirectToRoute('app_login');
     }
 

@@ -48,6 +48,20 @@ final class EntitlementServiceTest extends TestCase
         self::assertSame(2, $service->remainingTrialAiUses($user));
     }
 
+    public function testSubscriptionHistoryPreventsTrialFallback(): void
+    {
+        $subscriptions = $this->createMock(SubscriptionRepository::class);
+        $subscriptions->method('findOneBy')->willReturn(
+            (new Subscription())->setStatus(Subscription::STATUS_EXPIRED)
+        );
+        $service = new EntitlementService($subscriptions, $this->createMock(Connection::class));
+        $user = (new User())->setTrialEndsAt(new \DateTimeImmutable('+5 days'));
+
+        self::assertFalse($service->hasAccess($user));
+        self::assertFalse($service->isTrialAccess($user));
+        self::assertNull($service->accessPlan($user));
+    }
+
     private function service(?Connection $connection = null): EntitlementService
     {
         $subscriptions = $this->createMock(SubscriptionRepository::class);

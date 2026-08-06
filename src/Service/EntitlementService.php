@@ -30,18 +30,31 @@ class EntitlementService
 
     public function hasAccess(User $user): bool
     {
-        return $this->hasPaidAccess($user) || $user->isTrialActive();
+        $subscription = $this->subscriptions->findOneBy(['owner' => $user]);
+
+        return $subscription?->isActive() === true
+            || ($subscription === null && $user->isTrialActive());
     }
 
     public function accessPlan(User $user): ?string
     {
-        return $this->paidSubscription($user)?->getPlan()
-            ?? ($user->isTrialActive() ? Subscription::PLAN_BASIC : null);
+        $subscription = $this->subscriptions->findOneBy(['owner' => $user]);
+        if ($subscription?->isActive()) { return $subscription->getPlan(); }
+
+        return $subscription === null && $user->isTrialActive()
+            ? Subscription::PLAN_BASIC
+            : null;
     }
 
     public function isTrialAccess(User $user): bool
     {
-        return !$this->hasPaidAccess($user) && $user->isTrialActive();
+        return $this->subscriptions->findOneBy(['owner' => $user]) === null
+            && $user->isTrialActive();
+    }
+
+    public function hasSubscriptionRecord(User $user): bool
+    {
+        return $this->subscriptions->findOneBy(['owner' => $user]) !== null;
     }
 
     public function startTrial(User $user): void
