@@ -180,6 +180,8 @@
         <div class="owner-panel-footer">
             {% if sub.cancelAtPeriodEnd %}
                 <span style="color:var(--adm-muted);font-size:.86rem">You keep full access through the paid period. Restore renewal from Manage.</span>
+            {% elseif sub.hasPendingDowngrade() %}
+                <span style="color:var(--adm-muted);font-size:.86rem">A plan change is scheduled. Open Manage to keep {{ sub.getPlanLabel() }} or review the effective date.</span>
             {% elseif not sub.isInPaymentGrace() %}
                 <button class="btn btn-danger-outline btn-sm" onclick="showCancelModal()">Cancel renewal</button>
             {% else %}
@@ -215,7 +217,7 @@
 
 {% include 'owner/_account_delete_modal.html.twig' %}
 
-{% if sub and (sub.status == 'active' or sub.status == 'pending') and not sub.cancelAtPeriodEnd %}
+{% if sub and (sub.status == 'active' or sub.status == 'pending') and not sub.cancelAtPeriodEnd and not sub.hasPendingDowngrade() %}
 {# ── Cancel Subscription Modal ─────────────────────────────────────────── #}
 <div class="cancel-modal" id="cancelModal">
     <div class="cancel-modal-inner">

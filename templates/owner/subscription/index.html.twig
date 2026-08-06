@@ -468,6 +468,8 @@ body {
                         <input type="hidden" name="_token" value="{{ csrf_token('resume-subscription') }}">
                         <button type="submit" class="btn-cancel">Restore renewal</button>
                     </form>
+                {% elseif sub.hasPendingDowngrade() %}
+                    <span class="sub-current-exp">Resolve the scheduled downgrade above before changing renewal.</span>
                 {% elseif not sub.isInPaymentGrace() %}
                     <form method="post" action="{{ path('app_owner_subscription_cancel') }}"
                           onsubmit="return confirm('Stop automatic renewal? Your subscription and public menus will remain active until the end of the paid period.')">
@@ -551,7 +553,13 @@ body {
                 </ul>
 
                 <div class="sub-plan-action">
-                    {% if sub and sub.isActive() and planRank < currentRank %}
+                    {% if isCurrentPlan %}
+                        <button type="button" class="btn btn-primary btn-full" disabled>Current plan</button>
+                    {% elseif sub and sub.isActive() and sub.cancelAtPeriodEnd %}
+                        <button type="button" class="btn btn-outline btn-full" disabled title="Restore automatic renewal before changing plans.">Restore renewal first</button>
+                    {% elseif sub and sub.isActive() and sub.hasPendingDowngrade() %}
+                        <button type="button" class="btn btn-outline btn-full" disabled title="Keep the current plan or wait for the scheduled change before choosing another plan.">Scheduled change pending</button>
+                    {% elseif sub and sub.isActive() and planRank < currentRank %}
                         <a href="{{ path('app_owner_subscription_downgrade', {plan: plan, period: sub.billingPeriod}) }}"
                            class="btn btn-outline btn-full sub-period-link"
                            data-monthly-url="{{ path('app_owner_subscription_downgrade', {plan: plan, period: 'monthly'}) }}"
@@ -570,7 +578,7 @@ body {
                               data-yearly-url="{{ path('app_owner_subscription_change', {plan: plan, period: 'yearly'}) }}">
                             <input type="hidden" name="_token" value="{{ csrf_token('change-subscription') }}">
                             <button type="submit" class="btn btn-primary btn-full sub-change-btn">
-                                {{ isCurrentPlan ? 'Current plan' : 'Upgrade to ' ~ labels[plan] }}
+                                Upgrade to {{ labels[plan] }}
                             </button>
                         </form>
                     {% else %}

@@ -156,6 +156,8 @@ body {
     border-color: var(--enf-accent);
     background: rgba(232,160,32,.08);
 }
+.enf-menu-card.selection-locked { opacity: .48; cursor: not-allowed; }
+.enf-menu-card.selection-locked:hover { border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.03); }
 .enf-menu-card input[type="checkbox"] {
     position: absolute;
     top: 16px;
@@ -387,25 +389,45 @@ body {
         const draftChecked = Array.from(draftCheckboxes).filter(cb => cb.checked).length;
 
         // Update counters
-        publishedCounter.textContent = publishedChecked + ' selected';
-        publishedCounter.className = 'enf-counter';
-        if (publishedRequired > 0) {
-            if (publishedChecked === publishedRequired) {
-                publishedCounter.classList.add('valid');
-            } else {
-                publishedCounter.classList.add('invalid');
+        if (publishedCounter) {
+            publishedCounter.textContent = publishedChecked + ' / ' + publishedRequired + ' selected';
+            publishedCounter.className = 'enf-counter';
+            if (publishedRequired > 0) {
+                if (publishedChecked === publishedRequired) {
+                    publishedCounter.classList.add('valid');
+                } else {
+                    publishedCounter.classList.add('invalid');
+                }
             }
         }
 
-        draftCounter.textContent = draftChecked + ' selected';
-        draftCounter.className = 'enf-counter';
-        if (draftRequired > 0) {
-            if (draftChecked === draftRequired) {
-                draftCounter.classList.add('valid');
-            } else {
-                draftCounter.classList.add('invalid');
+        if (draftCounter) {
+            draftCounter.textContent = draftChecked + ' / ' + draftRequired + ' selected';
+            draftCounter.className = 'enf-counter';
+            if (draftRequired > 0) {
+                if (draftChecked === draftRequired) {
+                    draftCounter.classList.add('valid');
+                } else {
+                    draftCounter.classList.add('invalid');
+                }
             }
         }
+
+        // Once a strict plan limit is reached, prevent extra selections.
+        publishedCheckboxes.forEach(function (checkbox) {
+            const locked = !checkbox.checked && publishedChecked >= publishedRequired;
+            checkbox.disabled = locked;
+            const card = checkbox.closest('.enf-menu-card');
+            card.classList.toggle('selection-locked', locked);
+            card.title = locked ? 'Published-menu limit reached. Unselect one menu to choose another.' : '';
+        });
+        draftCheckboxes.forEach(function (checkbox) {
+            const locked = !checkbox.checked && draftChecked >= draftRequired;
+            checkbox.disabled = locked;
+            const card = checkbox.closest('.enf-menu-card');
+            card.classList.toggle('selection-locked', locked);
+            card.title = locked ? 'Draft-menu limit reached. Unselect one menu to choose another.' : '';
+        });
 
         // Update card styling
         document.querySelectorAll('.enf-menu-card').forEach(card => {
