@@ -181,6 +181,22 @@ class SubscriptionTest extends TestCase
         $this->assertSame('sub_456', $subscription->getStripeSubscriptionId());
     }
 
+    public function testPendingDowngradeCanBeScheduledAndCleared(): void
+    {
+        $effectiveAt = new \DateTimeImmutable('+1 month');
+        $subscription = (new Subscription())
+            ->setPendingPlan(Subscription::PLAN_BASIC)
+            ->setPendingBillingPeriod(Subscription::PERIOD_MONTHLY)
+            ->setPendingPlanEffectiveAt($effectiveAt);
+
+        $this->assertTrue($subscription->hasPendingDowngrade());
+        $this->assertSame(Subscription::PLAN_BASIC, $subscription->getPendingPlan());
+        $this->assertSame($effectiveAt, $subscription->getPendingPlanEffectiveAt());
+
+        $subscription->clearPendingDowngrade();
+        $this->assertFalse($subscription->hasPendingDowngrade());
+    }
+
     public function testPlanLabelsAreCorrect(): void
     {
         $this->assertSame('Basic', Subscription::LABELS[Subscription::PLAN_BASIC]);

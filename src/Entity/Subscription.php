@@ -98,6 +98,16 @@ class Subscription
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $paymentGraceEndsAt = null;
 
+    /** A lower plan selected in Stripe that becomes locally effective at renewal. */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $pendingPlan = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    private ?string $pendingBillingPeriod = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $pendingPlanEffectiveAt = null;
+
     #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
@@ -203,6 +213,25 @@ class Subscription
     public function setCancelAtPeriodEnd(bool $value): static { $this->cancelAtPeriodEnd = $value; return $this; }
     public function getPaymentGraceEndsAt(): ?\DateTimeImmutable { return $this->paymentGraceEndsAt; }
     public function setPaymentGraceEndsAt(?\DateTimeImmutable $value): static { $this->paymentGraceEndsAt = $value; return $this; }
+    public function getPendingPlan(): ?string { return $this->pendingPlan; }
+    public function setPendingPlan(?string $plan): static { $this->pendingPlan = $plan; return $this; }
+    public function getPendingBillingPeriod(): ?string { return $this->pendingBillingPeriod; }
+    public function setPendingBillingPeriod(?string $period): static { $this->pendingBillingPeriod = $period; return $this; }
+    public function getPendingPlanEffectiveAt(): ?\DateTimeImmutable { return $this->pendingPlanEffectiveAt; }
+    public function setPendingPlanEffectiveAt(?\DateTimeImmutable $value): static { $this->pendingPlanEffectiveAt = $value; return $this; }
+    public function hasPendingDowngrade(): bool
+    {
+        return $this->pendingPlan !== null
+            && $this->pendingBillingPeriod !== null
+            && $this->pendingPlanEffectiveAt !== null;
+    }
+    public function clearPendingDowngrade(): static
+    {
+        $this->pendingPlan = null;
+        $this->pendingBillingPeriod = null;
+        $this->pendingPlanEffectiveAt = null;
+        return $this;
+    }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 }

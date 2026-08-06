@@ -242,9 +242,9 @@ class SubscriptionController extends AbstractController
             return $this->redirectToRoute('app_owner_subscription');
         }
 
-        $newBusinessLimit = Subscription::BUSINESS_LIMITS[$plan] ?? null;
+        $newBusinessLimit = null;
         $businessCount = $businessRepo->count(['owner' => $user]);
-        $businessLimitExceeded = $newBusinessLimit !== null && $businessCount > $newBusinessLimit;
+        $businessLimitExceeded = false;
 
         // For downgrades, use the new enforcement flow
         // Apply the downgrade and let the enforcement subscriber handle menu selection
@@ -253,16 +253,6 @@ class SubscriptionController extends AbstractController
                 $this->addFlash('error', 'Your security session expired. Refresh the page before changing plans.');
                 return $this->redirectToRoute('app_owner_subscription');
             }
-            if ($businessLimitExceeded) {
-                $this->addFlash('error', sprintf(
-                    'Reduce your businesses to %d before selecting the %s plan.',
-                    $newBusinessLimit,
-                    Subscription::LABELS[$plan],
-                ));
-                return $this->redirectToRoute('app_owner_businesses');
-            }
-
-            // Apply downgrade - this will trigger enforcement check
             try {
                 $service->applyDowngrade($user, $plan, $period, []);
             } catch (\Throwable $e) {
@@ -270,18 +260,10 @@ class SubscriptionController extends AbstractController
                 return $this->redirectToRoute('app_owner_subscription');
             }
             
-            // Check if enforcement is now required
-            if ($user->isEnforcementRequired()) {
-                $this->addFlash('info', sprintf(
-                    'Plan changed to %s. Please select which menus to keep.',
-                    Subscription::LABELS[$plan]
-                ));
-                return $this->redirectToRoute('app_owner_subscription_enforce_limits');
-            }
-            
             $this->addFlash('success', sprintf(
-                'Successfully downgraded to %s plan.',
-                Subscription::LABELS[$plan]
+                'Downgrade to %s scheduled for %s. Your current plan remains active until then.',
+                Subscription::LABELS[$plan],
+                $currentSub->getPendingPlanEffectiveAt()?->format('F j, Y') ?? 'the next renewal'
             ));
             return $this->redirectToRoute('app_owner_subscription');
         }
@@ -343,6 +325,31 @@ class SubscriptionController extends AbstractController
             }
         } else {
             $this->addFlash('error', 'No renewable subscription was found.');
+        }
+
+        return $this->redirectToRoute('app_owner_subscription');
+    }
+
+    #[Route('/downgrade/cancel', name: 'app_owner_subscription_downgrade_cancel', methods: ['POST'])]
+    public function cancelDowngrade(
+        Request $request,
+        SubscriptionService $service,
+        SubscriptionRepository $subRepo,
+    ): Response {
+        if (!$this->isCsrfTokenValid('cancel-downgrade', $request->request->get('_token'))) {
+            $this->addFlash('error', 'Your security session expired. Refresh the page before cancelling the downgrade.');
+            return $this->redirectToRoute('app_owner_subscription');
+        }
+
+        /** @var \App\Entity\User $user */
+        $user = $this->getUser();
+        $sub = $subRepo->findOneBy(['owner' => $user]);
+        try {
+            if (!$sub) { throw new \LogicException(); }
+            $service->cancelScheduledDowngrade($sub);
+            $this->addFlash('success', 'Scheduled downgrade cancelled. Your current plan will renew normally.');
+        } catch (\Throwable) {
+            $this->addFlash('error', 'Stripe could not cancel the scheduled downgrade. No billing change was applied.');
         }
 
         return $this->redirectToRoute('app_owner_subscription');

@@ -558,8 +558,21 @@ class SubscriptionService
         $priceId = $data['items']['data'][0]['price']['id'] ?? null;
         $planPeriod = $this->findPlanPeriodForPriceId(is_string($priceId) ? $priceId : null);
         if ($planPeriod !== null) {
-            $sub->setPlan($planPeriod['plan']);
-            $sub->setBillingPeriod($planPeriod['period']);
+            $pendingIsDue = $sub->hasPendingDowngrade()
+                && $sub->getPendingPlanEffectiveAt() <= new \DateTimeImmutable();
+            $matchesPending = $sub->hasPendingDowngrade()
+                && $sub->getPendingPlan() === $planPeriod['plan']
+                && $sub->getPendingBillingPeriod() === $planPeriod['period'];
+
+            // Stripe stores the next price immediately. Keep the already-paid
+            // local entitlement until its period ends, then activate the plan.
+            if (!$matchesPending || $pendingIsDue) {
+                $sub->setPlan($planPeriod['plan']);
+                $sub->setBillingPeriod($planPeriod['period']);
+                if ($matchesPending) {
+                    $sub->clearPendingDowngrade();
+                }
+            }
         }
 
         $sub->setExpiryReminderSent(false);
@@ -625,6 +638,7 @@ class SubscriptionService
         // not expand the price object.
         $sub->setPlan($newPlan);
         $sub->setBillingPeriod($newPeriod);
+        $sub->clearPendingDowngrade();
 
         if ($newRank < $oldRank) {
             $this->checkAndSetEnforcement($user, $newPlan);
@@ -644,7 +658,52 @@ class SubscriptionService
             throw new \LogicException('Selected plan is not a downgrade.');
         }
 
-        $this->changeActiveSubscription($user, $newPlan, $newPeriod, 'none');
+        $effectiveAt = $sub->getCurrentPeriodEnd()
+            ?? throw new \LogicException('The current paid period has no end date.');
+        $newPriceId = $this->stripePriceIds[$newPlan][$newPeriod]
+            ?? throw new \InvalidArgumentException("No Stripe price for {$newPlan}/{$newPeriod}");
+
+        $stripeClient = new StripeClient($this->stripeSecretKey);
+        $stripeSub = $stripeClient->subscriptions->retrieve($sub->getStripeSubscriptionId());
+        $itemId = $stripeSub->items->data[0]->id ?? null;
+        if (!$itemId) {
+            throw new \RuntimeException('Stripe subscription has no billable item.');
+        }
+
+        $sub->setPendingPlan($newPlan)
+            ->setPendingBillingPeriod($newPeriod)
+            ->setPendingPlanEffectiveAt($effectiveAt);
+
+        $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
+            'items' => [['id' => $itemId, 'price' => $newPriceId]],
+            'proration_behavior' => 'none',
+        ]);
+        $this->synchronizeFromStripe($sub, $updatedStripeSub);
+        $this->em->flush();
+    }
+
+    public function cancelScheduledDowngrade(Subscription $sub): void
+    {
+        if (!$sub->isActive() || !$sub->hasPendingDowngrade() || !$sub->getStripeSubscriptionId()) {
+            throw new \LogicException('No scheduled downgrade can be cancelled.');
+        }
+
+        $priceId = $this->stripePriceIds[$sub->getPlan()][$sub->getBillingPeriod()]
+            ?? throw new \InvalidArgumentException('The current Stripe price is not configured.');
+        $stripeClient = new StripeClient($this->stripeSecretKey);
+        $stripeSub = $stripeClient->subscriptions->retrieve($sub->getStripeSubscriptionId());
+        $itemId = $stripeSub->items->data[0]->id ?? null;
+        if (!$itemId) {
+            throw new \RuntimeException('Stripe subscription has no billable item.');
+        }
+
+        $updatedStripeSub = $stripeClient->subscriptions->update($sub->getStripeSubscriptionId(), [
+            'items' => [['id' => $itemId, 'price' => $priceId]],
+            'proration_behavior' => 'none',
+        ]);
+        $sub->clearPendingDowngrade();
+        $this->synchronizeFromStripe($sub, $updatedStripeSub);
+        $this->em->flush();
     }
 
     // ── Expire menus when subscription lapses ─────────────────────────────────
