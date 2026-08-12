@@ -14,7 +14,11 @@ checkpoint-765\
   tokenizer.json
   preprocessor_config.json
   ...the remaining model/checkpoint files...
+USB-SHA256.txt
 ```
+
+`USB-SHA256.txt` is generated locally with the private bundle. After copying,
+compare its entries with `Get-FileHash -Algorithm SHA256` on the USB files.
 
 Create `secret.txt` on the development computer:
 

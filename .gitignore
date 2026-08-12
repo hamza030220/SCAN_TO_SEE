@@ -61,4 +61,5 @@ SECURITY_AUDIT_PRIVATE.md
 ###> Supervisor deployment private bundle ###
 /deployment/supervisor/secret.txt
 /deployment/supervisor/checkpoint-765/
+/deployment/supervisor/USB-SHA256.txt
 ###< Supervisor deployment private bundle ###
