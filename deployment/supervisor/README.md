@@ -99,12 +99,20 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 This copies the required Stripe, email, Cloudinary, and ngrok credentials from
-the ignored local configuration. It also generates new values for:
+the ignored local configuration. It also reads the current local `S2S`
+database and requires exactly one `admin` and one `owner`. Their exact email,
+password hash, email-verification state, and TOTP/backup-code state are placed
+in the private transfer file without being printed. It generates new values
+only for:
 
 - the Symfony application secret;
 - the demonstration database password;
-- the supervisor administrator password;
-- the seeded owner password.
+- two temporary bootstrap passwords, which are replaced by the copied password
+  hashes during installation.
+
+Consequently, use the same current administrator and owner passwords and the
+same two authenticator entries on the rehearsal/supervisor computer. The
+copied real email addresses also keep account-related mail flows testable.
 
 The private file contains these settings:
 
@@ -115,9 +123,11 @@ MYSQL_ROOT_PASSWORD
 NGROK_AUTHTOKEN
 NGROK_DOMAIN
 SUPERVISOR_ADMIN_EMAIL
-SUPERVISOR_ADMIN_PASSWORD
+SUPERVISOR_ADMIN_BOOTSTRAP_PASSWORD
+SUPERVISOR_ADMIN_ACCOUNT_B64
 SUPERVISOR_OWNER_EMAIL
-SUPERVISOR_OWNER_PASSWORD
+SUPERVISOR_OWNER_BOOTSTRAP_PASSWORD
+SUPERVISOR_OWNER_ACCOUNT_B64
 MAILER_DSN
 MAILER_FROM
 STRIPE_SECRET_KEY
@@ -225,7 +235,9 @@ After preflight, it:
 6. writes private, Git-ignored Symfony and FastAPI environment files;
 7. creates the `scantosee_supervisor` MariaDB database and restricted database user;
 8. installs Composer dependencies and runs Doctrine migrations;
-9. creates the supervisor administrator and seeded owner accounts;
+9. creates the supervisor administrator and seeded owner, then runs exactly one
+   SQL `UPDATE` for each account to restore the current password hash, verified
+   email address, and existing 2FA state;
 10. creates a Python virtual environment and installs inference dependencies;
 11. selects CUDA or CPU PyTorch and verifies the selected device;
 12. configures mandatory ngrok authentication;
@@ -236,7 +248,7 @@ The first installation can take significant time because it downloads Windows,
 PHP, Python, PyTorch, PaddleOCR, and application dependencies. Do not close the
 PowerShell window or disconnect the network during installation.
 
-## 7. First login and mandatory two-factor authentication
+## 7. Login and existing two-factor authentication
 
 When installation finishes, open this address on the Windows computer:
 
@@ -244,50 +256,42 @@ When installation finishes, open this address on the Windows computer:
 http://127.0.0.1:8000
 ```
 
-The installer creates new administrator and owner accounts without a pre-shared
-TOTP secret. This is deliberate: a TOTP secret should be enrolled directly by
-the person controlling the authenticator phone, not stored in `secret.txt`.
-
-The installer prints the administrator and owner email addresses, but never
-prints their passwords. Read these four fields from the USB `secret.txt`:
+The installer restores the exact current administrator and owner accounts. It
+copies their password hashes, valid email addresses, email-verification flags,
+TOTP secrets, and hashed backup-code lists. It never prints passwords, hashes,
+or TOTP secrets. The two login email addresses are these fields in the USB
+`secret.txt`:
 
 ```text
 SUPERVISOR_ADMIN_EMAIL
-SUPERVISOR_ADMIN_PASSWORD
 SUPERVISOR_OWNER_EMAIL
-SUPERVISOR_OWNER_PASSWORD
 ```
 
-### 7.1 Enroll the owner account
+Use the same passwords you use on the development computer. Do not use the
+`*_BOOTSTRAP_PASSWORD` values: those are internal one-time installer values
+that are overwritten before the application starts.
+
+### 7.1 Verify the owner account
 
 1. Open `http://127.0.0.1:8000`.
-2. Sign in with `SUPERVISOR_OWNER_EMAIL` and
-   `SUPERVISOR_OWNER_PASSWORD`.
-3. The application will redirect to `/2fa/setup` before allowing dashboard
-   access. This is expected.
-4. Open the authenticator app on the phone.
-5. Add a new account and scan the TOTP QR code shown by ScanToSee. If camera
-   scanning is unavailable, enter the displayed secret manually.
-6. Enter the current six-digit authenticator code into ScanToSee.
-7. Save all eight one-use backup codes shown after confirmation.
-8. Select **I've saved my codes — Continue** and confirm the owner dashboard
-   opens.
+2. Sign in with `SUPERVISOR_OWNER_EMAIL` and the owner's current password.
+3. When the 2FA challenge opens, use the owner's existing ScanToSee entry in
+   the authenticator app.
+4. Enter its current six-digit code and confirm the owner dashboard opens.
+5. Avoid using backup codes for routine testing. Because each database has an
+   independent copy of the same hashes, a copied backup code can be accepted
+   once by each installation.
 
-### 7.2 Enroll the administrator account
+### 7.2 Verify the administrator account
 
-The administrator has a separate TOTP secret and separate backup codes. Do not
-reuse the owner's manual secret or assume the same six-digit code works.
+The administrator keeps its separate existing TOTP secret and backup codes. Do
+not use the owner's six-digit code.
 
 1. Sign out of the owner account.
-2. Sign in with `SUPERVISOR_ADMIN_EMAIL` and
-   `SUPERVISOR_ADMIN_PASSWORD`.
-3. Complete the same `/2fa/setup` process as a second entry in the
-   authenticator app.
-4. Name the two authenticator entries clearly, for example
-   `S2S Supervisor Owner` and `S2S Supervisor Admin`.
-5. Store the administrator's eight backup codes separately from the owner's
-   backup codes.
-6. Continue to the dashboard and confirm administrator pages open.
+2. Sign in with `SUPERVISOR_ADMIN_EMAIL` and the administrator's current
+   password.
+3. Use the administrator's existing ScanToSee authenticator entry.
+4. Enter its current six-digit code and confirm administrator pages open.
 
 Every later login for either account requires its password followed by the
 current six-digit code from the matching authenticator entry. A remaining
@@ -295,7 +299,7 @@ single-use backup code can replace the authenticator code if the phone is
 unavailable.
 
 If the phone clock is incorrect, TOTP confirmation may fail. Enable automatic
-date, time, and time-zone synchronization on the phone before enrollment.
+date, time, and time-zone synchronization on the phone.
 
 Use the owner account to demonstrate menu creation, design, publication, QR
 access, and OCR. Use the administrator account only for administrator features.
@@ -312,16 +316,14 @@ supervisor.
 
 1. Open `http://127.0.0.1:8000`.
 2. Sign in with the seeded owner account.
-3. Complete the mandatory owner 2FA enrollment described in section 7 if this
-   is the first login.
+3. Complete the owner login and existing 2FA challenge described in section 7.
 4. Sign out, sign back in, and confirm the password is followed by the 2FA code
    challenge.
 5. Confirm the owner dashboard opens without an exception.
 6. Confirm the seeded business and menus are visible.
 7. Open a menu and confirm its categories and items render.
 8. Sign out and sign in with the administrator account.
-9. Complete the administrator's separate 2FA enrollment if this is its first
-   login.
+9. Complete the administrator's separate existing 2FA challenge.
 10. Sign out, sign back in, and confirm the administrator password is followed
     by the 2FA code challenge.
 11. Confirm the administrator dashboard opens.
@@ -477,9 +479,10 @@ Check `symfony.err.log`, confirm MariaDB is running, and check status:
 
 ### Login redirects to `/2fa/setup`
 
-This is correct on the first login. Both owner and administrator roles are
-forced to configure TOTP before they can access their dashboard. Follow section
-7 and enroll each account separately.
+This is not expected for the exported accounts because their existing TOTP
+state is restored. Recreate `secret.txt` from the current database, copy it to
+the rehearsal machine, and reinstall. A `/2fa/setup` redirect means the account
+export was absent or the wrong database/account was used.
 
 ### Login asks for an authenticator code
 
@@ -547,6 +550,7 @@ NUKE SCANTOSEE
 The cleanup attempts to remove:
 
 - Symfony and FastAPI private environment files;
+- the original local/USB `secret.txt` path recorded by the installer;
 - the complete `scantosee_supervisor` database and its restricted user;
 - supervisor administrator and owner accounts stored in that database;
 - locally generated business logos, item images, menu backgrounds, and heroes;
@@ -569,8 +573,8 @@ demonstration credentials/data manually.
 
 After the cleanup finishes:
 
-1. delete `C:\ScanToSee-Installer`, because it contains the copied
-   `secret.txt` and model bundle;
+1. delete `C:\ScanToSee-Installer`; the nuke removes its recorded `secret.txt`,
+   but the non-secret scripts and model bundle remain;
 2. remove and secure the USB drive;
 3. check the Stripe test dashboard and Cloudinary folder if remote cleanup
    reported a warning;

@@ -80,12 +80,26 @@ foreach ($client->customers->all(['limit' => 100, 'email' => null])->autoPagingI
     }
 }
 
+$sourceSecretPath = $null
+$settingsPath = Join-Path $layout.Deployment 'deployment-settings.json'
+if (Test-Path -LiteralPath $settingsPath -PathType Leaf) {
+    try {
+        $storedSettings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+        if ($storedSettings.sourceSecretPath) {
+            $candidate = [IO.Path]::GetFullPath([string] $storedSettings.sourceSecretPath)
+            if ([IO.Path]::GetFileName($candidate) -ceq 'secret.txt') { $sourceSecretPath = $candidate }
+        }
+    } catch { Write-Warning 'Could not read the original secret.txt location from deployment settings.' }
+}
+
 $secretCandidates = @(
     (Join-Path $PSScriptRoot 'secret.txt'),
     (Join-Path $layout.Deployment 'secret.txt'),
     (Join-Path $layout.Web '.env.local'),
     (Join-Path $layout.Ai '.env')
 )
+if ($sourceSecretPath) { $secretCandidates += $sourceSecretPath }
+$secretCandidates = @($secretCandidates | Select-Object -Unique)
 $secrets = @{}
 foreach ($secretSource in $secretCandidates) {
     if (!(Test-Path -LiteralPath $secretSource -PathType Leaf)) { continue }

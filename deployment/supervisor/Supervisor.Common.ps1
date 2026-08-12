@@ -24,8 +24,10 @@ function Assert-RequiredSecrets {
 
     $required = @(
         'APP_SECRET', 'DATABASE_PASSWORD', 'NGROK_AUTHTOKEN',
-        'SUPERVISOR_ADMIN_EMAIL', 'SUPERVISOR_ADMIN_PASSWORD',
-        'SUPERVISOR_OWNER_EMAIL', 'SUPERVISOR_OWNER_PASSWORD',
+        'SUPERVISOR_ADMIN_EMAIL', 'SUPERVISOR_ADMIN_BOOTSTRAP_PASSWORD',
+        'SUPERVISOR_ADMIN_ACCOUNT_B64',
+        'SUPERVISOR_OWNER_EMAIL', 'SUPERVISOR_OWNER_BOOTSTRAP_PASSWORD',
+        'SUPERVISOR_OWNER_ACCOUNT_B64',
         'MAILER_DSN', 'MAILER_FROM',
         'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET',
         'STRIPE_PRICE_BASIC_MONTHLY', 'STRIPE_PRICE_BASIC_YEARLY',
@@ -45,9 +47,25 @@ function Assert-RequiredSecrets {
     if ([string] $Secrets.DATABASE_PASSWORD -notmatch '^[A-Za-z0-9_-]{16,128}$') {
         throw 'DATABASE_PASSWORD must contain 16-128 letters, digits, underscores, or hyphens.'
     }
-    foreach ($name in 'SUPERVISOR_ADMIN_PASSWORD', 'SUPERVISOR_OWNER_PASSWORD') {
+    foreach ($name in 'SUPERVISOR_ADMIN_BOOTSTRAP_PASSWORD', 'SUPERVISOR_OWNER_BOOTSTRAP_PASSWORD') {
         if ([string] $Secrets[$name] -notmatch '^.{12,128}$') {
             throw "$name must contain 12-128 characters."
+        }
+    }
+    foreach ($role in 'ADMIN', 'OWNER') {
+        $encodedName = "SUPERVISOR_${role}_ACCOUNT_B64"
+        try {
+            $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([string] $Secrets[$encodedName]))
+            $account = $json | ConvertFrom-Json
+            foreach ($property in 'email', 'password', 'full_name', 'is_active', 'created_at', 'enforcement_required', 'trial_ai_uses') {
+                if ($null -eq $account.$property) { throw "missing property '$property'" }
+            }
+            $emailName = "SUPERVISOR_${role}_EMAIL"
+            if ([string] $account.email -cne [string] $Secrets[$emailName]) {
+                throw "email does not match $emailName"
+            }
+        } catch {
+            throw "$encodedName is invalid. Recreate secret.txt with Export-SecretFile.ps1."
         }
     }
     if ($Secrets.ContainsKey('CLOUDINARY_UPLOAD_ENABLED') -and
@@ -136,8 +154,11 @@ function Resolve-PythonExecutable {
     ) | Where-Object { $_ }
     foreach ($candidate in $candidates) {
         if (!(Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
-        $version = & $candidate -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>$null
-        if ($LASTEXITCODE -eq 0 -and $version -eq '3.10') { return $candidate }
+        # Avoid nested quotes in `python -c`: Windows PowerShell 5.1 strips
+        # them differently from PowerShell 7 and produced invalid Python on
+        # clean machines. This expression contains no embedded string quotes.
+        $version = & $candidate -c 'import sys; print(sys.version_info.major * 100 + sys.version_info.minor)' 2>$null
+        if ($LASTEXITCODE -eq 0 -and $version -eq '310') { return $candidate }
     }
     throw 'Python 3.10 was not found after prerequisite installation.'
 }

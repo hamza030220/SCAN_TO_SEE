@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
-    [string] $AdminEmail = 'supervisor.admin@example.test',
-    [string] $OwnerEmail = 'supervisor.owner@example.test',
-    [string] $NgrokAuthtoken = ''
+    [string] $NgrokAuthtoken = '',
+    [string] $SourceDatabase = 'S2S',
+    [string] $MySqlRootPassword = ''
 )
 
 Set-StrictMode -Version Latest
@@ -51,6 +51,52 @@ function Find-NgrokAuthtoken {
     return ''
 }
 
+function Export-CurrentAccount {
+    param([Parameter(Mandatory)][ValidateSet('admin', 'owner')][string] $Role)
+
+    $mysql = 'C:\xampp\mysql\bin\mysql.exe'
+    if (!(Test-Path -LiteralPath $mysql -PathType Leaf)) {
+        throw 'The local XAMPP MySQL client was not found at C:\xampp\mysql\bin\mysql.exe.'
+    }
+
+    # A single base64 JSON value keeps hashes, TOTP material, backup-code JSON,
+    # Unicode names, and nullable dates safe without ever printing them.
+    $query = @"
+SELECT REPLACE(REPLACE(TO_BASE64(JSON_OBJECT(
+    'email', email,
+    'password', password,
+    'full_name', full_name,
+    'is_active', is_active,
+    'created_at', created_at,
+    'totp_secret', totp_secret,
+    'backup_codes', backup_codes,
+    'enforcement_required', enforcement_required,
+    'email_verified_at', email_verified_at,
+    'trial_ends_at', trial_ends_at,
+    'trial_ai_uses', trial_ai_uses
+)), CHAR(10), ''), CHAR(13), '')
+FROM user
+WHERE role = '$Role'
+ORDER BY id;
+"@
+    $arguments = @('-u', 'root', '--batch', '--skip-column-names')
+    if ($MySqlRootPassword) { $arguments += "--password=$MySqlRootPassword" }
+    $arguments += @($SourceDatabase, '-e', $query)
+    $rows = @(& $mysql @arguments)
+    if ($LASTEXITCODE -ne 0) { throw "Could not read the current $Role account from the local database." }
+    $rows = @($rows | Where-Object { ![string]::IsNullOrWhiteSpace($_) })
+    if ($rows.Count -ne 1) {
+        throw "Expected exactly one $Role account in database '$SourceDatabase'; found $($rows.Count)."
+    }
+    return [string] $rows[0]
+}
+
+function Get-AccountEmail {
+    param([Parameter(Mandatory)][string] $AccountBase64)
+    $json = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($AccountBase64))
+    return [string] (($json | ConvertFrom-Json).email)
+}
+
 $web = @{}
 Import-DotEnv -Path (Join-Path $WebRoot '.env') -Destination $web
 Import-DotEnv -Path (Join-Path $WebRoot '.env.local') -Destination $web
@@ -75,16 +121,23 @@ if (!$ai.ContainsKey('CLOUDINARY_URL') -or [string]::IsNullOrWhiteSpace($ai.CLOU
     throw 'Local AI .env does not contain CLOUDINARY_URL.'
 }
 
+$adminAccount = Export-CurrentAccount -Role admin
+$ownerAccount = Export-CurrentAccount -Role owner
+$adminEmail = Get-AccountEmail -AccountBase64 $adminAccount
+$ownerEmail = Get-AccountEmail -AccountBase64 $ownerAccount
+
 $values = [ordered]@{
     APP_SECRET = New-PrivateToken -Bytes 32
     DATABASE_PASSWORD = New-PrivateToken -Bytes 24
     MYSQL_ROOT_PASSWORD = ''
     NGROK_AUTHTOKEN = $NgrokAuthtoken
     NGROK_DOMAIN = ''
-    SUPERVISOR_ADMIN_EMAIL = $AdminEmail
-    SUPERVISOR_ADMIN_PASSWORD = New-PrivateToken -Bytes 18
-    SUPERVISOR_OWNER_EMAIL = $OwnerEmail
-    SUPERVISOR_OWNER_PASSWORD = New-PrivateToken -Bytes 18
+    SUPERVISOR_ADMIN_EMAIL = $adminEmail
+    SUPERVISOR_ADMIN_BOOTSTRAP_PASSWORD = New-PrivateToken -Bytes 18
+    SUPERVISOR_ADMIN_ACCOUNT_B64 = $adminAccount
+    SUPERVISOR_OWNER_EMAIL = $ownerEmail
+    SUPERVISOR_OWNER_BOOTSTRAP_PASSWORD = New-PrivateToken -Bytes 18
+    SUPERVISOR_OWNER_ACCOUNT_B64 = $ownerAccount
     MAILER_DSN = $web.MAILER_DSN
     MAILER_FROM = $web.MAILER_FROM
     STRIPE_SECRET_KEY = $web.STRIPE_SECRET_KEY
@@ -109,5 +162,6 @@ foreach ($entry in $values.GetEnumerator()) { $lines += "$($entry.Key)=$($entry.
 [IO.File]::WriteAllLines($OutputPath, [string[]] $lines, [Text.UTF8Encoding]::new($false))
 
 Write-Host "Created private transfer file: $OutputPath" -ForegroundColor Green
-Write-Host 'It contains fresh app/database/account credentials plus all required external-service credentials.'
+Write-Host 'It contains the exact current admin/owner login state plus all required external-service credentials.'
+Write-Host 'Use the same current passwords and authenticator entries on the supervisor machine.'
 Write-Host 'No secret value was printed to the terminal.'

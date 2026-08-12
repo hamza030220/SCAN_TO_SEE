@@ -83,6 +83,42 @@ function Invoke-MySql {
     if ($LASTEXITCODE -ne 0) { throw 'A MariaDB setup command failed.' }
 }
 
+function Import-CurrentAccount {
+    param(
+        [Parameter(Mandatory)][ValidateSet('admin', 'owner')][string] $Role,
+        [Parameter(Mandatory)][string] $AccountBase64
+    )
+
+    if ($AccountBase64 -notmatch '^[A-Za-z0-9+/]+={0,2}$') {
+        throw "The transferred $Role account is not valid base64 data. Recreate secret.txt."
+    }
+    $accountVariable = if ($Role -eq 'admin') { '@admin_account' } else { '@owner_account' }
+    # This is intentionally one UPDATE per account. JSON extraction restores
+    # the exact local email, password hash, name, verification, trial, and 2FA
+    # state while leaving reset tokens unset on the copied machine.
+    $sql = @"
+SET $accountVariable = CONVERT(FROM_BASE64('$AccountBase64') USING utf8mb4);
+UPDATE scantosee_supervisor.user SET
+    email = JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.email')),
+    password = JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.password')),
+    full_name = JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.full_name')),
+    is_active = CAST(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.is_active')) AS UNSIGNED),
+    created_at = JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.created_at')),
+    totp_secret = NULLIF(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.totp_secret')), 'null'),
+    backup_codes = NULLIF(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.backup_codes')), 'null'),
+    enforcement_required = CAST(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.enforcement_required')) AS UNSIGNED),
+    email_verified_at = NULLIF(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.email_verified_at')), 'null'),
+    trial_ends_at = NULLIF(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.trial_ends_at')), 'null'),
+    trial_ai_uses = CAST(JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.trial_ai_uses')) AS UNSIGNED),
+    password_reset_token = NULL,
+    password_reset_token_expires_at = NULL,
+    email_verification_token_hash = NULL,
+    email_verification_expires_at = NULL
+WHERE role = '$Role' AND email = JSON_UNQUOTE(JSON_EXTRACT($accountVariable, '$.email'));
+"@
+    Invoke-MySql -Sql $sql -ApplicationUser
+}
+
 function Add-PhpExtension {
     param([Parameter(Mandatory)][string] $Name)
     $extensionDirectory = Join-Path (Split-Path -Parent $script:PhpExecutable) 'ext'
@@ -205,7 +241,10 @@ Set-DotEnvValue -Path $aiEnv -Name 'SCANTOSEE_MODEL_VERSION' -Value $secrets.SCA
 Set-DotEnvValue -Path $aiEnv -Name 'SCANTOSEE_MODEL_CHECKPOINT' -Value $checkpointDestination
 Set-DotEnvValue -Path $aiEnv -Name 'SCANTOSEE_TORCH_DEVICE' -Value 'auto'
 
-$settingsJson = @{ ngrokDomain = [string] $secrets.NGROK_DOMAIN } | ConvertTo-Json
+$settingsJson = @{
+    ngrokDomain = [string] $secrets.NGROK_DOMAIN
+    sourceSecretPath = [IO.Path]::GetFullPath($SecretPath)
+} | ConvertTo-Json
 [IO.File]::WriteAllText((Join-Path $layout.Deployment 'deployment-settings.json'), $settingsJson, [Text.UTF8Encoding]::new($false))
 
 Start-XamppMySql
@@ -218,11 +257,16 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Composer dependency installation failed.' }
     & $script:PhpExecutable bin/console doctrine:migrations:migrate --no-interaction
     if ($LASTEXITCODE -ne 0) { throw 'Database migrations failed.' }
-    & $script:PhpExecutable bin/console app:create-admin $secrets.SUPERVISOR_ADMIN_EMAIL $secrets.SUPERVISOR_ADMIN_PASSWORD
+    & $script:PhpExecutable bin/console app:create-admin $secrets.SUPERVISOR_ADMIN_EMAIL $secrets.SUPERVISOR_ADMIN_BOOTSTRAP_PASSWORD
     if ($LASTEXITCODE -ne 0) { throw 'Supervisor admin creation failed.' }
-    & $script:PhpExecutable bin/console app:seed-owner $secrets.SUPERVISOR_OWNER_EMAIL $secrets.SUPERVISOR_OWNER_PASSWORD
+    & $script:PhpExecutable bin/console app:seed-owner $secrets.SUPERVISOR_OWNER_EMAIL $secrets.SUPERVISOR_OWNER_BOOTSTRAP_PASSWORD
     if ($LASTEXITCODE -ne 0) { throw 'Supervisor owner creation failed.' }
 } finally { Pop-Location }
+
+# Preserve the two current accounts exactly, including their valid email,
+# password hash, email-verification status, and existing TOTP enrollment.
+Import-CurrentAccount -Role admin -AccountBase64 $secrets.SUPERVISOR_ADMIN_ACCOUNT_B64
+Import-CurrentAccount -Role owner -AccountBase64 $secrets.SUPERVISOR_OWNER_ACCOUNT_B64
 
 $venvPython = Join-Path $layout.Ai '.venv\Scripts\python.exe'
 if (!(Test-Path -LiteralPath $venvPython)) {
@@ -261,6 +305,6 @@ Write-Host ''
 Write-Host 'Installation completed successfully.' -ForegroundColor Green
 Write-Host "Admin login: $($secrets.SUPERVISOR_ADMIN_EMAIL)"
 Write-Host "Owner login: $($secrets.SUPERVISOR_OWNER_EMAIL)"
-Write-Host 'Passwords remain only in the USB secret.txt; they were not copied to documentation or logs.'
-Write-Host 'First login: enroll owner and admin separately in a TOTP authenticator and save both sets of backup codes.' -ForegroundColor Yellow
+Write-Host 'Use the same passwords and TOTP authenticator entries as on the current machine.'
+Write-Host 'Account hashes and 2FA secrets remain only in the USB secret.txt; they were not copied to documentation or logs.'
 Write-Host 'Remove the USB drive now and keep it secure.' -ForegroundColor Yellow
