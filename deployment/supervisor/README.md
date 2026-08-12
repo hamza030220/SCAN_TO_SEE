@@ -477,6 +477,14 @@ Check `symfony.err.log`, confirm MariaDB is running, and check status:
 & "$env:USERPROFILE\ScanToSeeSupervisor\deployment\Start-ScanToSee.ps1" -Action Status
 ```
 
+### Composer reports `System.Collections.Hashtable.Tools`
+
+This message comes from an obsolete installer copy whose Composer destination
+argument was expanded incorrectly by Windows PowerShell. Replace all deployment
+scripts in `C:\ScanToSee-Installer` with the current bundle and rerun
+`Install-ScanToSee.ps1`. The installer is resumable; already installed Windows
+prerequisites do not need to be removed.
+
 ### Login redirects to `/2fa/setup`
 
 This is not expected for the exported accounts because their existing TOTP

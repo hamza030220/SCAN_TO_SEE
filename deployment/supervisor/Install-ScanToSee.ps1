@@ -56,13 +56,22 @@ function Install-WinGetPackage {
 function Install-ComposerPhar {
     param([string] $Destination)
     if (Test-Path -LiteralPath $Destination -PathType Leaf) { return }
+    $installDirectory = Split-Path -Parent $Destination
+    $fileName = Split-Path -Leaf $Destination
+    New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
     $tempInstaller = Join-Path ([IO.Path]::GetTempPath()) ("composer-setup-{0}.php" -f [guid]::NewGuid())
     try {
         $expected = (Invoke-RestMethod 'https://composer.github.io/installer.sig' -TimeoutSec 30).Trim()
         Invoke-WebRequest 'https://getcomposer.org/installer' -OutFile $tempInstaller -UseBasicParsing
         $actual = (Get-FileHash -LiteralPath $tempInstaller -Algorithm SHA384).Hash.ToLowerInvariant()
         if ($actual -ne $expected.ToLowerInvariant()) { throw 'Composer installer signature verification failed.' }
-        & $script:PhpExecutable $tempInstaller --install-dir=$layout.Tools --filename=composer.phar --quiet
+        $composerArguments = @(
+            $tempInstaller,
+            "--install-dir=$installDirectory",
+            "--filename=$fileName",
+            '--quiet'
+        )
+        & $script:PhpExecutable @composerArguments
         if ($LASTEXITCODE -ne 0) { throw 'Composer installation failed.' }
     } finally {
         Remove-Item -LiteralPath $tempInstaller -Force -ErrorAction SilentlyContinue
