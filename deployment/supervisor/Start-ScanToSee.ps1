@@ -41,7 +41,7 @@ function Show-Status {
         try {
             $tunnels = Invoke-RestMethod 'http://127.0.0.1:4040/api/tunnels' -TimeoutSec 3
             $publicUrl = $tunnels.tunnels | Where-Object { $_.proto -eq 'https' } | Select-Object -ExpandProperty public_url -First 1
-            if ($publicUrl) { Write-Host "Phone/QR URL: $publicUrl" -ForegroundColor Cyan }
+            if ($publicUrl) { Write-Host 'ngrok HTTPS tunnel is ready.' -ForegroundColor Cyan }
         } catch { Write-Warning 'ngrok is running but its local API could not be read.' }
     }
 }
@@ -141,6 +141,6 @@ if ($health.status -ne 'ok') { throw 'FastAPI health verification failed.' }
 }
 
 Write-Host 'ScanToSee is running.' -ForegroundColor Green
-Write-Host "Phone/QR URL: $publicUrl" -ForegroundColor Cyan
+Write-Host 'The mandatory ngrok HTTPS tunnel is connected and QR generation is configured.' -ForegroundColor Cyan
 Write-Host 'FastAPI selected CUDA automatically when usable; otherwise it uses CPU.'
 Write-Host "Logs: $logRoot"

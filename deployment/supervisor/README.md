@@ -43,8 +43,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 The installer refuses to clone or install anything until `secret.txt` and a
 complete checkpoint are beside it. It installs a local demonstration stack,
-configures mandatory ngrok access, creates an admin and seeded owner account,
-and starts the application. Later starts use the copied script:
+configures mandatory ngrok access for QR generation, creates an admin and
+seeded owner account, and starts the application. Later starts use the copied script:
 
 ```powershell
 & "$env:USERPROFILE\ScanToSeeSupervisor\deployment\Start-ScanToSee.ps1"
