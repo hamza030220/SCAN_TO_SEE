@@ -57,3 +57,8 @@ symfony-integration-plan.md
 *.integration-plan.md
 SECURITY_AUDIT_PRIVATE.md
 ###< Internal planning docs ###
+
+###> Supervisor deployment private bundle ###
+/deployment/supervisor/secret.txt
+/deployment/supervisor/checkpoint-765/
+###< Supervisor deployment private bundle ###

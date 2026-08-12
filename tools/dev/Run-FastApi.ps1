@@ -31,6 +31,7 @@ if (!(Test-Path -LiteralPath (Join-Path $FastApiRoot 'main.py'))) {
 }
 
 $pythonCandidates = @(
+    (Join-Path $AppRoot 'handwritten-menu-scanner\.venv\Scripts\python.exe'),
     (Join-Path $env:USERPROFILE 'anaconda3\envs\training\python.exe'),
     (Join-Path $env:USERPROFILE 'miniconda3\envs\training\python.exe'),
     (Join-Path $env:USERPROFILE '.conda\envs\training\python.exe'),
@@ -42,7 +43,7 @@ $TrainingPython = $pythonCandidates |
     Select-Object -First 1
 
 if (!$TrainingPython) {
-    throw 'The Conda environment "training" was not found in a supported location.'
+    throw 'No OCR Python environment was found. Run the supervisor installer or create handwritten-menu-scanner\.venv.'
 }
 
 Set-Location $FastApiRoot
