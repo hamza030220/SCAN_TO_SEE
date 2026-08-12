@@ -43,6 +43,8 @@ Before starting, confirm that the computer has:
 - at least 20 GB of free disk space;
 - access to GitHub, Python package indexes, Hugging Face/Paddle model sources,
   ngrok, Stripe, Cloudinary, and the configured mail provider;
+- a phone with Microsoft Authenticator, Google Authenticator, Authy, or another
+  standards-compatible TOTP authenticator installed;
 - ports 8000, 8001, 3306, and 4040 available.
 
 The computer does not need an NVIDIA GPU. The installer attempts the supported
@@ -234,13 +236,17 @@ The first installation can take significant time because it downloads Windows,
 PHP, Python, PyTorch, PaddleOCR, and application dependencies. Do not close the
 PowerShell window or disconnect the network during installation.
 
-## 7. Opening and signing in
+## 7. First login and mandatory two-factor authentication
 
 When installation finishes, open this address on the Windows computer:
 
 ```text
 http://127.0.0.1:8000
 ```
+
+The installer creates new administrator and owner accounts without a pre-shared
+TOTP secret. This is deliberate: a TOTP secret should be enrolled directly by
+the person controlling the authenticator phone, not stored in `secret.txt`.
 
 The installer prints the administrator and owner email addresses, but never
 prints their passwords. Read these four fields from the USB `secret.txt`:
@@ -251,6 +257,45 @@ SUPERVISOR_ADMIN_PASSWORD
 SUPERVISOR_OWNER_EMAIL
 SUPERVISOR_OWNER_PASSWORD
 ```
+
+### 7.1 Enroll the owner account
+
+1. Open `http://127.0.0.1:8000`.
+2. Sign in with `SUPERVISOR_OWNER_EMAIL` and
+   `SUPERVISOR_OWNER_PASSWORD`.
+3. The application will redirect to `/2fa/setup` before allowing dashboard
+   access. This is expected.
+4. Open the authenticator app on the phone.
+5. Add a new account and scan the TOTP QR code shown by ScanToSee. If camera
+   scanning is unavailable, enter the displayed secret manually.
+6. Enter the current six-digit authenticator code into ScanToSee.
+7. Save all eight one-use backup codes shown after confirmation.
+8. Select **I've saved my codes — Continue** and confirm the owner dashboard
+   opens.
+
+### 7.2 Enroll the administrator account
+
+The administrator has a separate TOTP secret and separate backup codes. Do not
+reuse the owner's manual secret or assume the same six-digit code works.
+
+1. Sign out of the owner account.
+2. Sign in with `SUPERVISOR_ADMIN_EMAIL` and
+   `SUPERVISOR_ADMIN_PASSWORD`.
+3. Complete the same `/2fa/setup` process as a second entry in the
+   authenticator app.
+4. Name the two authenticator entries clearly, for example
+   `S2S Supervisor Owner` and `S2S Supervisor Admin`.
+5. Store the administrator's eight backup codes separately from the owner's
+   backup codes.
+6. Continue to the dashboard and confirm administrator pages open.
+
+Every later login for either account requires its password followed by the
+current six-digit code from the matching authenticator entry. A remaining
+single-use backup code can replace the authenticator code if the phone is
+unavailable.
+
+If the phone clock is incorrect, TOTP confirmation may fail. Enable automatic
+date, time, and time-zone synchronization on the phone before enrollment.
 
 Use the owner account to demonstrate menu creation, design, publication, QR
 access, and OCR. Use the administrator account only for administrator features.
@@ -267,11 +312,22 @@ supervisor.
 
 1. Open `http://127.0.0.1:8000`.
 2. Sign in with the seeded owner account.
-3. Confirm the owner dashboard opens without an exception.
-4. Confirm the seeded business and menus are visible.
-5. Open a menu and confirm its categories and items render.
-6. Sign out and sign in with the administrator account.
-7. Confirm the administrator dashboard opens.
+3. Complete the mandatory owner 2FA enrollment described in section 7 if this
+   is the first login.
+4. Sign out, sign back in, and confirm the password is followed by the 2FA code
+   challenge.
+5. Confirm the owner dashboard opens without an exception.
+6. Confirm the seeded business and menus are visible.
+7. Open a menu and confirm its categories and items render.
+8. Sign out and sign in with the administrator account.
+9. Complete the administrator's separate 2FA enrollment if this is its first
+   login.
+10. Sign out, sign back in, and confirm the administrator password is followed
+    by the 2FA code challenge.
+11. Confirm the administrator dashboard opens.
+12. Test one owner backup code and one administrator backup code only if you
+    have safely retained the remaining codes. Each tested backup code is
+    permanently consumed.
 
 ### 8.2 QR code and phone checks
 
@@ -419,6 +475,26 @@ Check `symfony.err.log`, confirm MariaDB is running, and check status:
 & "$env:USERPROFILE\ScanToSeeSupervisor\deployment\Start-ScanToSee.ps1" -Action Status
 ```
 
+### Login redirects to `/2fa/setup`
+
+This is correct on the first login. Both owner and administrator roles are
+forced to configure TOTP before they can access their dashboard. Follow section
+7 and enroll each account separately.
+
+### Login asks for an authenticator code
+
+Open the authenticator entry matching the account email and enter its current
+six-digit code. The owner and administrator use different TOTP entries. If the
+code is repeatedly rejected, confirm the phone uses automatic date and time.
+
+### Authenticator phone or entry is unavailable
+
+Select **Use a backup code** on the two-factor login page and enter one of that
+account's unused eight-character backup codes. Each backup code works once. If
+no authenticator entry or backup code remains, the account's TOTP data must be
+reset directly in the local database or the demonstration database must be
+recreated; there is no insecure 2FA bypass in the installer.
+
 ### FastAPI or OCR fails
 
 Open `fastapi.err.log`. Confirm the model file exists:
@@ -509,6 +585,9 @@ After the cleanup finishes:
   GitHub issues.
 - Keep Stripe in test mode for rehearsals and demonstrations.
 - Remove the USB drive after installation and login verification.
+- Keep the owner and administrator backup codes private and clearly separated;
+  they are authentication credentials even though they are not in
+  `secret.txt`.
 - Run the cleanup before returning or repurposing a borrowed test computer.
 - Provider-side credential rotation is the only reliable response to a leaked
   token; deleting a local file cannot revoke a credential already copied.

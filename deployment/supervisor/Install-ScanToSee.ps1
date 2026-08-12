@@ -262,4 +262,5 @@ Write-Host 'Installation completed successfully.' -ForegroundColor Green
 Write-Host "Admin login: $($secrets.SUPERVISOR_ADMIN_EMAIL)"
 Write-Host "Owner login: $($secrets.SUPERVISOR_OWNER_EMAIL)"
 Write-Host 'Passwords remain only in the USB secret.txt; they were not copied to documentation or logs.'
+Write-Host 'First login: enroll owner and admin separately in a TOTP authenticator and save both sets of backup codes.' -ForegroundColor Yellow
 Write-Host 'Remove the USB drive now and keep it secure.' -ForegroundColor Yellow
