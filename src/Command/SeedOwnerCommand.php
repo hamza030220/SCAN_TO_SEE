@@ -142,7 +142,6 @@ class SeedOwnerCommand extends Command
                 $menu->setSlug($this->makeSlug($menuName));
                 $menu->setStatus('published');
                 $menu->setCurrency('TND');
-                $menu->setThemePreset('modern');
                 $this->em->persist($menu);
 
                 $catSort = 0;
