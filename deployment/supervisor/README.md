@@ -63,6 +63,7 @@ supervisor\
   Start-ScanToSee.ps1
   Nuke-Personal-Data.ps1
   Supervisor.Common.ps1
+  Export-SecretFile.ps1
   README.md
   secret.txt
   USB-SHA256.txt
@@ -82,6 +83,11 @@ supervisor\
 from Git. Never upload the private bundle to GitHub, cloud storage, chat, email,
 or an issue tracker.
 
+Do not mix scripts from different bundle versions. The installer now verifies
+every transferred script and every model file against `USB-SHA256.txt` before
+it installs anything. A partial or stale copy stops at preflight with the exact
+file that differs.
+
 The inference-only bundle is approximately 1.25 GiB. Copy the directory itself;
 Windows PowerShell's built-in ZIP implementation may fail on the large model
 file.
@@ -97,6 +103,10 @@ Generate a fresh `secret.txt` without printing secret values:
 Set-ExecutionPolicy -Scope Process Bypass
 .\Export-SecretFile.ps1
 ```
+
+This command also regenerates `USB-SHA256.txt` for all scripts and all files in
+`checkpoint-765`. Run it only after the deployment scripts and private model
+bundle are final, then transfer the complete `supervisor` directory together.
 
 This copies the required Stripe, email, Cloudinary, and ngrok credentials from
 the ignored local configuration. It also reads the current local `S2S`
@@ -209,6 +219,7 @@ Open the Start menu, search for **PowerShell**, right-click it, and select
 ```powershell
 cd C:\ScanToSee-Installer
 Set-ExecutionPolicy -Scope Process Bypass
+Unblock-File .\*.ps1
 .\Install-ScanToSee.ps1
 ```
 
@@ -243,6 +254,19 @@ After preflight, it:
 12. configures mandatory ngrok authentication;
 13. starts MariaDB, FastAPI, Symfony, the subscription scheduler, and ngrok;
 14. verifies Symfony and FastAPI are reachable.
+
+It also loads both AI models during installation. This downloads and caches the
+Paddle text-detection model, loads the transferred TrOCR checkpoint, and fails
+the installation immediately if either model cannot initialize. The first AI
+model check can be slow on CPU and should not be interrupted.
+
+The installer is resumable after a failure: incomplete Git clone directories
+are replaced safely and the dedicated `scantosee_supervisor` database is
+rebuilt before migrations/seeding on every installation attempt. Rerunning the
+installer therefore deletes data created by an earlier installation attempt;
+this is intentional during setup and prevents partial or duplicate demo data.
+After correcting the reported problem, rerun the same command and do not
+uninstall prerequisites.
 
 The first installation can take significant time because it downloads Windows,
 PHP, Python, PyTorch, PaddleOCR, and application dependencies. Do not close the

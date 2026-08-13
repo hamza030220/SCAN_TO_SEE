@@ -14,7 +14,14 @@ function Read-SecretFile {
         if (!$trimmed -or $trimmed.StartsWith('#')) { continue }
         $parts = $trimmed -split '=', 2
         if ($parts.Count -ne 2) { throw "Invalid secret.txt line (expected NAME=value): $trimmed" }
-        $values[$parts[0].Trim()] = $parts[1].Trim()
+        $value = $parts[1].Trim()
+        if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
+            $value = $value.Substring(1, $value.Length - 2)
+            $value = $value.Replace('\$', '$').Replace('\"', '"').Replace('\\', '\')
+        } elseif ($value.Length -ge 2 -and $value.StartsWith("'") -and $value.EndsWith("'")) {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+        $values[$parts[0].Trim()] = $value
     }
     return $values
 }
@@ -80,7 +87,11 @@ function Assert-RequiredSecrets {
 
 function ConvertTo-DotEnvValue {
     param([AllowEmptyString()][string] $Value)
-    return '"' + ($Value -replace '\\', '\\' -replace '"', '\"') + '"'
+    if ($Value.Contains("`r") -or $Value.Contains("`n")) {
+        throw 'Environment values containing line breaks are not supported.'
+    }
+    $escaped = $Value.Replace('\', '\\').Replace('$', '\$').Replace('"', '\"')
+    return '"' + $escaped + '"'
 }
 
 function Set-DotEnvValue {
@@ -108,6 +119,83 @@ function Set-DotEnvValue {
 function Write-Utf8File {
     param([Parameter(Mandatory)][string] $Path, [Parameter(Mandatory)][string[]] $Lines)
     [IO.File]::WriteAllLines($Path, $Lines, [Text.UTF8Encoding]::new($false))
+}
+
+function Write-BundleHashManifest {
+    param(
+        [Parameter(Mandatory)][string] $BundleRoot,
+        [Parameter(Mandatory)][string] $ManifestPath
+    )
+
+    $resolvedRoot = [IO.Path]::GetFullPath($BundleRoot).TrimEnd('\')
+    $rootFiles = @(
+        'secret.txt', 'Install-ScanToSee.ps1', 'Start-ScanToSee.ps1',
+        'Nuke-Personal-Data.ps1', 'Supervisor.Common.ps1',
+        'Export-SecretFile.ps1', 'README.md'
+    )
+    $files = @($rootFiles | ForEach-Object { Join-Path $resolvedRoot $_ })
+    $checkpoint = Join-Path $resolvedRoot 'checkpoint-765'
+    if (Test-Path -LiteralPath $checkpoint -PathType Container) {
+        $files += @(Get-ChildItem -LiteralPath $checkpoint -Recurse -File | Select-Object -ExpandProperty FullName)
+    }
+    $missing = @($files | Where-Object { !(Test-Path -LiteralPath $_ -PathType Leaf) })
+    if ($missing.Count) { throw "Cannot create USB hashes; bundle files are missing: $($missing -join ', ')" }
+
+    $lines = @('# Generated locally. Verify automatically with Install-ScanToSee.ps1 -PreflightOnly')
+    foreach ($file in @($files | Sort-Object -Unique)) {
+        $resolvedFile = [IO.Path]::GetFullPath($file)
+        if (!$resolvedFile.StartsWith("$resolvedRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Refusing to hash a file outside the supervisor bundle: $resolvedFile"
+        }
+        $relative = $resolvedFile.Substring($resolvedRoot.Length + 1)
+        $hash = (Get-FileHash -LiteralPath $resolvedFile -Algorithm SHA256).Hash
+        $lines += "$hash  $relative"
+    }
+    Write-Utf8File -Path $ManifestPath -Lines $lines
+}
+
+function Assert-BundleHashManifest {
+    param(
+        [Parameter(Mandatory)][string] $BundleRoot,
+        [Parameter(Mandatory)][string] $ManifestPath
+    )
+
+    if (!(Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
+        throw "Required USB hash manifest was not found: $ManifestPath"
+    }
+    $resolvedRoot = [IO.Path]::GetFullPath($BundleRoot).TrimEnd('\')
+    $entries = @{}
+    foreach ($line in Get-Content -LiteralPath $ManifestPath) {
+        $trimmed = $line.Trim()
+        if (!$trimmed -or $trimmed.StartsWith('#')) { continue }
+        if ($trimmed -notmatch '^([A-Fa-f0-9]{64})\s{2}(.+)$') {
+            throw "Invalid USB-SHA256.txt line: $trimmed"
+        }
+        $relative = $Matches[2]
+        if ([IO.Path]::IsPathRooted($relative)) { throw "Absolute path is forbidden in USB-SHA256.txt: $relative" }
+        $path = [IO.Path]::GetFullPath((Join-Path $resolvedRoot $relative))
+        if (!$path.StartsWith("$resolvedRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Path escapes the supervisor bundle in USB-SHA256.txt: $relative"
+        }
+        $entries[$relative.Replace('/', '\')] = $Matches[1].ToUpperInvariant()
+    }
+
+    $required = @(
+        'secret.txt', 'Install-ScanToSee.ps1', 'Start-ScanToSee.ps1',
+        'Nuke-Personal-Data.ps1', 'Supervisor.Common.ps1',
+        'checkpoint-765\model.safetensors', 'checkpoint-765\config.json',
+        'checkpoint-765\tokenizer.json', 'checkpoint-765\preprocessor_config.json'
+    )
+    $missingEntries = @($required | Where-Object { !$entries.ContainsKey($_) })
+    if ($missingEntries.Count) {
+        throw "USB-SHA256.txt is incomplete. Missing entries: $($missingEntries -join ', ')"
+    }
+    foreach ($entry in $entries.GetEnumerator()) {
+        $path = [IO.Path]::GetFullPath((Join-Path $resolvedRoot $entry.Key))
+        if (!(Test-Path -LiteralPath $path -PathType Leaf)) { throw "Bundle file listed in USB-SHA256.txt is missing: $($entry.Key)" }
+        $actual = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+        if ($actual -cne $entry.Value) { throw "USB bundle integrity check failed for $($entry.Key). Copy the complete current bundle again." }
+    }
 }
 
 function Test-TcpPort {

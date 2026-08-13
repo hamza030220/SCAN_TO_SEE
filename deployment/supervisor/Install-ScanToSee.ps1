@@ -11,6 +11,7 @@ param(
 
 $BundleRoot = $PSScriptRoot
 $SecretPath = Join-Path $BundleRoot 'secret.txt'
+$HashManifestPath = Join-Path $BundleRoot 'USB-SHA256.txt'
 $CheckpointSource = Join-Path $BundleRoot 'checkpoint-765'
 $layout = Get-SupervisorLayout -InstallRoot $InstallRoot
 
@@ -62,7 +63,18 @@ function Install-ComposerPhar {
     $tempInstaller = Join-Path ([IO.Path]::GetTempPath()) ("composer-setup-{0}.php" -f [guid]::NewGuid())
     try {
         $expected = (Invoke-RestMethod 'https://composer.github.io/installer.sig' -TimeoutSec 30).Trim()
-        Invoke-WebRequest 'https://getcomposer.org/installer' -OutFile $tempInstaller -UseBasicParsing
+        $downloaded = $false
+        foreach ($attempt in 1..3) {
+            try {
+                Invoke-WebRequest 'https://getcomposer.org/installer' -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
+                $downloaded = $true
+                break
+            } catch {
+                if ($attempt -eq 3) { throw }
+                Write-Warning "Composer download attempt $attempt failed; retrying."
+            }
+        }
+        if (!$downloaded) { throw 'Composer installer download failed.' }
         $actual = (Get-FileHash -LiteralPath $tempInstaller -Algorithm SHA384).Hash.ToLowerInvariant()
         if ($actual -ne $expected.ToLowerInvariant()) { throw 'Composer installer signature verification failed.' }
         $composerArguments = @(
@@ -79,7 +91,7 @@ function Install-ComposerPhar {
 }
 
 function Invoke-MySql {
-    param([Parameter(Mandatory)][string] $Sql, [switch] $ApplicationUser)
+    param([Parameter(Mandatory)][string] $Sql, [switch] $ApplicationUser, [switch] $PassThru)
     $arguments = @('--protocol=tcp', '-h', '127.0.0.1', '--batch', '--skip-column-names')
     if ($ApplicationUser) {
         $arguments += @('-u', 'scantosee', "--password=$($secrets.DATABASE_PASSWORD)")
@@ -88,8 +100,40 @@ function Invoke-MySql {
         if ($secrets.MYSQL_ROOT_PASSWORD) { $arguments += "--password=$($secrets.MYSQL_ROOT_PASSWORD)" }
     }
     $arguments += @('-e', $Sql)
-    & $script:MySqlExecutable @arguments
+    $output = @(& $script:MySqlExecutable @arguments)
     if ($LASTEXITCODE -ne 0) { throw 'A MariaDB setup command failed.' }
+    if ($PassThru) { return $output }
+}
+
+function Sync-GitRepository {
+    param(
+        [Parameter(Mandatory)][string] $Repository,
+        [Parameter(Mandatory)][string] $Destination,
+        [Parameter(Mandatory)][string] $Branch,
+        [Parameter(Mandatory)][string] $DisplayName
+    )
+
+    $resolvedRoot = [IO.Path]::GetFullPath($layout.Root).TrimEnd('\')
+    $resolvedDestination = [IO.Path]::GetFullPath($Destination).TrimEnd('\')
+    if (!$resolvedDestination.StartsWith("$resolvedRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to manage $DisplayName outside the installation root: $resolvedDestination"
+    }
+    if (Test-Path -LiteralPath $resolvedDestination -PathType Container) {
+        if (!(Test-Path -LiteralPath (Join-Path $resolvedDestination '.git') -PathType Container)) {
+            Write-Warning "Removing an incomplete previous $DisplayName clone: $resolvedDestination"
+            Remove-Item -LiteralPath $resolvedDestination -Recurse -Force
+        } else {
+            & git -c "safe.directory=$resolvedDestination" -C $resolvedDestination fetch origin $Branch
+            if ($LASTEXITCODE -ne 0) { throw "Could not fetch the $DisplayName deployment branch." }
+            & git -c "safe.directory=$resolvedDestination" -C $resolvedDestination switch $Branch
+            if ($LASTEXITCODE -ne 0) { throw "Could not switch the $DisplayName deployment branch." }
+            & git -c "safe.directory=$resolvedDestination" -C $resolvedDestination reset --hard "origin/$Branch"
+            if ($LASTEXITCODE -ne 0) { throw "Could not reset $DisplayName to the tested remote branch." }
+            return
+        }
+    }
+    & git clone --branch $Branch --single-branch --depth 1 $Repository $resolvedDestination
+    if ($LASTEXITCODE -ne 0) { throw "Could not clone $DisplayName from $Repository." }
 }
 
 function Import-CurrentAccount {
@@ -147,6 +191,7 @@ function Add-PhpExtension {
 }
 
 # Hard preflight: do not clone, install packages, or create directories first.
+Assert-BundleHashManifest -BundleRoot $BundleRoot -ManifestPath $HashManifestPath
 Assert-CheckpointBundle
 $secrets = Read-SecretFile -Path $SecretPath
 Assert-RequiredSecrets -Secrets $secrets
@@ -156,6 +201,13 @@ if ($PreflightOnly) {
     exit 0
 }
 Assert-Administrator
+
+$installDrive = [IO.DriveInfo]::new([IO.Path]::GetPathRoot($layout.Root))
+if ($installDrive.AvailableFreeSpace -lt 15GB) {
+    throw "At least 15 GiB of free space is required on $($installDrive.Name); only $([math]::Round($installDrive.AvailableFreeSpace / 1GB, 1)) GiB is available."
+}
+$windowsVersion = [Environment]::OSVersion.Version
+if ($windowsVersion.Major -lt 10) { throw 'Windows 10 or Windows 11 is required.' }
 
 $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
 if (!$winget) { throw 'Windows Package Manager (winget) is required. Install Microsoft App Installer and rerun.' }
@@ -172,34 +224,33 @@ try { $null = Resolve-PythonExecutable } catch {
 $script:PhpExecutable = Resolve-PhpExecutable
 $python = Resolve-PythonExecutable
 $script:MySqlExecutable = Resolve-MySqlExecutable
+$phpVersion = & $script:PhpExecutable -r 'echo PHP_MAJOR_VERSION * 100 + PHP_MINOR_VERSION;'
+if ($LASTEXITCODE -ne 0 -or [int] $phpVersion -lt 802 -or [int] $phpVersion -ge 900) {
+    throw "PHP 8.2 or newer in the PHP 8 series is required; found version code '$phpVersion'."
+}
 foreach ($extension in @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl')) {
     Add-PhpExtension -Name $extension
 }
+# Re-read php.ini after enabling extensions; this must happen before any
+# Composer or Symfony command so a half-configured XAMPP install fails early.
+$loadedExtensionsJson = & $script:PhpExecutable -r 'echo json_encode(get_loaded_extensions());'
+if ($LASTEXITCODE -ne 0) { throw 'PHP could not report its loaded extensions.' }
+$loadedExtensionSet = @($loadedExtensionsJson | ConvertFrom-Json | ForEach-Object { $_.ToLowerInvariant() })
+$missingLoadedExtensions = @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl' | Where-Object { $_ -notin $loadedExtensionSet })
+if ($missingLoadedExtensions.Count) { throw "PHP extensions did not load: $($missingLoadedExtensions -join ', ')." }
 New-Item -ItemType Directory -Path $layout.Root, $layout.Tools, $layout.Deployment -Force | Out-Null
+$existingLauncher = Join-Path $layout.Deployment 'Start-ScanToSee.ps1'
+if (Test-Path -LiteralPath $existingLauncher -PathType Leaf) {
+    & $existingLauncher -Action Stop -InstallRoot $layout.Root
+}
 
 $ngrokSource = Get-Command ngrok.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
 if (!$ngrokSource) { throw 'ngrok was installed but ngrok.exe is not available in PATH. Restart PowerShell and rerun.' }
 Copy-Item -LiteralPath $ngrokSource -Destination (Join-Path $layout.Tools 'ngrok.exe') -Force
 Install-ComposerPhar -Destination (Join-Path $layout.Tools 'composer.phar')
 
-if (Test-Path -LiteralPath $layout.Web -PathType Container) {
-    & git -c safe.directory=$($layout.Web) -C $layout.Web fetch origin $DeploymentBranch
-    if ($LASTEXITCODE -ne 0) { throw 'Could not update the Symfony repository.' }
-    & git -c safe.directory=$($layout.Web) -C $layout.Web switch $DeploymentBranch
-    & git -c safe.directory=$($layout.Web) -C $layout.Web reset --hard "origin/$DeploymentBranch"
-} else {
-    & git clone --branch $DeploymentBranch --single-branch $WebRepository $layout.Web
-    if ($LASTEXITCODE -ne 0) { throw 'Could not clone the Symfony repository.' }
-}
-if (Test-Path -LiteralPath $layout.Ai -PathType Container) {
-    & git -c safe.directory=$($layout.Ai) -C $layout.Ai fetch origin $DeploymentBranch
-    if ($LASTEXITCODE -ne 0) { throw 'Could not update the AI repository.' }
-    & git -c safe.directory=$($layout.Ai) -C $layout.Ai switch $DeploymentBranch
-    & git -c safe.directory=$($layout.Ai) -C $layout.Ai reset --hard "origin/$DeploymentBranch"
-} else {
-    & git clone --branch $DeploymentBranch --single-branch $AiRepository $layout.Ai
-    if ($LASTEXITCODE -ne 0) { throw 'Could not clone the AI repository.' }
-}
+Sync-GitRepository -Repository $WebRepository -Destination $layout.Web -Branch $DeploymentBranch -DisplayName 'Symfony repository'
+Sync-GitRepository -Repository $AiRepository -Destination $layout.Ai -Branch $DeploymentBranch -DisplayName 'FastAPI repository'
 
 Copy-Item -LiteralPath (Join-Path $BundleRoot 'Supervisor.Common.ps1') -Destination $layout.Deployment -Force
 Copy-Item -LiteralPath (Join-Path $BundleRoot 'Start-ScanToSee.ps1') -Destination $layout.Deployment -Force
@@ -257,8 +308,14 @@ $settingsJson = @{
 [IO.File]::WriteAllText((Join-Path $layout.Deployment 'deployment-settings.json'), $settingsJson, [Text.UTF8Encoding]::new($false))
 
 Start-XamppMySql
+$databaseVersion = @(Invoke-MySql -Sql 'SELECT VERSION();' -PassThru)
+if ($databaseVersion.Count -ne 1 -or [string] $databaseVersion[0] -notmatch 'MariaDB') {
+    throw "Port 3306 is not the expected MariaDB service. Reported version: $($databaseVersion -join ' ')"
+}
 $escapedPassword = ([string] $secrets.DATABASE_PASSWORD).Replace("'", "''")
-Invoke-MySql -Sql "CREATE DATABASE IF NOT EXISTS scantosee_supervisor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'scantosee'@'127.0.0.1' IDENTIFIED BY '$escapedPassword'; ALTER USER 'scantosee'@'127.0.0.1' IDENTIFIED BY '$escapedPassword'; GRANT ALL PRIVILEGES ON scantosee_supervisor.* TO 'scantosee'@'127.0.0.1'; FLUSH PRIVILEGES;"
+# Installation owns this dedicated database. Rebuilding it on every attempt
+# guarantees that a retry after interrupted migrations/seeding starts clean.
+Invoke-MySql -Sql "DROP DATABASE IF EXISTS scantosee_supervisor; CREATE DATABASE scantosee_supervisor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'scantosee'@'127.0.0.1' IDENTIFIED BY '$escapedPassword'; ALTER USER 'scantosee'@'127.0.0.1' IDENTIFIED BY '$escapedPassword'; GRANT ALL PRIVILEGES ON scantosee_supervisor.* TO 'scantosee'@'127.0.0.1'; FLUSH PRIVILEGES;"
 
 Push-Location $layout.Web
 try {
@@ -299,12 +356,28 @@ $runtimeRequirements = Join-Path $layout.Ai 'requirements.runtime.txt'
 $runtimeLines = @(Get-Content -LiteralPath (Join-Path $layout.Ai 'requirements.txt') |
     Where-Object { $_ -notmatch '^\s*torch\s*==' })
 Write-Utf8File -Path $runtimeRequirements -Lines $runtimeLines
-& $venvPython -m pip install -r $runtimeRequirements
-if ($LASTEXITCODE -ne 0) { throw 'OCR dependency installation failed.' }
-Remove-Item -LiteralPath $runtimeRequirements -Force -ErrorAction SilentlyContinue
+try {
+    & $venvPython -m pip install -r $runtimeRequirements
+    if ($LASTEXITCODE -ne 0) { throw 'OCR dependency installation failed.' }
+} finally {
+    Remove-Item -LiteralPath $runtimeRequirements -Force -ErrorAction SilentlyContinue
+}
 
-$device = & $venvPython -c "import torch; print('cuda' if torch.cuda.is_available() else 'cpu')"
-Write-Host "PyTorch inference device: $device" -ForegroundColor Cyan
+$env:SCANTOSEE_MODEL_CHECKPOINT = $checkpointDestination
+$env:SCANTOSEE_TORCH_DEVICE = 'auto'
+try {
+    Push-Location (Join-Path $layout.Ai 'src')
+    try {
+        $verifiedDevice = & $venvPython -c 'from recognition import _get_model;from detection import _get_detector;p,m,d=_get_model();_get_detector();print(d)'
+        if ($LASTEXITCODE -ne 0 -or [string] $verifiedDevice -notin @('cpu', 'cuda')) {
+            throw 'OCR model smoke test failed. The TrOCR and Paddle detection models must both load before installation can finish.'
+        }
+    } finally { Pop-Location }
+} finally {
+    Remove-Item Env:SCANTOSEE_MODEL_CHECKPOINT -ErrorAction SilentlyContinue
+    Remove-Item Env:SCANTOSEE_TORCH_DEVICE -ErrorAction SilentlyContinue
+}
+Write-Host "OCR model smoke test passed: TrOCR and Paddle detection are ready on $verifiedDevice." -ForegroundColor Green
 & (Join-Path $layout.Tools 'ngrok.exe') config add-authtoken $secrets.NGROK_AUTHTOKEN | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'ngrok authentication failed.' }
 

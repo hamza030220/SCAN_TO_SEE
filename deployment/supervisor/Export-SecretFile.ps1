@@ -9,6 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $PackageRoot = $PSScriptRoot
+. (Join-Path $PackageRoot 'Supervisor.Common.ps1')
 $WebRoot = Resolve-Path (Join-Path $PackageRoot '..\..')
 $WorkspaceRoot = Split-Path -Parent $WebRoot
 $AiRoot = Join-Path $WorkspaceRoot 'handwritten-menu-scanner'
@@ -160,8 +161,10 @@ $lines = @(
 )
 foreach ($entry in $values.GetEnumerator()) { $lines += "$($entry.Key)=$($entry.Value)" }
 [IO.File]::WriteAllLines($OutputPath, [string[]] $lines, [Text.UTF8Encoding]::new($false))
+Write-BundleHashManifest -BundleRoot $PackageRoot -ManifestPath (Join-Path $PackageRoot 'USB-SHA256.txt')
 
 Write-Host "Created private transfer file: $OutputPath" -ForegroundColor Green
 Write-Host 'It contains the exact current admin/owner login state plus all required external-service credentials.'
 Write-Host 'Use the same current passwords and authenticator entries on the supervisor machine.'
 Write-Host 'No secret value was printed to the terminal.'
+Write-Host 'USB-SHA256.txt was regenerated for every transferred script and model file.'

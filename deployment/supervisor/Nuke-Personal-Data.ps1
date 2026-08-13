@@ -34,10 +34,22 @@ function Remove-CloudinaryScanAssets {
     if (!(Test-Path -LiteralPath $python -PathType Leaf)) { return }
     $env:CLOUDINARY_URL = [string] $Secrets.CLOUDINARY_URL
     $env:SCANTOSEE_SCAN_UUIDS = $ScanUuids -join ','
+    $cleanupScript = Join-Path ([IO.Path]::GetTempPath()) ("scantosee-cloudinary-cleanup-{0}.py" -f [guid]::NewGuid())
+    Write-Utf8File -Path $cleanupScript -Lines @(
+        'import os',
+        'import cloudinary',
+        'import cloudinary.api',
+        'cloudinary.config(secure=True)',
+        'for scan_uuid in os.environ["SCANTOSEE_SCAN_UUIDS"].split(","):',
+        '    if scan_uuid:',
+        '        cloudinary.api.delete_resources_by_prefix(f"scantosee/menus/{scan_uuid}/", resource_type="image", invalidate=True)',
+        'print("Supervisor Cloudinary scan assets removed")'
+    )
     try {
-        & $python -c "import os, cloudinary, cloudinary.api; cloudinary.config(secure=True); [cloudinary.api.delete_resources_by_prefix(f'scantosee/menus/{scan_uuid}/', resource_type='image', invalidate=True) for scan_uuid in os.environ['SCANTOSEE_SCAN_UUIDS'].split(',') if scan_uuid]; print('Supervisor Cloudinary scan assets removed')"
+        & $python $cleanupScript
         if ($LASTEXITCODE -ne 0) { Write-Warning 'Cloudinary cleanup failed; revoke/clean the Cloudinary account manually.' }
     } finally {
+        Remove-Item -LiteralPath $cleanupScript -Force -ErrorAction SilentlyContinue
         Remove-Item Env:CLOUDINARY_URL -ErrorAction SilentlyContinue
         Remove-Item Env:SCANTOSEE_SCAN_UUIDS -ErrorAction SilentlyContinue
     }
@@ -61,19 +73,23 @@ function Remove-StripeDemoCustomers {
     }
     if (!$demoEmails.Count) { return }
     $env:SCANTOSEE_DEMO_EMAILS = $demoEmails -join ','
+    $cleanupScript = Join-Path ([IO.Path]::GetTempPath()) ("scantosee-stripe-cleanup-{0}.php" -f [guid]::NewGuid())
     $code = @'
+<?php
 require getenv('SCANTOSEE_VENDOR_AUTOLOAD');
 $client = new \Stripe\StripeClient(getenv('SCANTOSEE_STRIPE_KEY'));
 $emails = array_filter(array_map('strtolower', explode(',', getenv('SCANTOSEE_DEMO_EMAILS'))));
-foreach ($client->customers->all(['limit' => 100, 'email' => null])->autoPagingIterator() as $customer) {
+foreach ($client->customers->all(['limit' => 100])->autoPagingIterator() as $customer) {
     $email = strtolower((string) ($customer->email ?? ''));
     if (in_array($email, $emails, true)) { $client->customers->delete($customer->id, []); }
 }
 '@
+    Write-Utf8File -Path $cleanupScript -Lines @($code)
     try {
-        & $php -r $code
+        & $php $cleanupScript
         if ($LASTEXITCODE -ne 0) { Write-Warning 'Stripe test-customer cleanup failed; inspect the Stripe test dashboard manually.' }
     } finally {
+        Remove-Item -LiteralPath $cleanupScript -Force -ErrorAction SilentlyContinue
         Remove-Item Env:SCANTOSEE_STRIPE_KEY -ErrorAction SilentlyContinue
         Remove-Item Env:SCANTOSEE_VENDOR_AUTOLOAD -ErrorAction SilentlyContinue
         Remove-Item Env:SCANTOSEE_DEMO_EMAILS -ErrorAction SilentlyContinue
@@ -151,7 +167,7 @@ foreach ($directory in @(
 # Remove generated uploads while preserving every image that belongs to the
 # checked-out application. `git clean` only targets untracked files here.
 if (Test-Path -LiteralPath (Join-Path $layout.Web '.git') -PathType Container) {
-    & git -c safe.directory=$($layout.Web) -C $layout.Web clean -fd -- public/image/business public/image/items public/image/menu public/image/hero
+    & git -c "safe.directory=$($layout.Web)" -C $layout.Web clean -fd -- public/image/business public/image/items public/image/menu public/image/hero
     if ($LASTEXITCODE -ne 0) { Write-Warning 'Some generated web uploads could not be removed.' }
 }
 
