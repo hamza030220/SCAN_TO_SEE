@@ -186,6 +186,38 @@ function Set-PhpIniPathSetting {
     [IO.File]::WriteAllText($ini, $contents, [Text.UTF8Encoding]::new($false))
 }
 
+function New-PhpCertificateBundle {
+    param(
+        [Parameter(Mandatory)][string] $MozillaBundle,
+        [Parameter(Mandatory)][string] $Destination
+    )
+    $builder = [Text.StringBuilder]::new()
+    [void] $builder.Append((Get-Content -LiteralPath $MozillaBundle -Raw))
+    if ($builder.Length -and $builder[$builder.Length - 1] -ne "`n") { [void] $builder.AppendLine() }
+
+    # Corporate/school networks can terminate TLS with a root trusted by
+    # Windows but absent from Mozilla's generic bundle. Preserve Mozilla's
+    # roots and append the roots trusted by this exact Windows installation.
+    $seen = @{}
+    $windowsRootCount = 0
+    foreach ($store in @('Cert:\LocalMachine\Root', 'Cert:\CurrentUser\Root')) {
+        foreach ($certificate in @(Get-ChildItem -Path $store -ErrorAction Stop)) {
+            if ($seen.ContainsKey($certificate.Thumbprint)) { continue }
+            $seen[$certificate.Thumbprint] = $true
+            $base64 = [Convert]::ToBase64String($certificate.RawData)
+            [void] $builder.AppendLine('-----BEGIN CERTIFICATE-----')
+            for ($offset = 0; $offset -lt $base64.Length; $offset += 64) {
+                [void] $builder.AppendLine($base64.Substring($offset, [Math]::Min(64, $base64.Length - $offset)))
+            }
+            [void] $builder.AppendLine('-----END CERTIFICATE-----')
+            $windowsRootCount++
+        }
+    }
+    if (!$windowsRootCount) { throw 'No trusted root certificates could be read from Windows.' }
+    [IO.File]::WriteAllText($Destination, $builder.ToString(), [Text.UTF8Encoding]::new($false))
+    Write-Host "Configured PHP with Mozilla certificates plus $windowsRootCount Windows trusted roots."
+}
+
 # Hard preflight: do not clone, install packages, or create directories first.
 Assert-BundleHashManifest -BundleRoot $BundleRoot -ManifestPath $HashManifestPath
 Assert-CheckpointBundle
@@ -224,7 +256,7 @@ $phpVersion = & $script:PhpExecutable -r 'echo PHP_MAJOR_VERSION * 100 + PHP_MIN
 if ($LASTEXITCODE -ne 0 -or [int] $phpVersion -lt 802 -or [int] $phpVersion -ge 900) {
     throw "PHP 8.2 or newer in the PHP 8 series is required; found version code '$phpVersion'."
 }
-foreach ($extension in @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl')) {
+foreach ($extension in @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl', 'zip')) {
     Add-PhpExtension -Name $extension
 }
 # Re-read php.ini after enabling extensions; this must happen before any
@@ -232,11 +264,12 @@ foreach ($extension in @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl'
 $loadedExtensionsJson = & $script:PhpExecutable -r 'echo json_encode(get_loaded_extensions());'
 if ($LASTEXITCODE -ne 0) { throw 'PHP could not report its loaded extensions.' }
 $loadedExtensionSet = @($loadedExtensionsJson | ConvertFrom-Json | ForEach-Object { $_.ToLowerInvariant() })
-$missingLoadedExtensions = @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl' | Where-Object { $_ -notin $loadedExtensionSet })
+$missingLoadedExtensions = @(@('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl', 'zip') |
+    Where-Object { $_ -notin $loadedExtensionSet })
 if ($missingLoadedExtensions.Count) { throw "PHP extensions did not load: $($missingLoadedExtensions -join ', ')." }
 New-Item -ItemType Directory -Path $layout.Root, $layout.Tools, $layout.Deployment -Force | Out-Null
-$caDestination = Join-Path $layout.Tools 'cacert.pem'
-Copy-Item -LiteralPath (Join-Path $BundleRoot 'cacert.pem') -Destination $caDestination -Force
+$caDestination = Join-Path $layout.Tools 'cacert-combined.pem'
+New-PhpCertificateBundle -MozillaBundle (Join-Path $BundleRoot 'cacert.pem') -Destination $caDestination
 Set-PhpIniPathSetting -Name 'openssl.cafile' -Value $caDestination
 Set-PhpIniPathSetting -Name 'curl.cainfo' -Value $caDestination
 $activeCaFile = & $script:PhpExecutable -r "echo ini_get('openssl.cafile');"

@@ -247,8 +247,10 @@ After preflight, it:
 
 1. installs missing prerequisites with Windows Package Manager;
 2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, and ngrok;
-3. enables the PHP extensions required by Symfony, installs the trusted CA
-   bundle into PHP configuration, and copies the verified offline Composer;
+3. enables the PHP extensions required by Symfony (including ZIP), combines
+   the verified Mozilla CA bundle with the machine's Windows trusted roots,
+   installs that CA file into PHP configuration, and copies the verified
+   offline Composer;
 4. clones both deployment branches;
 5. copies the inference model into the AI repository;
 6. writes private, Git-ignored Symfony and FastAPI environment files;
@@ -522,9 +524,17 @@ prerequisites do not need to be removed.
 This message also comes from an obsolete bundle that asked PHP to download
 Composer before PHP had a certificate-authority file. The current bundle
 contains `composer.phar` and `cacert.pem`, verifies both during preflight, copies
-them locally, and configures `openssl.cafile` plus `curl.cainfo` before Composer
-runs. Replace the **entire** installer directory, including those two files and
-the new `USB-SHA256.txt`, and rerun the installer. Do not disable TLS checking.
+them locally, combines the CA file with the computer's Windows trusted roots,
+and configures `openssl.cafile` plus `curl.cainfo` before Composer runs. This
+also supports networks that use a locally trusted TLS inspection certificate.
+Replace the **entire** installer directory, including those two files and the
+new `USB-SHA256.txt`, and rerun the installer. Do not disable TLS checking.
+
+### Composer says the ZIP extension and unzip/7z are missing
+
+The current installer enables and verifies XAMPP's `zip` extension before
+Composer runs. Replace `Install-ScanToSee.ps1`, regenerate `USB-SHA256.txt`, and
+rerun; already cloned repositories and installed prerequisites are reused.
 
 ### Login redirects to `/2fa/setup`
 
