@@ -117,7 +117,10 @@ function Set-DotEnvValue {
 }
 
 function Write-Utf8File {
-    param([Parameter(Mandatory)][string] $Path, [Parameter(Mandatory)][string[]] $Lines)
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][AllowEmptyString()][AllowEmptyCollection()][string[]] $Lines
+    )
     [IO.File]::WriteAllLines($Path, $Lines, [Text.UTF8Encoding]::new($false))
 }
 
