@@ -239,7 +239,7 @@ $caDestination = Join-Path $layout.Tools 'cacert.pem'
 Copy-Item -LiteralPath (Join-Path $BundleRoot 'cacert.pem') -Destination $caDestination -Force
 Set-PhpIniPathSetting -Name 'openssl.cafile' -Value $caDestination
 Set-PhpIniPathSetting -Name 'curl.cainfo' -Value $caDestination
-$activeCaFile = & $script:PhpExecutable -r 'echo ini_get("openssl.cafile");'
+$activeCaFile = & $script:PhpExecutable -r "echo ini_get('openssl.cafile');"
 if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $activeCaFile -PathType Leaf)) {
     throw 'PHP did not load the bundled certificate-authority file.'
 }
