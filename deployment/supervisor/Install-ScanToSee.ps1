@@ -54,40 +54,18 @@ function Install-WinGetPackage {
     Refresh-ProcessPath
 }
 
-function Install-ComposerPhar {
-    param([string] $Destination)
-    if (Test-Path -LiteralPath $Destination -PathType Leaf) { return }
-    $installDirectory = Split-Path -Parent $Destination
-    $fileName = Split-Path -Leaf $Destination
-    New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
-    $tempInstaller = Join-Path ([IO.Path]::GetTempPath()) ("composer-setup-{0}.php" -f [guid]::NewGuid())
-    try {
-        $expected = (Invoke-RestMethod 'https://composer.github.io/installer.sig' -TimeoutSec 30).Trim()
-        $downloaded = $false
-        foreach ($attempt in 1..3) {
-            try {
-                Invoke-WebRequest 'https://getcomposer.org/installer' -OutFile $tempInstaller -UseBasicParsing -TimeoutSec 120
-                $downloaded = $true
-                break
-            } catch {
-                if ($attempt -eq 3) { throw }
-                Write-Warning "Composer download attempt $attempt failed; retrying."
-            }
-        }
-        if (!$downloaded) { throw 'Composer installer download failed.' }
-        $actual = (Get-FileHash -LiteralPath $tempInstaller -Algorithm SHA384).Hash.ToLowerInvariant()
-        if ($actual -ne $expected.ToLowerInvariant()) { throw 'Composer installer signature verification failed.' }
-        $composerArguments = @(
-            $tempInstaller,
-            "--install-dir=$installDirectory",
-            "--filename=$fileName",
-            '--quiet'
-        )
-        & $script:PhpExecutable @composerArguments
-        if ($LASTEXITCODE -ne 0) { throw 'Composer installation failed.' }
-    } finally {
-        Remove-Item -LiteralPath $tempInstaller -Force -ErrorAction SilentlyContinue
+function Install-BundledComposer {
+    param(
+        [Parameter(Mandatory)][string] $Source,
+        [Parameter(Mandatory)][string] $Destination
+    )
+    if (!(Test-Path -LiteralPath $Source -PathType Leaf)) {
+        throw "The verified bundled Composer executable is missing: $Source"
     }
+    New-Item -ItemType Directory -Path (Split-Path -Parent $Destination) -Force | Out-Null
+    Copy-Item -LiteralPath $Source -Destination $Destination -Force
+    & $script:PhpExecutable $Destination --version --no-ansi
+    if ($LASTEXITCODE -ne 0) { throw 'The bundled Composer executable could not run.' }
 }
 
 function Invoke-MySql {
@@ -190,12 +168,30 @@ function Add-PhpExtension {
     }
 }
 
+function Set-PhpIniPathSetting {
+    param(
+        [Parameter(Mandatory)][string] $Name,
+        [Parameter(Mandatory)][string] $Value
+    )
+    $ini = Join-Path (Split-Path -Parent $script:PhpExecutable) 'php.ini'
+    $contents = Get-Content -LiteralPath $ini -Raw
+    $portableValue = $Value.Replace('\', '/')
+    $setting = "$Name=`"$portableValue`""
+    $pattern = "(?m)^\s*;?\s*$([regex]::Escape($Name))\s*=.*$"
+    if ($contents -match $pattern) {
+        $contents = [regex]::Replace($contents, $pattern, $setting)
+    } else {
+        $contents += "`r`n$setting`r`n"
+    }
+    [IO.File]::WriteAllText($ini, $contents, [Text.UTF8Encoding]::new($false))
+}
+
 # Hard preflight: do not clone, install packages, or create directories first.
 Assert-BundleHashManifest -BundleRoot $BundleRoot -ManifestPath $HashManifestPath
 Assert-CheckpointBundle
 $secrets = Read-SecretFile -Path $SecretPath
 Assert-RequiredSecrets -Secrets $secrets
-Write-Host 'USB preflight passed: complete secret.txt and checkpoint-765 were found.' -ForegroundColor Green
+Write-Host 'USB preflight passed: the complete secret, model, Composer, CA, and script bundle was verified.' -ForegroundColor Green
 if ($PreflightOnly) {
     Write-Host 'Preflight-only mode: no package, repository, database, or configuration change was made.' -ForegroundColor Cyan
     exit 0
@@ -239,6 +235,14 @@ $loadedExtensionSet = @($loadedExtensionsJson | ConvertFrom-Json | ForEach-Objec
 $missingLoadedExtensions = @('intl', 'mbstring', 'pdo_mysql', 'mysqli', 'gd', 'curl', 'openssl' | Where-Object { $_ -notin $loadedExtensionSet })
 if ($missingLoadedExtensions.Count) { throw "PHP extensions did not load: $($missingLoadedExtensions -join ', ')." }
 New-Item -ItemType Directory -Path $layout.Root, $layout.Tools, $layout.Deployment -Force | Out-Null
+$caDestination = Join-Path $layout.Tools 'cacert.pem'
+Copy-Item -LiteralPath (Join-Path $BundleRoot 'cacert.pem') -Destination $caDestination -Force
+Set-PhpIniPathSetting -Name 'openssl.cafile' -Value $caDestination
+Set-PhpIniPathSetting -Name 'curl.cainfo' -Value $caDestination
+$activeCaFile = & $script:PhpExecutable -r 'echo ini_get("openssl.cafile");'
+if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $activeCaFile -PathType Leaf)) {
+    throw 'PHP did not load the bundled certificate-authority file.'
+}
 $existingLauncher = Join-Path $layout.Deployment 'Start-ScanToSee.ps1'
 if (Test-Path -LiteralPath $existingLauncher -PathType Leaf) {
     & $existingLauncher -Action Stop -InstallRoot $layout.Root
@@ -247,7 +251,7 @@ if (Test-Path -LiteralPath $existingLauncher -PathType Leaf) {
 $ngrokSource = Get-Command ngrok.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
 if (!$ngrokSource) { throw 'ngrok was installed but ngrok.exe is not available in PATH. Restart PowerShell and rerun.' }
 Copy-Item -LiteralPath $ngrokSource -Destination (Join-Path $layout.Tools 'ngrok.exe') -Force
-Install-ComposerPhar -Destination (Join-Path $layout.Tools 'composer.phar')
+Install-BundledComposer -Source (Join-Path $BundleRoot 'composer.phar') -Destination (Join-Path $layout.Tools 'composer.phar')
 
 Sync-GitRepository -Repository $WebRepository -Destination $layout.Web -Branch $DeploymentBranch -DisplayName 'Symfony repository'
 Sync-GitRepository -Repository $AiRepository -Destination $layout.Ai -Branch $DeploymentBranch -DisplayName 'FastAPI repository'

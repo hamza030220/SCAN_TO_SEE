@@ -62,4 +62,6 @@ SECURITY_AUDIT_PRIVATE.md
 /deployment/supervisor/secret.txt
 /deployment/supervisor/checkpoint-765/
 /deployment/supervisor/USB-SHA256.txt
+/deployment/supervisor/composer.phar
+/deployment/supervisor/cacert.pem
 ###< Supervisor deployment private bundle ###

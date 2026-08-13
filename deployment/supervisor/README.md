@@ -67,6 +67,8 @@ supervisor\
   README.md
   secret.txt
   USB-SHA256.txt
+  composer.phar
+  cacert.pem
   checkpoint-765\
     config.json
     generation_config.json
@@ -79,9 +81,12 @@ supervisor\
     merges.txt
 ```
 
-`secret.txt`, `USB-SHA256.txt`, and `checkpoint-765` are intentionally excluded
-from Git. Never upload the private bundle to GitHub, cloud storage, chat, email,
-or an issue tracker.
+`secret.txt`, `USB-SHA256.txt`, `checkpoint-765`, `composer.phar`, and
+`cacert.pem` are intentionally excluded from Git. The last two files make PHP
+dependency installation work securely on a clean Windows/XAMPP computer;
+`composer.phar` is the official Composer executable and `cacert.pem` is curl's
+Mozilla CA bundle. Never upload the private bundle to GitHub, cloud storage,
+chat, email, or an issue tracker.
 
 Do not mix scripts from different bundle versions. The installer now verifies
 every transferred script and every model file against `USB-SHA256.txt` before
@@ -104,9 +109,10 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\Export-SecretFile.ps1
 ```
 
-This command also regenerates `USB-SHA256.txt` for all scripts and all files in
-`checkpoint-765`. Run it only after the deployment scripts and private model
-bundle are final, then transfer the complete `supervisor` directory together.
+This command also regenerates `USB-SHA256.txt` for all scripts, the bundled
+Composer/CA files, and all files in `checkpoint-765`. Run it only after the
+deployment scripts and private model bundle are final, then transfer the
+complete `supervisor` directory together.
 
 This copies the required Stripe, email, Cloudinary, and ngrok credentials from
 the ignored local configuration. It also reads the current local `S2S`
@@ -194,7 +200,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 Expected result:
 
 ```text
-USB preflight passed: complete secret.txt and checkpoint-765 were found.
+USB preflight passed: the complete secret, model, Composer, CA, and script bundle was verified.
 Preflight-only mode: no package, repository, database, or configuration change was made.
 ```
 
@@ -231,7 +237,8 @@ does not permanently weaken the computer's policy.
 Before making any change, it validates both mandatory inputs:
 
 - a complete `secret.txt`;
-- a complete `checkpoint-765` with model weights.
+- a complete `checkpoint-765` with model weights;
+- the verified `composer.phar` and `cacert.pem` bootstrap files.
 
 If either is missing or incomplete, installation stops before cloning or
 installing anything.
@@ -239,8 +246,9 @@ installing anything.
 After preflight, it:
 
 1. installs missing prerequisites with Windows Package Manager;
-2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, Composer, and ngrok;
-3. enables the PHP extensions required by Symfony;
+2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, and ngrok;
+3. enables the PHP extensions required by Symfony, installs the trusted CA
+   bundle into PHP configuration, and copies the verified offline Composer;
 4. clones both deployment branches;
 5. copies the inference model into the AI repository;
 6. writes private, Git-ignored Symfony and FastAPI environment files;
@@ -509,6 +517,15 @@ scripts in `C:\ScanToSee-Installer` with the current bundle and rerun
 `Install-ScanToSee.ps1`. The installer is resumable; already installed Windows
 prerequisites do not need to be removed.
 
+### Composer reports `certificate verify failed` or cannot download `versions`
+
+This message also comes from an obsolete bundle that asked PHP to download
+Composer before PHP had a certificate-authority file. The current bundle
+contains `composer.phar` and `cacert.pem`, verifies both during preflight, copies
+them locally, and configures `openssl.cafile` plus `curl.cainfo` before Composer
+runs. Replace the **entire** installer directory, including those two files and
+the new `USB-SHA256.txt`, and rerun the installer. Do not disable TLS checking.
+
 ### Login redirects to `/2fa/setup`
 
 This is not expected for the exported accounts because their existing TOTP
@@ -616,7 +633,8 @@ After the cleanup finishes:
 
 ## 12. Security rules
 
-- Never commit `secret.txt`, `USB-SHA256.txt`, or `checkpoint-765`.
+- Never commit `secret.txt`, `USB-SHA256.txt`, `checkpoint-765`,
+  `composer.phar`, or `cacert.pem` from this transfer bundle.
 - Never paste credentials into terminal logs, screenshots, reports, chat, or
   GitHub issues.
 - Keep Stripe in test mode for rehearsals and demonstrations.

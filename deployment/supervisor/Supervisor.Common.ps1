@@ -131,7 +131,7 @@ function Write-BundleHashManifest {
     $rootFiles = @(
         'secret.txt', 'Install-ScanToSee.ps1', 'Start-ScanToSee.ps1',
         'Nuke-Personal-Data.ps1', 'Supervisor.Common.ps1',
-        'Export-SecretFile.ps1', 'README.md'
+        'Export-SecretFile.ps1', 'README.md', 'composer.phar', 'cacert.pem'
     )
     $files = @($rootFiles | ForEach-Object { Join-Path $resolvedRoot $_ })
     $checkpoint = Join-Path $resolvedRoot 'checkpoint-765'
@@ -182,7 +182,7 @@ function Assert-BundleHashManifest {
 
     $required = @(
         'secret.txt', 'Install-ScanToSee.ps1', 'Start-ScanToSee.ps1',
-        'Nuke-Personal-Data.ps1', 'Supervisor.Common.ps1',
+        'Nuke-Personal-Data.ps1', 'Supervisor.Common.ps1', 'composer.phar', 'cacert.pem',
         'checkpoint-765\model.safetensors', 'checkpoint-765\config.json',
         'checkpoint-765\tokenizer.json', 'checkpoint-765\preprocessor_config.json'
     )
