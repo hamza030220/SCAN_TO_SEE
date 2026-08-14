@@ -938,6 +938,11 @@ final class OwnerMenuController extends AbstractController
             return $this->json(['error' => 'You have used all 3 AI scans included in your free trial. Choose a plan to continue scanning.'], 429);
         }
 
+        // CPU inference on the supervisor machine takes roughly two minutes.
+        // The HttpClient timeout is already 240 seconds, but PHP's default
+        // max_execution_time would otherwise terminate this request at 60.
+        set_time_limit(300);
+
         try {
             $capture = $captureService->capture($imageFile, $owner, $menu, $currency);
             $response = $capture['response'];
@@ -951,6 +956,11 @@ final class OwnerMenuController extends AbstractController
                 $entitlements->releaseTrialAiUse($owner);
             }
             return $this->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable) {
+            if ($trialUseReserved) {
+                $entitlements->releaseTrialAiUse($owner);
+            }
+            return $this->json(['error' => 'The scanner encountered an unexpected server error. Please try again.'], 500);
         }
     }
 

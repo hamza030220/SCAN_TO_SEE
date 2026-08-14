@@ -149,7 +149,7 @@ try {
         -RedirectStandardError (Join-Path $logRoot 'fastapi.err.log')
     $processes += $fastApi
 
-    $symfony = Start-Process -FilePath $php -ArgumentList @('-S', '127.0.0.1:8000', '-t', 'public', 'public/index.php') `
+    $symfony = Start-Process -FilePath $php -ArgumentList @('-d', 'max_execution_time=300', '-S', '127.0.0.1:8000', '-t', 'public', 'public/index.php') `
         -WorkingDirectory $layout.Web -WindowStyle Minimized -PassThru `
         -RedirectStandardOutput (Join-Path $logRoot 'symfony.out.log') `
         -RedirectStandardError (Join-Path $logRoot 'symfony.err.log')
