@@ -54,6 +54,18 @@ function Install-WinGetPackage {
     Refresh-ProcessPath
 }
 
+function Resolve-NgrokExecutable {
+    $command = Get-Command ngrok.exe -ErrorAction SilentlyContinue
+    if (!$command) { throw 'ngrok.exe is not available in PATH after installation.' }
+    try {
+        & $command.Source version
+    } catch {
+        throw "The installed ngrok command is blocked or unavailable. Open Windows Security > Protection history, review the ngrok detection, and allow it only if it is the official Ngrok.Ngrok Store package. Then verify 'ngrok version' and rerun. Windows reported: $($_.Exception.Message)"
+    }
+    if ($LASTEXITCODE -ne 0) { throw 'The installed ngrok command failed its version test.' }
+    return $command.Source
+}
+
 function Install-BundledComposer {
     param(
         [Parameter(Mandatory)][string] $Source,
@@ -251,6 +263,7 @@ try { $null = Resolve-PythonExecutable } catch {
 
 $script:PhpExecutable = Resolve-PhpExecutable
 $python = Resolve-PythonExecutable
+$script:NgrokExecutable = Resolve-NgrokExecutable
 $script:MySqlExecutable = Resolve-MySqlExecutable
 $phpVersion = & $script:PhpExecutable -r 'echo PHP_MAJOR_VERSION * 100 + PHP_MINOR_VERSION;'
 if ($LASTEXITCODE -ne 0 -or [int] $phpVersion -lt 802 -or [int] $phpVersion -ge 900) {
@@ -281,9 +294,12 @@ if (Test-Path -LiteralPath $existingLauncher -PathType Leaf) {
     & $existingLauncher -Action Stop -InstallRoot $layout.Root
 }
 
-$ngrokSource = Get-Command ngrok.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
-if (!$ngrokSource) { throw 'ngrok was installed but ngrok.exe is not available in PATH. Restart PowerShell and rerun.' }
-Copy-Item -LiteralPath $ngrokSource -Destination (Join-Path $layout.Tools 'ngrok.exe') -Force
+$legacyNgrokCopy = Join-Path $layout.Tools 'ngrok.exe'
+if (Test-Path -LiteralPath $legacyNgrokCopy -PathType Leaf) {
+    # Older installers copied the zero-byte WindowsApps alias instead of the
+    # Store-managed command. It cannot execute outside WindowsApps.
+    Remove-Item -LiteralPath $legacyNgrokCopy -Force
+}
 Install-BundledComposer -Source (Join-Path $BundleRoot 'composer.phar') -Destination (Join-Path $layout.Tools 'composer.phar')
 
 Sync-GitRepository -Repository $WebRepository -Destination $layout.Web -Branch $DeploymentBranch -DisplayName 'Symfony repository'
@@ -415,7 +431,7 @@ try {
     Remove-Item Env:SCANTOSEE_TORCH_DEVICE -ErrorAction SilentlyContinue
 }
 Write-Host "OCR model smoke test passed: TrOCR and Paddle detection are ready on $verifiedDevice." -ForegroundColor Green
-& (Join-Path $layout.Tools 'ngrok.exe') config add-authtoken $secrets.NGROK_AUTHTOKEN | Out-Null
+& $script:NgrokExecutable config add-authtoken $secrets.NGROK_AUTHTOKEN | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'ngrok authentication failed.' }
 
 & (Join-Path $layout.Deployment 'Start-ScanToSee.ps1') -InstallRoot $layout.Root

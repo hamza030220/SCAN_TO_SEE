@@ -536,6 +536,17 @@ The current installer enables and verifies XAMPP's `zip` extension before
 Composer runs. Replace `Install-ScanToSee.ps1`, regenerate `USB-SHA256.txt`, and
 rerun; already cloned repositories and installed prerequisites are reused.
 
+### `ngrok.exe` reports `Access denied`
+
+Older installer versions copied the Microsoft Store `WindowsApps` alias as if
+it were a normal executable. That zero-byte alias cannot run from the tools
+directory. The current installer executes the Store-managed command in place,
+tests `ngrok version` before lengthy dependency installation, and removes the
+obsolete copied alias. If Windows Security blocks ngrok itself, review the
+detection in **Windows Security > Virus & threat protection > Protection
+history**. Allow it only after confirming it is the official `Ngrok.Ngrok`
+Store package; do not disable antivirus protection or create a broad exclusion.
+
 ### Login redirects to `/2fa/setup`
 
 This is not expected for the exported accounts because their existing TOTP

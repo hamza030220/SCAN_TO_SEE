@@ -78,10 +78,22 @@ $php = Resolve-PhpExecutable
 $python = Join-Path $layout.Ai '.venv\Scripts\python.exe'
 if (!(Test-Path -LiteralPath $python -PathType Leaf)) { throw 'The OCR virtual environment is missing. Run the installer.' }
 $ngrok = Join-Path $layout.Tools 'ngrok.exe'
-if (!(Test-Path -LiteralPath $ngrok -PathType Leaf)) {
+if (Test-Path -LiteralPath $ngrok -PathType Leaf) {
+    try {
+        & $ngrok version | Out-Null
+        if ($LASTEXITCODE -ne 0) { $ngrok = $null }
+    } catch { $ngrok = $null }
+} else { $ngrok = $null }
+if (!$ngrok) {
     $ngrok = Get-Command ngrok.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1
 }
 if (!$ngrok) { throw 'ngrok is mandatory but ngrok.exe was not found.' }
+try {
+    & $ngrok version | Out-Null
+} catch {
+    throw "ngrok is installed but Windows blocked it: $($_.Exception.Message)"
+}
+if ($LASTEXITCODE -ne 0) { throw 'ngrok failed its version test.' }
 
 Stop-SupervisorProcesses
 $busyPorts = @(@(4040, 8000, 8001) | Where-Object { Test-TcpPort -Port $_ })
