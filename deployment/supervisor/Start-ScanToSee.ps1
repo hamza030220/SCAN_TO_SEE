@@ -162,7 +162,7 @@ public static class ScanToSeeEmergencyHotKey {
             $nukeScript = Join-Path $layout.Deployment 'Nuke-Personal-Data.ps1'
             try {
                 if (Test-Path -LiteralPath $nukeScript -PathType Leaf) {
-                    & $nukeScript -InstallRoot $targets.Root -ConfirmNuke -ExcludeProcessId $PID
+                    & $nukeScript -InstallRoot $targets.Root -ConfirmNuke -ExcludeProcessId $PID -SkipResidualScan
                 }
             } finally {
                 # The watcher runs with a temporary working directory, so its

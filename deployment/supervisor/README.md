@@ -728,6 +728,40 @@ The expected results, in order, are `False`, `False`, and `True`. If the notice
 is absent, treat cleanup as incomplete and do not return or transfer the
 machine until the failure has been investigated.
 
+`True`, `False`, `False` means cleanup started and removed the source secret,
+but did not finish deleting the installation or writing the mandatory notice.
+Do not press the shortcut again. Older launchers could spend a long time
+scanning the Python virtual environment even though the entire directory was
+about to be removed. The current emergency path skips that redundant scan.
+Stop the remaining cleanup watcher, remove only the validated installation
+root, create the mandatory notice, and re-run all three checks before
+continuing. Restart Windows first so no hidden cleanup process remains, open
+PowerShell as Administrator, and run:
+
+```powershell
+$privateRoot = [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE 'ScanToSeeSupervisor')).TrimEnd('\')
+$profileRoot = [IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\')
+if ([IO.Path]::GetFileName($privateRoot) -cne 'ScanToSeeSupervisor' -or
+    [IO.Path]::GetDirectoryName($privateRoot).TrimEnd('\') -ine $profileRoot) {
+  throw "Unsafe cleanup target: $privateRoot"
+}
+$privateRoot
+```
+
+Verify the displayed path is exactly the test user's
+`...\ScanToSeeSupervisor`, then run in the same window:
+
+```powershell
+Remove-Item -LiteralPath $privateRoot -Recurse -Force
+Set-ExecutionPolicy -Scope Process Bypass -Force
+. 'C:\ScanToSee-Installer-Final\Supervisor.Common.ps1'
+Write-CleanupNotice -Path 'C:\ScanToSee-Installer-Final\LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt' | Out-Null
+Remove-Variable privateRoot, profileRoot
+```
+
+Run the three `Test-Path` checks again. Do not proceed until they return
+`False`, `False`, `True`.
+
 ### 11.2 Manual cleanup fallback
 
 If the stack is stopped, the shortcut is not active. Run the interactive

@@ -2,7 +2,8 @@
 param(
     [string] $InstallRoot = (Join-Path $env:USERPROFILE 'ScanToSeeSupervisor'),
     [switch] $ConfirmNuke,
-    [int] $ExcludeProcessId = 0
+    [int] $ExcludeProcessId = 0,
+    [switch] $SkipResidualScan
 )
 
 . (Join-Path $PSScriptRoot 'Supervisor.Common.ps1')
@@ -191,18 +192,20 @@ foreach ($name in $userVariables) {
 
 foreach ($path in $secretCandidates) { Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue }
 
-$patterns = @('sk_live_', 'sk_test_', 'whsec_', 'cloudinary://', 'authtoken:', 'gho_', 'ghp_')
 $findings = @()
-foreach ($root in @($layout.Web, $layout.Ai, $layout.Deployment)) {
-    if (!(Test-Path -LiteralPath $root -PathType Container)) { continue }
-    $files = Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object {
-        $_.FullName -notmatch '\\.git\\' -and $_.Length -lt 10MB -and $_.Extension -notin @('.bin', '.safetensors', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico')
-    }
-    foreach ($file in $files) {
-        foreach ($pattern in $patterns) {
-            if (Select-String -LiteralPath $file.FullName -SimpleMatch $pattern -Quiet -ErrorAction SilentlyContinue) {
-                $findings += $file.FullName
-                break
+if (!$SkipResidualScan) {
+    $patterns = @('sk_live_', 'sk_test_', 'whsec_', 'cloudinary://', 'authtoken:', 'gho_', 'ghp_')
+    foreach ($root in @($layout.Web, $layout.Ai, $layout.Deployment)) {
+        if (!(Test-Path -LiteralPath $root -PathType Container)) { continue }
+        $files = Get-ChildItem -LiteralPath $root -Recurse -Force -File -ErrorAction SilentlyContinue | Where-Object {
+            $_.FullName -notmatch '\\.git\\' -and $_.Length -lt 10MB -and $_.Extension -notin @('.bin', '.safetensors', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico')
+        }
+        foreach ($file in $files) {
+            foreach ($pattern in $patterns) {
+                if (Select-String -LiteralPath $file.FullName -SimpleMatch $pattern -Quiet -ErrorAction SilentlyContinue) {
+                    $findings += $file.FullName
+                    break
+                }
             }
         }
     }
@@ -217,7 +220,9 @@ if (Test-Path -LiteralPath $sourceSecretPath) {
 $noticePath = Join-Path ([IO.Path]::GetDirectoryName($sourceSecretPath)) 'LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt'
 Write-CleanupNotice -Path $noticePath | Out-Null
 
-if ($findings.Count) {
+if ($SkipResidualScan) {
+    Write-Host 'Residual credential scan skipped because the caller will delete the complete installation root.' -ForegroundColor Green
+} elseif ($findings.Count) {
     Write-Warning "Possible credential-shaped text remains in: $($findings | Sort-Object -Unique | ForEach-Object { "`n - $_" })"
     Write-Warning 'Review those files and rotate provider credentials if any were ever committed or copied elsewhere.'
 } else {
