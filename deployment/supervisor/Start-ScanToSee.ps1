@@ -139,6 +139,8 @@ try {
     $env:APP_DEBUG = '0'
     & $php (Join-Path $layout.Web 'bin\console') cache:clear --env=prod --no-debug
     if ($LASTEXITCODE -ne 0) { throw 'Symfony production cache preparation failed.' }
+    & $php (Join-Path $layout.Web 'bin\console') asset-map:compile --env=prod --no-debug
+    if ($LASTEXITCODE -ne 0) { throw 'Symfony production asset compilation failed.' }
 
     $env:SCANTOSEE_TORCH_DEVICE = 'auto'
     $fastApi = Start-Process -FilePath $python -ArgumentList @('-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8001') `

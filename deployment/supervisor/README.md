@@ -547,6 +547,14 @@ detection in **Windows Security > Virus & threat protection > Protection
 history**. Allow it only after confirming it is the official `Ngrok.Ngrok`
 Store package; do not disable antivirus protection or create a broad exclusion.
 
+### The page loads without CSS or JavaScript
+
+Production mode requires Symfony AssetMapper output in `public/assets`. The
+current launcher runs `asset-map:compile --env=prod --no-debug` after clearing
+the cache and before starting the web server. With an older launcher, run that
+command once from the Symfony repository and refresh the browser with
+`Ctrl+F5`.
+
 ### Login redirects to `/2fa/setup`
 
 This is not expected for the exported accounts because their existing TOTP
