@@ -1,8 +1,9 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Up', 'Stop', 'Status')]
+    [ValidateSet('Up', 'Stop', 'Status', 'WatchCleanup')]
     [string] $Action = 'Up',
-    [string] $InstallRoot = (Join-Path $env:USERPROFILE 'ScanToSeeSupervisor')
+    [string] $InstallRoot = (Join-Path $env:USERPROFILE 'ScanToSeeSupervisor'),
+    [int] $ExcludeProcessId = 0
 )
 
 . (Join-Path $PSScriptRoot 'Supervisor.Common.ps1')
@@ -14,10 +15,12 @@ function Read-State {
 }
 
 function Stop-SupervisorProcesses {
+    param([int] $ExcludedProcessId = 0)
     $state = Read-State
     if ($state) {
         if ($state.PSObject.Properties.Name -contains 'processes') {
             foreach ($record in @($state.processes)) {
+                if ([int] $record.id -eq $ExcludedProcessId) { continue }
                 $process = Get-Process -Id ([int] $record.id) -ErrorAction SilentlyContinue
                 if (!$process) { continue }
                 try {
@@ -30,6 +33,7 @@ function Stop-SupervisorProcesses {
             # Compatibility with state written by the earlier deployment
             # launcher. New state records path/time and cannot kill a reused PID.
             foreach ($serviceProcessId in @($state.processIds)) {
+                if ([int] $serviceProcessId -eq $ExcludedProcessId) { continue }
                 $process = Get-Process -Id $serviceProcessId -ErrorAction SilentlyContinue
                 if ($process -and $process.ProcessName -in @('php', 'python', 'pythonw', 'ngrok')) {
                     Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
@@ -38,6 +42,145 @@ function Stop-SupervisorProcesses {
         }
     }
     Remove-Item -LiteralPath $layout.State -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $layout.Root 'cleanup-watcher.ready') -Force -ErrorAction SilentlyContinue
+}
+
+function Assert-EmergencyCleanupTargets {
+    $expectedRoot = [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE 'ScanToSeeSupervisor')).TrimEnd('\')
+    $actualRoot = [IO.Path]::GetFullPath($layout.Root).TrimEnd('\')
+    if ($actualRoot -ine $expectedRoot) {
+        throw "Emergency cleanup only accepts the exact supervisor installation root: $expectedRoot"
+    }
+    if ($actualRoot -eq [IO.Path]::GetPathRoot($actualRoot) -or $actualRoot -ieq [IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\')) {
+        throw 'Emergency cleanup refused an unsafe installation root.'
+    }
+
+    $settingsPath = Join-Path $layout.Deployment 'deployment-settings.json'
+    if (!(Test-Path -LiteralPath $settingsPath -PathType Leaf)) {
+        throw 'Emergency cleanup cannot validate the original secret.txt path because deployment settings are missing.'
+    }
+    $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+    if (!$settings.sourceSecretPath) { throw 'The recorded source secret.txt path is missing.' }
+    $secretPath = [IO.Path]::GetFullPath([string] $settings.sourceSecretPath)
+    if ([IO.Path]::GetFileName($secretPath) -cne 'secret.txt') {
+        throw 'Emergency cleanup refused a source secret path whose filename is not exactly secret.txt.'
+    }
+    $secretParent = [IO.Path]::GetDirectoryName($secretPath).TrimEnd('\')
+    if (!$secretParent -or $secretParent -eq [IO.Path]::GetPathRoot($secretPath).TrimEnd('\')) {
+        throw 'Emergency cleanup refused a secret.txt stored directly at a drive root.'
+    }
+    return @{ Root = $actualRoot; Secret = $secretPath }
+}
+
+function Start-EmergencyCleanupWatcher {
+    $powerShell = (Get-Command powershell.exe -ErrorAction Stop).Source
+    $escapedScript = $PSCommandPath.Replace("'", "''")
+    $escapedRoot = $layout.Root.Replace("'", "''")
+    $command = "& '$escapedScript' -Action WatchCleanup -InstallRoot '$escapedRoot'"
+    $encodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+    return Start-Process -FilePath $powerShell -ArgumentList @(
+        '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encodedCommand
+    ) -WorkingDirectory ([IO.Path]::GetTempPath()) -WindowStyle Hidden -PassThru
+}
+
+function Invoke-EmergencyCleanupWatcher {
+    # Give the parent launcher time to record this watcher in supervisor-state.json.
+    # Normal `-Action Stop` can then terminate it with the other services.
+    $stateDeadline = (Get-Date).AddSeconds(30)
+    $recordedInState = $false
+    while ((Get-Date) -lt $stateDeadline) {
+        $state = Read-State
+        if ($state -and @($state.processes | Where-Object { [int] $_.id -eq $PID }).Count) {
+            $recordedInState = $true
+            break
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    if (!$recordedInState) { throw 'The cleanup watcher was not recorded in supervisor process state.' }
+
+    $targets = Assert-EmergencyCleanupTargets
+    if (-not ('ScanToSeeEmergencyHotKey' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class ScanToSeeEmergencyHotKey {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MSG {
+        public IntPtr hwnd;
+        public uint message;
+        public UIntPtr wParam;
+        public IntPtr lParam;
+        public uint time;
+        public int ptX;
+        public int ptY;
+    }
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint virtualKey);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll")]
+    public static extern int GetMessage(out MSG message, IntPtr hWnd, uint min, uint max);
+}
+'@
+    }
+
+    $hotKeyId = 0x5343
+    $modAlt = 0x0001
+    $keyH = 0x48
+    $wmHotKey = 0x0312
+    if (![ScanToSeeEmergencyHotKey]::RegisterHotKey([IntPtr]::Zero, $hotKeyId, $modAlt, $keyH)) {
+        throw "Could not register the emergency Alt+H shortcut (Win32 error $([Runtime.InteropServices.Marshal]::GetLastWin32Error()))."
+    }
+    [IO.File]::WriteAllText(
+        (Join-Path $layout.Root 'cleanup-watcher.ready'),
+        [string] $PID,
+        [Text.UTF8Encoding]::new($false)
+    )
+
+    $firstPress = [datetime]::MinValue
+    try {
+        while ($true) {
+            $message = New-Object ScanToSeeEmergencyHotKey+MSG
+            if ([ScanToSeeEmergencyHotKey]::GetMessage([ref] $message, [IntPtr]::Zero, 0, 0) -le 0) { break }
+            if ($message.message -ne $wmHotKey -or $message.wParam.ToUInt32() -ne $hotKeyId) { continue }
+            $now = Get-Date
+            if (($now - $firstPress).TotalSeconds -gt 5) {
+                $firstPress = $now
+                try { [Console]::Beep(900, 150) } catch {}
+                continue
+            }
+
+            try { [Console]::Beep(650, 150); [Console]::Beep(450, 250) } catch {}
+            [ScanToSeeEmergencyHotKey]::UnregisterHotKey([IntPtr]::Zero, $hotKeyId) | Out-Null
+            $nukeScript = Join-Path $layout.Deployment 'Nuke-Personal-Data.ps1'
+            try {
+                if (Test-Path -LiteralPath $nukeScript -PathType Leaf) {
+                    & $nukeScript -InstallRoot $targets.Root -ConfirmNuke -ExcludeProcessId $PID
+                }
+            } finally {
+                # The watcher runs with a temporary working directory, so its
+                # own installed script tree can be removed safely.
+                $cleanupFailures = @()
+                try {
+                    Remove-Item -LiteralPath $targets.Secret -Force -ErrorAction Stop
+                } catch {
+                    if (Test-Path -LiteralPath $targets.Secret) { $cleanupFailures += $targets.Secret }
+                }
+                for ($attempt = 1; $attempt -le 3 -and (Test-Path -LiteralPath $targets.Root); $attempt++) {
+                    Remove-Item -LiteralPath $targets.Root -Recurse -Force -ErrorAction SilentlyContinue
+                    if (Test-Path -LiteralPath $targets.Root) { Start-Sleep -Seconds 1 }
+                }
+                if (Test-Path -LiteralPath $targets.Root) { $cleanupFailures += $targets.Root }
+                if ($cleanupFailures.Count) {
+                    throw "Emergency cleanup could not completely remove: $($cleanupFailures -join ', ')"
+                }
+            }
+            break
+        }
+    } finally {
+        [ScanToSeeEmergencyHotKey]::UnregisterHotKey([IntPtr]::Zero, $hotKeyId) | Out-Null
+        Remove-Item -LiteralPath (Join-Path $layout.Root 'cleanup-watcher.ready') -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Show-Status {
@@ -61,11 +204,12 @@ function Show-Status {
 }
 
 if ($Action -eq 'Stop') {
-    Stop-SupervisorProcesses
+    Stop-SupervisorProcesses -ExcludedProcessId $ExcludeProcessId
     Write-Host 'ScanToSee supervisor services stopped.' -ForegroundColor Green
-    exit 0
+    return
 }
-if ($Action -eq 'Status') { Show-Status; exit 0 }
+if ($Action -eq 'Status') { Show-Status; return }
+if ($Action -eq 'WatchCleanup') { Invoke-EmergencyCleanupWatcher; return }
 
 foreach ($directory in @($layout.Web, $layout.Ai)) {
     if (!(Test-Path -LiteralPath $directory -PathType Container)) {
@@ -172,6 +316,11 @@ try {
     $webResponse = Invoke-WebRequest 'http://127.0.0.1:8000/' -UseBasicParsing -TimeoutSec 30
     if ([int] $webResponse.StatusCode -ge 500) { throw "Symfony returned HTTP $($webResponse.StatusCode)." }
 
+    $watcherReadyPath = Join-Path $layout.Root 'cleanup-watcher.ready'
+    Remove-Item -LiteralPath $watcherReadyPath -Force -ErrorAction SilentlyContinue
+    $cleanupWatcher = Start-EmergencyCleanupWatcher
+    $processes += $cleanupWatcher
+
     @{
         startedAt = (Get-Date).ToString('o')
         processes = @($processes | ForEach-Object {
@@ -182,6 +331,19 @@ try {
     } | ConvertTo-Json | ForEach-Object {
         [IO.File]::WriteAllText($layout.State, $_, [Text.UTF8Encoding]::new($false))
     }
+    $watcherDeadline = (Get-Date).AddSeconds(15)
+    while ((Get-Date) -lt $watcherDeadline) {
+        $cleanupWatcher.Refresh()
+        if ($cleanupWatcher.HasExited) { throw 'The emergency cleanup shortcut watcher exited during startup.' }
+        if (Test-Path -LiteralPath $watcherReadyPath -PathType Leaf) {
+            $readyPid = Get-Content -LiteralPath $watcherReadyPath -Raw
+            if ($readyPid.Trim() -eq [string] $cleanupWatcher.Id) { break }
+        }
+        Start-Sleep -Milliseconds 250
+    }
+    if (!(Test-Path -LiteralPath $watcherReadyPath -PathType Leaf)) {
+        throw 'The emergency cleanup shortcut did not become ready within 15 seconds.'
+    }
     $startupSucceeded = $true
 } finally {
     if (!$startupSucceeded) {
@@ -191,10 +353,12 @@ try {
             }
         }
         Remove-Item -LiteralPath $layout.State -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath (Join-Path $layout.Root 'cleanup-watcher.ready') -Force -ErrorAction SilentlyContinue
     }
 }
 
 Write-Host 'ScanToSee is running.' -ForegroundColor Green
 Write-Host 'The mandatory ngrok HTTPS tunnel is connected and QR generation is configured.' -ForegroundColor Cyan
 Write-Host 'FastAPI selected CUDA automatically when usable; otherwise it uses CPU.'
+Write-Host 'Emergency cleanup is armed: press Alt+H twice within five seconds to remove the private installation and source secret.txt.' -ForegroundColor Yellow
 Write-Host "Logs: $logRoot"

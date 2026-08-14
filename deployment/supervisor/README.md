@@ -7,6 +7,59 @@ mandatory ngrok tunnel used by public menu QR codes.
 
 The same procedure should first be rehearsed on a separate Windows computer.
 
+## Installation walkthrough: follow these steps in order
+
+This is the shortest complete path for the rehearsal computer. The later
+sections explain every step and troubleshooting case in detail.
+
+1. On the development computer, finish the deployment code and generate the
+   private bundle as described in section 4. Keep one untouched copy on the
+   USB drive; it is needed for the clean-reinstallation test.
+2. On the Windows rehearsal computer, copy the complete USB folder to exactly:
+
+   ```text
+   C:\ScanToSee-Installer-Final
+   ```
+
+3. Remove the USB drive and keep it secure. Open **Windows PowerShell as
+   Administrator**. The message suggesting a newer PowerShell version is only
+   informational; Windows PowerShell 5.1 is supported.
+4. Unblock and verify the bundle without changing the computer:
+
+   ```powershell
+   cd C:\ScanToSee-Installer-Final
+   Get-ChildItem .\*.ps1 | Unblock-File
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1 -PreflightOnly
+   ```
+
+5. Continue only when preflight reports that the complete secret, model,
+   Composer, CA, and script bundle was verified. Install with:
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1
+   ```
+
+6. Keep the network connected and leave the window open. Installation can take
+   a long time while Python, CPU/CUDA inference dependencies, PaddleOCR, and
+   Composer packages are prepared. A warning about CPU inference or MariaDB
+   deprecation is not an installation failure.
+7. When installation reports that ScanToSee is running, open
+   `http://127.0.0.1:8000`, log in with the copied owner account, and complete
+   its existing 2FA challenge. Test the administrator with its separate 2FA
+   entry afterward.
+8. Test a published menu QR code from a phone, then run one OCR scan. CPU scans
+   can take several minutes; wait for the result instead of restarting the
+   services.
+9. Verify the stack at any time with:
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\ScanToSeeSupervisor\deployment\Start-ScanToSee.ps1" -Action Status
+   ```
+
+10. After the complete rehearsal passes, follow section 11 to erase the private
+    installation and recorded local `secret.txt`, restore the untouched secret
+    from the USB, and repeat steps 4 through 8 once more.
+
 ## 1. What the installation contains
 
 The installer deploys two independent Git repositories as sibling directories:
@@ -208,11 +261,12 @@ Preflight-only mode: no package, repository, database, or configuration change w
 
 ### 6.1 Copy the installer locally
 
-Create a temporary local folder and copy the complete USB directory into it:
+Create the final local installer folder and copy the complete USB directory
+into it:
 
 ```powershell
-New-Item -ItemType Directory -Path C:\ScanToSee-Installer -Force
-Copy-Item E:\supervisor\* C:\ScanToSee-Installer -Recurse -Force
+New-Item -ItemType Directory -Path C:\ScanToSee-Installer-Final -Force
+Copy-Item E:\supervisor\* C:\ScanToSee-Installer-Final -Recurse -Force
 ```
 
 Replace `E:` with the actual USB drive letter.
@@ -223,10 +277,10 @@ Open the Start menu, search for **PowerShell**, right-click it, and select
 **Run as administrator**. Then run:
 
 ```powershell
-cd C:\ScanToSee-Installer
-Set-ExecutionPolicy -Scope Process Bypass
-Unblock-File .\*.ps1
-.\Install-ScanToSee.ps1
+cd C:\ScanToSee-Installer-Final
+Get-ChildItem .\*.ps1 | Unblock-File
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1 -PreflightOnly
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1
 ```
 
 The execution-policy adjustment applies only to that PowerShell process. It
@@ -457,6 +511,10 @@ Stopping preserves the database, accounts, uploads, configuration, model, and
 installed dependencies. Use the destructive cleanup script only when that data
 must be removed.
 
+Every successful start also arms the emergency cleanup watcher. It is part of
+the recorded process state, so `-Action Stop` stops the watcher together with
+Symfony, FastAPI, ngrok, and the scheduler. Starting the stack again rearms it.
+
 ## 10. Logs and troubleshooting
 
 Runtime logs are stored under:
@@ -480,16 +538,17 @@ nested directory. Run `-PreflightOnly` again.
 
 ### PowerShell says script execution is disabled
 
-Run this in the same PowerShell window before the script:
+Run the script through a one-process bypass; no permanent policy change is
+needed:
 
 ```powershell
-Set-ExecutionPolicy -Scope Process Bypass
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1 -PreflightOnly
 ```
 
 ### Administrator error
 
 Close PowerShell, reopen it with **Run as administrator**, return to
-`C:\ScanToSee-Installer`, and rerun the installer.
+`C:\ScanToSee-Installer-Final`, and rerun the installer.
 
 ### A required port is already used
 
@@ -515,7 +574,7 @@ Check `symfony.err.log`, confirm MariaDB is running, and check status:
 
 This message comes from an obsolete installer copy whose Composer destination
 argument was expanded incorrectly by Windows PowerShell. Replace all deployment
-scripts in `C:\ScanToSee-Installer` with the current bundle and rerun
+scripts in `C:\ScanToSee-Installer-Final` with the current bundle and rerun
 `Install-ScanToSee.ps1`. The installer is resumable; already installed Windows
 prerequisites do not need to be removed.
 
@@ -607,10 +666,48 @@ The `NGROK_AUTHTOKEN` in `secret.txt` may be expired or revoked. Generate a new
 private bundle using a valid ngrok account token, or replace the value locally
 and rerun installation.
 
-## 11. Destructive cleanup after testing or demonstration
+## 11. Destructive cleanup and clean-reinstallation rehearsal
 
 Use this only when the demonstration data and credentials must be permanently
-removed from the machine.
+removed from the machine. Keep an untouched, secured USB bundle before doing
+this; the recorded local `secret.txt` is deliberately deleted.
+
+### 11.1 Emergency shortcut: full local destruction
+
+The shortcut is active only after `Start-ScanToSee.ps1` has successfully
+started the stack. Press **Alt+H twice within five seconds**. The first press
+only sounds a short warning beep. The second press starts cleanup without an
+interactive confirmation.
+
+The watcher accepts only the exact installation root
+`%USERPROFILE%\ScanToSeeSupervisor`. It also validates that the installer-recorded
+source file is named exactly `secret.txt`; it refuses drive roots and any
+different installation root. It then:
+
+1. stops Symfony, FastAPI, ngrok, the scheduler, and the shortcut watcher;
+2. attempts the database, ngrok, Cloudinary, Stripe-test, environment-variable,
+   upload, cache, and credential cleanup listed below;
+3. deletes the recorded source `secret.txt` (normally
+   `C:\ScanToSee-Installer-Final\secret.txt`);
+4. deletes the complete `%USERPROFILE%\ScanToSeeSupervisor` directory,
+   including both cloned repositories, virtual environment, logs, tools, and
+   the installed model.
+
+The double press is intentional: a single global `Alt+H` is common in other
+Windows applications and must never erase data accidentally. Do not press the
+shortcut merely to test whether it is armed.
+
+After the second press, wait until these two checks both return `False`:
+
+```powershell
+Test-Path "$env:USERPROFILE\ScanToSeeSupervisor"
+Test-Path "C:\ScanToSee-Installer-Final\secret.txt"
+```
+
+### 11.2 Manual cleanup fallback
+
+If the stack is stopped, the shortcut is not active. Run the interactive
+cleanup script instead:
 
 Run:
 
@@ -625,7 +722,7 @@ The script displays a warning. To continue, type exactly:
 NUKE SCANTOSEE
 ```
 
-The cleanup attempts to remove:
+This manual fallback attempts to remove:
 
 - Symfony and FastAPI private environment files;
 - the original local/USB `secret.txt` path recorded by the installer;
@@ -638,7 +735,7 @@ The cleanup attempts to remove:
 - Cloudinary images belonging to scan UUIDs recorded by this installation;
 - Stripe test customers matching the two configured demonstration emails.
 
-It preserves:
+Unlike the emergency shortcut, the manual script preserves:
 
 - both Git repositories;
 - installed prerequisites;
@@ -649,16 +746,49 @@ Remote cleanup is best-effort. If Stripe, Cloudinary, mail, or ngrok cannot be
 reached, inspect the corresponding provider dashboard and revoke or delete the
 demonstration credentials/data manually.
 
-After the cleanup finishes:
+To obtain the same local result as the shortcut after the manual script
+finishes, delete only the two validated targets below:
 
-1. delete `C:\ScanToSee-Installer`; the nuke removes its recorded `secret.txt`,
-   but the non-secret scripts and model bundle remain;
-2. remove and secure the USB drive;
-3. check the Stripe test dashboard and Cloudinary folder if remote cleanup
-   reported a warning;
-4. rotate credentials if the USB was lost, copied elsewhere, or exposed;
-5. optionally delete `%USERPROFILE%\ScanToSeeSupervisor` when the preserved
-   repositories/model are no longer needed.
+```powershell
+Remove-Item -LiteralPath "$env:USERPROFILE\ScanToSeeSupervisor" -Recurse -Force
+Remove-Item -LiteralPath "C:\ScanToSee-Installer-Final\secret.txt" -Force
+```
+
+Before running those commands, verify the paths character by character. Never
+replace them with a drive root, `%USERPROFILE%`, `$HOME`, `~`, a wildcard, or a
+computed directory.
+
+### 11.3 Reinstall once from a clean private state
+
+1. Confirm both `Test-Path` checks in section 11.1 return `False`.
+2. Confirm ports 8000, 8001, and 4040 no longer have listeners:
+
+   ```powershell
+   Get-NetTCPConnection -LocalPort 8000,8001,4040 -State Listen -ErrorAction SilentlyContinue
+   ```
+
+3. Check the Stripe test dashboard and Cloudinary folder if cleanup printed a
+   remote-provider warning. Local deletion cannot revoke a credential already
+   copied elsewhere.
+4. Reconnect the secured USB drive and copy its untouched `secret.txt` back to
+   `C:\ScanToSee-Installer-Final\secret.txt`. Do not edit it; its SHA-256 must
+   still match `USB-SHA256.txt`.
+5. Remove and secure the USB again.
+6. Run preflight and the installer from a fresh elevated Windows PowerShell:
+
+   ```powershell
+   cd C:\ScanToSee-Installer-Final
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1 -PreflightOnly
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install-ScanToSee.ps1
+   ```
+
+7. Repeat the login, separate 2FA, QR/phone, email, and OCR checks from sections
+   7 and 8. Passing this second run demonstrates that setup does not depend on
+   files or processes left by the first private installation.
+
+Git, XAMPP, Python, and other machine-level prerequisites intentionally remain
+installed; they contain no ScanToSee account secrets and make the second run a
+deployment retry rather than an operating-system provisioning benchmark.
 
 ## 12. Security rules
 

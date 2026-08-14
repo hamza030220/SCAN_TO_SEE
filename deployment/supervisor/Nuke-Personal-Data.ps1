@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [string] $InstallRoot = (Join-Path $env:USERPROFILE 'ScanToSeeSupervisor'),
-    [switch] $ConfirmNuke
+    [switch] $ConfirmNuke,
+    [int] $ExcludeProcessId = 0
 )
 
 . (Join-Path $PSScriptRoot 'Supervisor.Common.ps1')
@@ -125,7 +126,7 @@ foreach ($secretSource in $secretCandidates) {
 
 $startScript = Join-Path $layout.Deployment 'Start-ScanToSee.ps1'
 if (Test-Path -LiteralPath $startScript -PathType Leaf) {
-    & $startScript -Action Stop -InstallRoot $layout.Root
+    & $startScript -Action Stop -InstallRoot $layout.Root -ExcludeProcessId $ExcludeProcessId
 }
 
 $scanUuids = @()
