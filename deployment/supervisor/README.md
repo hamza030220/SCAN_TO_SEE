@@ -812,8 +812,96 @@ computed directory.
    files or processes left by the first private installation.
 
 Git, XAMPP, Python, and other machine-level prerequisites intentionally remain
-installed; they contain no ScanToSee account secrets and make the second run a
-deployment retry rather than an operating-system provisioning benchmark.
+installed by default; they contain no ScanToSee account secrets and make the
+second run a deployment retry. To rehearse provisioning on a computer with no
+application prerequisites, use the test-machine-only procedure below.
+
+### 11.4 Optional cold-machine rehearsal: remove prerequisites too
+
+Use this section only on a disposable rehearsal computer that you own or are
+authorized to reset. Never run it on the supervisor's computer: Git, Python,
+XAMPP, or ngrok may have been installed for unrelated work.
+
+First complete emergency cleanup from section 11.1 and verify the expected
+`False`, `False`, `True` results. Keep the complete untouched USB bundle,
+including `secret.txt` and `checkpoint-765`.
+
+The observed rehearsal installation placed ngrok in the current user's scope.
+Open a normal, non-administrator PowerShell window and run:
+
+```powershell
+winget uninstall --id Ngrok.Ngrok --exact --silent --accept-source-agreements
+```
+
+If winget says the package is not installed, continue. Close that window, open
+Windows PowerShell as Administrator, and stop only processes whose executable
+is under `C:\xampp`:
+
+```powershell
+Get-CimInstance Win32_Process |
+  Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith('C:\xampp\', [StringComparison]::OrdinalIgnoreCase) } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+```
+
+Uninstall exactly the three machine prerequisites installed by the bundle:
+
+```powershell
+winget uninstall --id ApacheFriends.Xampp.8.2 --exact --silent --accept-source-agreements
+winget uninstall --id Python.Python.3.10 --exact --silent --accept-source-agreements
+winget uninstall --id Git.Git --exact --silent --accept-source-agreements
+```
+
+Some uninstallers and inference/package managers can leave non-secret program
+folders or download caches. Resolve and display the exact cleanup targets:
+
+```powershell
+$coldResetTargets = @(
+  'C:\xampp',
+  (Join-Path $env:LOCALAPPDATA 'Programs\Python\Python310'),
+  (Join-Path $env:ProgramFiles 'Git'),
+  (Join-Path $env:USERPROFILE '.paddlex'),
+  (Join-Path $env:USERPROFILE '.cache\huggingface'),
+  (Join-Path $env:LOCALAPPDATA 'pip\Cache'),
+  (Join-Path $env:LOCALAPPDATA 'Composer')
+) | ForEach-Object { [IO.Path]::GetFullPath($_).TrimEnd('\') } | Select-Object -Unique
+$coldResetTargets
+```
+
+Read every displayed path. They must be only the seven specific XAMPP, Python
+3.10, Git, PaddleX, Hugging Face, pip, and Composer paths above. They must not
+be `C:\`, `%USERPROFILE%`, `%LOCALAPPDATA%`, `%ProgramFiles%`, or another broad
+directory. Only after checking them, run in the same PowerShell window:
+
+```powershell
+foreach ($target in $coldResetTargets) {
+  if (Test-Path -LiteralPath $target) {
+    Remove-Item -LiteralPath $target -Recurse -Force
+  }
+}
+Remove-Variable coldResetTargets
+```
+
+Restart Windows. In a new ordinary PowerShell window, verify that the packages
+are no longer registered and that XAMPP is absent:
+
+```powershell
+winget list --id Ngrok.Ngrok --exact
+winget list --id ApacheFriends.Xampp.8.2 --exact
+winget list --id Python.Python.3.10 --exact
+winget list --id Git.Git --exact
+Test-Path 'C:\xampp\php\php.exe'
+```
+
+Each winget query should report no installed package and `Test-Path` should
+return `False`. Windows' `python.exe` application-execution alias may still be
+listed under `WindowsApps`; it is not an installed Python interpreter and the
+installer tests it before deciding whether Python 3.10 must be installed.
+
+Reconnect the secured USB, restore only its untouched `secret.txt` beside the
+installer, remove the USB again, and perform section 11.3. This run verifies
+WinGet provisioning, XAMPP/PHP/MariaDB configuration, Git cloning, Python and
+virtual-environment creation, dependency downloads, model initialization,
+ngrok configuration, 2FA, email, QR/phone access, and CPU/GPU OCR selection.
 
 ## 12. Security rules
 
