@@ -208,11 +208,21 @@ foreach ($root in @($layout.Web, $layout.Ai, $layout.Deployment)) {
     }
 }
 
-Write-Host 'Personal/demo data cleanup finished.' -ForegroundColor Green
-Write-Host 'Preserved: Git repositories, installed prerequisites, Python environment, and AI checkpoint.'
+if (!$sourceSecretPath) {
+    throw 'Cleanup removed private installation data, but the mandatory notice could not be placed because the recorded source secret.txt path was unavailable.'
+}
+if (Test-Path -LiteralPath $sourceSecretPath) {
+    throw "Cleanup could not remove the recorded source secret.txt: $sourceSecretPath"
+}
+$noticePath = Join-Path ([IO.Path]::GetDirectoryName($sourceSecretPath)) 'LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt'
+Write-CleanupNotice -Path $noticePath | Out-Null
+
 if ($findings.Count) {
     Write-Warning "Possible credential-shaped text remains in: $($findings | Sort-Object -Unique | ForEach-Object { "`n - $_" })"
     Write-Warning 'Review those files and rotate provider credentials if any were ever committed or copied elsewhere.'
 } else {
     Write-Host 'Post-cleanup scan found no high-confidence credential prefixes outside Git metadata.' -ForegroundColor Green
 }
+Write-Host 'Personal/demo data cleanup finished.' -ForegroundColor Green
+Write-Host 'Preserved: Git repositories, installed prerequisites, Python environment, and AI checkpoint.'
+Write-Host "Mandatory cleanup notice created: $noticePath" -ForegroundColor Green

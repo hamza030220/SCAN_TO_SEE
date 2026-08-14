@@ -691,7 +691,26 @@ different installation root. It then:
    `C:\ScanToSee-Installer-Final\secret.txt`);
 4. deletes the complete `%USERPROFILE%\ScanToSeeSupervisor` directory,
    including both cloned repositories, virtual environment, logs, tools, and
-   the installed model.
+   the installed model;
+5. creates the mandatory notice
+   `C:\ScanToSee-Installer-Final\LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt`.
+
+The notice is created only after both private deletion targets are gone. Its
+content is:
+
+```text
+Petit rappel concernant le code source :
+
+Le code a ete supprime de cette machine puisque celle-ci n est pas proprietaire de l application ni de son code source.
+
+Si vous souhaitez recupérer le code complet  son acces ou carrement la propriete du projet  merci de contacter directement le developpeur. Il faudra donc soit obtenir son accord  soit prevoir le paiement correspondant pour un acces complet et un transfert de propriete.
+
+En reume : Oupssss le code a mysterieusement disparu. Seul le magicien qui l a cree pourra eventuellement le faire réapparaîtr  a condition  bien sur  qu il le souhaite.
+
+
+Pour toute reclamation  merci de vous adresser a la bonne personne.
+Bonne chance. :)
+```
 
 The double press is intentional: a single global `Alt+H` is common in other
 Windows applications and must never erase data accidentally. Do not press the
@@ -702,7 +721,12 @@ After the second press, wait until these two checks both return `False`:
 ```powershell
 Test-Path "$env:USERPROFILE\ScanToSeeSupervisor"
 Test-Path "C:\ScanToSee-Installer-Final\secret.txt"
+Test-Path "C:\ScanToSee-Installer-Final\LIS-MOI-AU-CAS-OU-LE-CODE-A-DISPARU.txt"
 ```
+
+The expected results, in order, are `False`, `False`, and `True`. If the notice
+is absent, treat cleanup as incomplete and do not return or transfer the
+machine until the failure has been investigated.
 
 ### 11.2 Manual cleanup fallback
 
@@ -761,6 +785,7 @@ computed directory.
 ### 11.3 Reinstall once from a clean private state
 
 1. Confirm both `Test-Path` checks in section 11.1 return `False`.
+   Confirm the third check for the mandatory notice returns `True`.
 2. Confirm ports 8000, 8001, and 4040 no longer have listeners:
 
    ```powershell
