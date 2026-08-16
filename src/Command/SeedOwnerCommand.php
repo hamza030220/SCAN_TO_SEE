@@ -133,6 +133,7 @@ class SeedOwnerCommand extends Command
             $business = new Business();
             $business->setOwner($user);
             $business->setName($businessName);
+            $business->setSlug($this->makeSlug($businessName));
             $this->em->persist($business);
 
             foreach ($menus as $menuName => $categories) {
