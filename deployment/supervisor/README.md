@@ -100,6 +100,13 @@ Before starting, confirm that the computer has:
   standards-compatible TOTP authenticator installed;
 - ports 8000, 8001, 3306, and 4040 available.
 
+Windows Package Manager (`winget`) must be available before the ScanToSee
+installer starts. On a clean Windows 10 installation, install/update the
+Microsoft **App Installer** application from Microsoft Store, restart Windows,
+and verify `winget --version`. The installer uses the official ngrok Microsoft
+Store listing because the WinGet community package can still provide obsolete
+ngrok `3.3.1`.
+
 The computer does not need an NVIDIA GPU. The installer attempts the supported
 CUDA PyTorch package when an NVIDIA GPU is detected. If CUDA installation or
 initialization fails, inference automatically uses CPU. Training is not
@@ -300,7 +307,8 @@ installing anything.
 After preflight, it:
 
 1. installs missing prerequisites with Windows Package Manager;
-2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, and ngrok;
+2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, and a supported
+   ngrok from its official Microsoft Store listing;
 3. enables the PHP extensions required by Symfony (including ZIP), combines
    the verified Mozilla CA bundle with the machine's Windows trusted roots,
    installs that CA file into PHP configuration, and copies the verified
@@ -665,6 +673,13 @@ The response should contain `status` equal to `ok`.
 The `NGROK_AUTHTOKEN` in `secret.txt` may be expired or revoked. Generate a new
 private bundle using a valid ngrok account token, or replace the value locally
 and rerun installation.
+
+If the output reports ngrok `3.3.1`, the obsolete WinGet community package was
+selected. The current installer searches every available `ngrok.exe`, selects
+the newest working version, requires at least `3.20.0`, and installs Store
+product `9MVS1J51GMK6` when necessary. Replace the installer and
+`USB-SHA256.txt` with the current bundle, ensure Microsoft Store is available,
+then rerun.
 
 ## 11. Destructive cleanup and clean-reinstallation rehearsal
 

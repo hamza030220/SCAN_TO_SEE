@@ -45,9 +45,18 @@ function Assert-Administrator {
 }
 
 function Install-WinGetPackage {
-    param([Parameter(Mandatory)][string] $Id, [Parameter(Mandatory)][string] $DisplayName)
+    param(
+        [Parameter(Mandatory)][string] $Id,
+        [Parameter(Mandatory)][string] $DisplayName,
+        [string] $Source = ''
+    )
     Write-Host "Ensuring $DisplayName is installed..." -ForegroundColor Cyan
-    & winget install --id $Id --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+    $arguments = @(
+        'install', '--id', $Id, '--exact', '--silent',
+        '--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity'
+    )
+    if ($Source) { $arguments += @('--source', $Source) }
+    & winget @arguments
     if ($LASTEXITCODE -notin @(0, -1978335189)) {
         throw "WinGet could not install $DisplayName (exit code $LASTEXITCODE)."
     }
@@ -55,15 +64,26 @@ function Install-WinGetPackage {
 }
 
 function Resolve-NgrokExecutable {
-    $command = Get-Command ngrok.exe -ErrorAction SilentlyContinue
-    if (!$command) { throw 'ngrok.exe is not available in PATH after installation.' }
-    try {
-        & $command.Source version
-    } catch {
-        throw "The installed ngrok command is blocked or unavailable. Open Windows Security > Protection history, review the ngrok detection, and allow it only if it is the official Ngrok.Ngrok Store package. Then verify 'ngrok version' and rerun. Windows reported: $($_.Exception.Message)"
+    $minimumVersion = [version] '3.20.0'
+    $working = @()
+    $candidates = @(Get-Command ngrok.exe -All -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -Unique)
+    foreach ($candidate in $candidates) {
+        try {
+            $versionOutput = @(& $candidate version 2>&1) -join "`n"
+            if ($LASTEXITCODE -eq 0 -and $versionOutput -match '(?i)ngrok version\s+v?(\d+\.\d+\.\d+)') {
+                $working += [pscustomobject]@{ Path = $candidate; Version = [version] $Matches[1] }
+            }
+        } catch { continue }
     }
-    if ($LASTEXITCODE -ne 0) { throw 'The installed ngrok command failed its version test.' }
-    return $command.Source
+    if (!$working.Count) {
+        throw 'ngrok.exe is unavailable or blocked after installation.'
+    }
+    $selected = $working | Sort-Object Version -Descending | Select-Object -First 1
+    if ($selected.Version -lt $minimumVersion) {
+        throw "ngrok $($selected.Version) is obsolete; version $minimumVersion or newer is required."
+    }
+    Write-Host "Using ngrok $($selected.Version) from $($selected.Path)" -ForegroundColor Green
+    return $selected.Path
 }
 
 function Install-BundledComposer {
@@ -253,7 +273,15 @@ $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
 if (!$winget) { throw 'Windows Package Manager (winget) is required. Install Microsoft App Installer and rerun.' }
 
 if (!(Get-Command git.exe -ErrorAction SilentlyContinue)) { Install-WinGetPackage -Id 'Git.Git' -DisplayName 'Git' }
-if (!(Get-Command ngrok.exe -ErrorAction SilentlyContinue)) { Install-WinGetPackage -Id 'Ngrok.Ngrok' -DisplayName 'ngrok' }
+$ngrokReady = $false
+try { $null = Resolve-NgrokExecutable; $ngrokReady = $true } catch {
+    Write-Warning $_.Exception.Message
+}
+if (!$ngrokReady) {
+    # The WinGet community package is pinned to obsolete ngrok 3.3.1. Use the
+    # official Microsoft Store listing maintained by ngrok instead.
+    Install-WinGetPackage -Id '9MVS1J51GMK6' -DisplayName 'current ngrok from Microsoft Store' -Source 'msstore'
+}
 if (!(Test-Path -LiteralPath 'C:\xampp\php\php.exe')) {
     Install-WinGetPackage -Id 'ApacheFriends.Xampp.8.2' -DisplayName 'XAMPP 8.2 (PHP and MariaDB)'
 }
