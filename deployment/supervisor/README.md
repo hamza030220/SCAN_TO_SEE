@@ -307,8 +307,9 @@ installing anything.
 After preflight, it:
 
 1. installs missing prerequisites with Windows Package Manager;
-2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, and a supported
-   ngrok from its official Microsoft Store listing;
+2. installs or locates Git, XAMPP/PHP/MariaDB, Python 3.10, the current
+   Microsoft Visual C++ x64 runtime, and a supported ngrok from its official
+   Microsoft Store listing;
 3. enables the PHP extensions required by Symfony (including ZIP), combines
    the verified Mozilla CA bundle with the machine's Windows trusted roots,
    installs that CA file into PHP configuration, and copies the verified
@@ -650,6 +651,13 @@ Open `fastapi.err.log`. Confirm the model file exists:
 ```powershell
 Test-Path "$env:USERPROFILE\ScanToSeeSupervisor\handwritten-menu-scanner\models\trocr_menu_v1_digits_v3\checkpoints\checkpoint-765\model.safetensors"
 ```
+
+If Python exits with `-1073741819` and Windows Event Viewer names
+`msvcp140.dll` version `14.28`, XAMPP installed an obsolete Visual C++ runtime.
+The current installer installs/upgrades `Microsoft.VCRedist.2015+.x64` after
+XAMPP and requires runtime `14.30` or newer before importing Transformers.
+Replace `Install-ScanToSee.ps1` plus `USB-SHA256.txt` with the current bundle
+and rerun after restarting Windows.
 
 Confirm FastAPI health:
 

@@ -86,6 +86,22 @@ function Resolve-NgrokExecutable {
     return $selected.Path
 }
 
+function Assert-VisualCppRuntime {
+    $runtimePath = 'C:\Windows\System32\msvcp140.dll'
+    if (!(Test-Path -LiteralPath $runtimePath -PathType Leaf)) {
+        throw 'Microsoft Visual C++ x64 runtime is missing after installation.'
+    }
+    $versionText = (Get-Item -LiteralPath $runtimePath).VersionInfo.FileVersion
+    if ($versionText -notmatch '(\d+\.\d+\.\d+\.\d+)') {
+        throw "Microsoft Visual C++ runtime version could not be read: $versionText"
+    }
+    $runtimeVersion = [version] $Matches[1]
+    if ($runtimeVersion -lt [version] '14.30.0.0') {
+        throw "Microsoft Visual C++ runtime $runtimeVersion is obsolete; version 14.30 or newer is required."
+    }
+    Write-Host "Microsoft Visual C++ runtime $runtimeVersion is ready." -ForegroundColor Green
+}
+
 function Install-BundledComposer {
     param(
         [Parameter(Mandatory)][string] $Source,
@@ -288,6 +304,11 @@ if (!(Test-Path -LiteralPath 'C:\xampp\php\php.exe')) {
 try { $null = Resolve-PythonExecutable } catch {
     Install-WinGetPackage -Id 'Python.Python.3.10' -DisplayName 'Python 3.10'
 }
+# XAMPP 8.2 can install the old 14.28 runtime on a clean Windows 10 machine.
+# Current native Python extensions used by Transformers require a newer v14
+# runtime and otherwise crash inside msvcp140.dll with 0xc0000005.
+Install-WinGetPackage -Id 'Microsoft.VCRedist.2015+.x64' -DisplayName 'current Microsoft Visual C++ x64 runtime'
+Assert-VisualCppRuntime
 
 $script:PhpExecutable = Resolve-PhpExecutable
 $python = Resolve-PythonExecutable
