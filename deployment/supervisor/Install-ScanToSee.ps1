@@ -312,7 +312,15 @@ Assert-VisualCppRuntime
 
 $script:PhpExecutable = Resolve-PhpExecutable
 $python = Resolve-PythonExecutable
-$script:NgrokExecutable = Resolve-NgrokExecutable
+# A Microsoft Store execution alias can emit its version text into the success
+# stream even while the probe captures native output. Always take the final
+# value returned by Resolve-NgrokExecutable, which is the validated path, so
+# the diagnostic text can never be mistaken for part of the executable name.
+$ngrokResolution = @(Resolve-NgrokExecutable)
+$script:NgrokExecutable = [string] $ngrokResolution[-1]
+if ([string]::IsNullOrWhiteSpace($script:NgrokExecutable)) {
+    throw 'The validated ngrok executable path was empty.'
+}
 $script:MySqlExecutable = Resolve-MySqlExecutable
 $phpVersion = & $script:PhpExecutable -r 'echo PHP_MAJOR_VERSION * 100 + PHP_MINOR_VERSION;'
 if ($LASTEXITCODE -ne 0 -or [int] $phpVersion -lt 802 -or [int] $phpVersion -ge 900) {
