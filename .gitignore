@@ -57,3 +57,11 @@ symfony-integration-plan.md
 *.integration-plan.md
 SECURITY_AUDIT_PRIVATE.md
 ###< Internal planning docs ###
+
+###> Supervisor deployment private bundle ###
+/deployment/supervisor/secret.txt
+/deployment/supervisor/checkpoint-765/
+/deployment/supervisor/USB-SHA256.txt
+/deployment/supervisor/composer.phar
+/deployment/supervisor/cacert.pem
+###< Supervisor deployment private bundle ###

@@ -364,14 +364,23 @@ async function callScan(file,currency){
   var fd=new FormData(); fd.append('image',file); fd.append('currency',currency);
   fd.append('_token',SCAN_CSRF); fd.append('data_terms_accepted',dataTerms.checked?'1':'0');
   if(MENU_ID) fd.append('menu_id',String(MENU_ID));
-  var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest'}});
-  var json=await resp.json();
+  var resp=await fetch(SCAN_URL,{method:'POST',body:fd,headers:{'X-Requested-With':'XMLHttpRequest','Accept':'application/json'}});
+  var json=await readJsonResponse(resp,'The scanner server returned an invalid response.');
   if(!resp.ok) throw new Error(json.error||'Scan failed. Please retry.');
   if(json.trial_ai_remaining!==undefined&&json.trial_ai_used!==undefined){
     var usage=document.getElementById('wsTrialUses');
     if(usage) usage.textContent=json.trial_ai_used+'/3 used · '+json.trial_ai_remaining+' remaining';
   }
   return json;
+}
+
+async function readJsonResponse(response,fallback){
+  var body=await response.text();
+  try{ return body?JSON.parse(body):{}; }
+  catch(e){
+    var suffix=response.status?' (HTTP '+response.status+')':'';
+    throw new Error(fallback+suffix+' Check the application logs.');
+  }
 }
 
 function showOverlay(i){ var o=document.getElementById('wsOverlay-'+i),img=document.getElementById('wsCardImg-'+i); if(o)o.style.display='block'; if(img)img.classList.add('scanning'); }
@@ -569,8 +578,8 @@ saveBtn.addEventListener('click', async function(){
   saveBtn.disabled=true;
   saveBtn.childNodes[saveBtn.childNodes.length-1].nodeValue=' Saving…';
   try{
-    var resp=await fetch(SAVE_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},body:JSON.stringify(payload)});
-    var json=await resp.json();
+    var resp=await fetch(SAVE_URL,{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','Accept':'application/json'},body:JSON.stringify(payload)});
+    var json=await readJsonResponse(resp,'The menu server returned an invalid response.');
     if(json.ok){ window.location.href=json.redirect; }
     else throw new Error(json.error||'Save failed.');
   } catch(e){
